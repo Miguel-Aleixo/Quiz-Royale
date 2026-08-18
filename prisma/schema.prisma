@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Patente {
+  id        Int    @id @default(autoincrement())
+  nome      String @unique
+
+  usuarios  Usuario[]
+}
+
+model Usuario {
+  id        Int     @id @default(autoincrement())
+  nome      String
+  email     String  @unique
+  senha     String
+  patenteId Int 
+
+  patente   Patente @relation(fields: [patenteId], references: [id])
+
+  jogadores Jogador[]
+}
+
+model Jogador {
+  id           Int     @id @default(autoincrement())
+  usuarioId    Int    
+  salaId       Int
+  eliminado    Boolean @default(false)
+
+  usuario      Usuario @relation(fields: [usuarioId], references: [id])
+  sala         Sala    @relation(fields: [salaId], references: [id])
+  respostas    Resposta[]
+}
+
+model Sala {
+  id           Int    @id @default(autoincrement())
+  codigo       String @unique
+  status       String @default("aberta")
+  maxJogadores Int 
+
+  jogadores    Jogador[]
+  rodadas      Rodada[]
+}
+
+model Rodada {
+  id           Int  @id @default(autoincrement())
+  perguntaId   Int
+  salaId       Int
+  tempoLimite  Int
+
+  pergunta Pergunta @relation(fields: [perguntaId], references: [id])
+  sala     Sala     @relation(fields: [salaId], references: [id])
+}
+
+
+model Tema {
+  id        Int    @id @default(autoincrement())
+  nome      String @unique
+
+  perguntas Pergunta[]
+}
+
+model Pergunta {
+  id           Int    @id @default(autoincrement())
+  enunciado    String @unique
+  temaId       Int
+
+  tema         Tema   @relation(fields: [temaId], references: [id])
+  rodadas      Rodada[]
+  alternativas Alternativa[]
+}
+
+model Alternativa {
+  id          Int      @id @default(autoincrement())
+  perguntaId  Int
+  texto       String
+  correta     Boolean  @default(false)
+
+  pergunta    Pergunta @relation(fields: [perguntaId], references: [id])
+  respostas   Resposta[]
+}
+
+model Resposta {
+  id            Int         @id @default(autoincrement())
+  tempoResposta Int
+  jogadorId     Int
+  alternativaId Int
+
+  jogador       Jogador     @relation(fields: [jogadorId], references: [id])
+  alternativa   Alternativa @relation(fields: [alternativaId], references: [id])
+}
