@@ -20,6 +20,18 @@ export class UsuarioService {
     })
   };
 
+  async createAdmin(createUsuarioDto: CreateUsuarioDto) {
+
+    const senhaHash = await bcrypt.hash(
+      createUsuarioDto.senha,
+      10
+    );
+
+    return await this.prisma.usuario.create({
+      data: { ...createUsuarioDto, senha: senhaHash, role: 'ADMIN' }
+    })
+  };
+
   async findAll() {
     return await this.prisma.usuario.findMany()
   };

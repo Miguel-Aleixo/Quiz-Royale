@@ -11,6 +11,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  ADMIN
+  JOGADOR
+}
+
 model Patente {
   id        Int    @id @default(autoincrement())
   nome      String @unique
@@ -23,6 +28,7 @@ model Usuario {
   nome      String
   email     String  @unique
   senha     String
+  role      Role     @default(JOGADOR)
   patenteId Int 
 
   patente   Patente @relation(fields: [patenteId], references: [id])
