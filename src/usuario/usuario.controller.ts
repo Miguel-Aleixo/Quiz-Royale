@@ -20,7 +20,7 @@ export class UsuarioController {
     return this.usuarioService.create(createUsuarioDto);
   }
 
-  @Post()
+  @Post('/admin')
   async createAdmin(@Body() createUsuarioDto: CreateUsuarioDto) {
     const emailExiste = await this.usuarioService.findByEmail(createUsuarioDto.email);
 
