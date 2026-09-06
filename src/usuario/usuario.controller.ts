@@ -28,7 +28,7 @@ export class UsuarioController {
       return new ConflictException('Esse email já está sendo usado!')
     };
 
-    return this.usuarioService.create(createUsuarioDto);
+    return this.usuarioService.createAdmin(createUsuarioDto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { CreatePatenteDto } from './dto/create-patente.dto';
 import { UpdatePatenteDto } from './dto/update-patente.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -35,11 +35,22 @@ export class PatenteService {
   };
 
   async remove(id: number) {
+    const usuarios = await this.prisma.usuario.count({
+      where: {
+        patenteId: id,
+      },
+    });
+
+    if (usuarios > 0) {
+      throw new ConflictException(
+        `Não é possível excluir esta patente. Existem ${usuarios} usuário(s) vinculados a ela.`,
+      );
+    }
+
     return await this.prisma.patente.delete({
       where: {
-        id: id
-      }
-    })
-  };
-
+        id,
+      },
+    });
+  }
 }

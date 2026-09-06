@@ -16,7 +16,7 @@ export class UsuarioService {
     );
 
     return await this.prisma.usuario.create({
-      data: { ...createUsuarioDto, senha: senhaHash }
+      data: { ...createUsuarioDto, senha: senhaHash, role: 'JOGADOR' }
     })
   };
 
