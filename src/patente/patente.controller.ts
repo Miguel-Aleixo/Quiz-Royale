@@ -17,7 +17,7 @@ export class PatenteController {
     const patenteExiste = await this.patenteService.findName(createPatenteDto.nome);
 
     if (patenteExiste) {
-      return new ConflictException('Essa patente já existe!')
+      throw new ConflictException('Essa patente já existe!')
     };
 
     return this.patenteService.create(createPatenteDto);
@@ -34,13 +34,18 @@ export class PatenteController {
   @Roles('ADMIN')
   @Patch(':id')
   async update(@Param('id') id: string, @Body() updatePatenteDto: UpdatePatenteDto) {
-    const patenteExiste = await this.patenteService.findName(updatePatenteDto.nome!);
 
-    if (patenteExiste) {
-      return new ConflictException('Essa patente já existe!')
-    };
+    const patenteId = Number(id);
 
-    return this.patenteService.update(Number(id), updatePatenteDto);
+    if (updatePatenteDto.nome) {
+      const patenteExiste = await this.patenteService.findName(updatePatenteDto.nome)
+
+      if (patenteExiste && patenteExiste.id !== patenteId) {
+        throw new ConflictException('Essa patente já existe!');
+      }
+    }
+
+    return this.patenteService.update(patenteId,updatePatenteDto);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
