@@ -7,7 +7,6 @@ export class CreateSalaDto {
     @IsString()
     nome!: string;
 
-    @IsNotEmpty({ message: 'Código não pode ser vazio' })
     @IsString()
     codigo!: string
 

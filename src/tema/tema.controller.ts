@@ -17,7 +17,7 @@ export class TemaController {
     const temaExiste = await this.temaService.findName(createTemaDto.nome);
 
     if (temaExiste) {
-      return new ConflictException('Essa patente já existe!')
+      throw new ConflictException('Essa patente já existe!')
     };
 
     return this.temaService.create(createTemaDto);
@@ -34,11 +34,16 @@ export class TemaController {
   @Roles('ADMIN')
   @Patch(':id')
   async update(@Param('id') id: string, @Body() updateTemaDto: UpdateTemaDto) {
-    const TemaExiste = await this.temaService.findName(updateTemaDto.nome!);
 
-    if (TemaExiste) {
-      return new ConflictException('Esse tema já existe!')
-    };
+    const temaId = Number(id);
+
+    if (updateTemaDto.nome) {
+      const temaExiste = await this.temaService.findName(updateTemaDto.nome)
+
+      if (temaExiste && temaExiste.id !== temaId) {
+        throw new ConflictException('Esse tema já existe!');
+      }
+    }
 
     return this.temaService.update(Number(id), updateTemaDto);
   };
