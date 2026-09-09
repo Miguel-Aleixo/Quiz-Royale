@@ -7,9 +7,6 @@ export class CreateSalaDto {
     @IsString()
     nome!: string;
 
-    @IsString()
-    codigo!: string
-
     @IsNotEmpty({ message: 'O número de jogadores não pode ser vazio!' })
     @IsInt({ message: 'O número de jogadores deve ser um número!' })
     @Min(1, { message: 'A sala deve ter pelo menos 1 jogador.' })

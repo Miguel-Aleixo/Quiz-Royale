@@ -25,9 +25,9 @@ export class SalaController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Post()
   async create(@Body() createSalaDto: CreateSalaDto) {
-    createSalaDto.codigo = this.gerarCodigo();
+    const codigo = this.gerarCodigo();
 
-    return await this.salaService.create(createSalaDto);
+    return await this.salaService.create(createSalaDto, codigo);
   };
 
   @UseGuards(JwtAuthGuard, RolesGuard)

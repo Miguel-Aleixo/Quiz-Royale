@@ -7,9 +7,9 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class SalaService {
   constructor ( private readonly prisma: PrismaService ) {}
 
-  async create(createSalaDto: CreateSalaDto) {
+  async create(createSalaDto: CreateSalaDto, codigo: string) {
     return await this.prisma.sala.create({
-      data: createSalaDto
+      data: {...createSalaDto, codigo}
     })
   };
 
