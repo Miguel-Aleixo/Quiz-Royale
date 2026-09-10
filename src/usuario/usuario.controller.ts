@@ -15,7 +15,7 @@ export class UsuarioController {
 
     if (emailExiste) {
       return new ConflictException('Esse email já está sendo usado!')
-    };
+    };  
 
     return this.usuarioService.create(createUsuarioDto);
   }
