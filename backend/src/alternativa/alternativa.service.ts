@@ -10,7 +10,7 @@ export class AlternativaService {
   async create(createAlternativaDto: CreateAlternativaDto) {
     return await this.prisma.alternativa.create({
       data: createAlternativaDto
-    })
+    }) 
   };
 
   async findAll() {
