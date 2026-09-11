@@ -23,8 +23,8 @@ export class AuthService {
     }
 
     const senhaValida = await bcrypt.compare(
-      senha,
-      usuario.senha,
+      senha ,
+      usuario.senha ,
     );
 
     if (!senhaValida) {
