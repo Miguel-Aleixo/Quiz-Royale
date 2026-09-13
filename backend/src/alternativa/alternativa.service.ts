@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateAlternativaDto } from './dto/create-alternativa.dto';
 import { UpdateAlternativaDto } from './dto/update-alternativa.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AlternativaService {

@@ -2,9 +2,9 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, ConflictException, U
 import { PerguntaService } from './pergunta.service';
 import { CreatePerguntaDto } from './dto/create-pergunta.dto';
 import { UpdatePerguntaDto } from './dto/update-pergunta.dto';
-import { TemaService } from 'src/tema/tema.service';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { TemaService } from '../tema/tema.service';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('pergunta')
 export class PerguntaController {

@@ -2,9 +2,9 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, ConflictException, U
 import { PatenteService } from './patente.service';
 import { CreatePatenteDto } from './dto/create-patente.dto';
 import { UpdatePatenteDto } from './dto/update-patente.dto';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { Roles } from 'src/auth/decorators/roles.decorators';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles } from '../auth/decorators/roles.decorators';
 
 @Controller('patente')
 export class PatenteController {

@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { AuthModule } from './auth/auth.module';
+
 import { UsuarioModule } from './usuario/usuario.module';
 import { PatenteModule } from './patente/patente.module';
-import { PrismaService } from './prisma/prisma.service';
 import { TemaModule } from './tema/tema.module';
 import { PerguntaModule } from './pergunta/pergunta.module';
 import { JogadorModule } from './jogador/jogador.module';
@@ -11,13 +12,16 @@ import { SalaModule } from './sala/sala.module';
 import { RodadaModule } from './rodada/rodada.module';
 import { AlternativaModule } from './alternativa/alternativa.module';
 import { RespostaModule } from './resposta/resposta.module';
-import { AuthModule } from './auth/auth.module';
+
+import { PrismaService } from './prisma/prisma.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+
+    AuthModule,
 
     UsuarioModule,
     PatenteModule,
@@ -28,9 +32,10 @@ import { AuthModule } from './auth/auth.module';
     RodadaModule,
     AlternativaModule,
     RespostaModule,
-    AuthModule,
   ],
 
-  providers: [PrismaService],
+  providers: [
+    PrismaService,
+  ],
 })
 export class AppModule {}

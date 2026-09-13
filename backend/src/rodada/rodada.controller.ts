@@ -2,10 +2,10 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, ConflictException, U
 import { RodadaService } from './rodada.service';
 import { CreateRodadaDto } from './dto/create-rodada.dto';
 import { UpdateRodadaDto } from './dto/update-rodada.dto';
-import { PerguntaService } from 'src/pergunta/pergunta.service';
-import { SalaService } from 'src/sala/sala.service';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PerguntaService } from '../pergunta/pergunta.service';
+import { SalaService } from '../sala/sala.service';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('rodada')
 export class RodadaController {

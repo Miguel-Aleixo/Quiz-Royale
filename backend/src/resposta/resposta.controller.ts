@@ -2,10 +2,10 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, ConflictException, U
 import { RespostaService } from './resposta.service';
 import { CreateRespostaDto } from './dto/create-resposta.dto';
 import { UpdateRespostaDto } from './dto/update-resposta.dto';
-import { AlternativaService } from 'src/alternativa/alternativa.service';
-import { JogadorService } from 'src/jogador/jogador.service';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { AlternativaService } from '../alternativa/alternativa.service';
+import { JogadorService } from '../jogador/jogador.service';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('resposta')
 export class RespostaController {

@@ -1,4 +1,4 @@
-import { IsEmail, IsInt, IsNotEmpty, IsString, MinLength } from "class-validator";
+import { IsEmail, IsInt, IsNotEmpty, IsString, MinLength, IsOptional } from "class-validator";
 
 export class CreateUsuarioDto {
 
@@ -15,6 +15,7 @@ export class CreateUsuarioDto {
     @MinLength(8, { message: 'A senha deve ter no minimo 8 carecteres!' })
     senha!: string
 
+    @IsOptional()
     @IsNotEmpty({ message: 'Patente é obrigatória!' })
     @IsInt({ message: 'Patente deve ser um número!' })
     patenteId!: number;

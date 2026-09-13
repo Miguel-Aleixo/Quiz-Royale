@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PatenteService } from './patente.service';
 import { PatenteController } from './patente.controller';
-import { PrismaModule } from 'src/prisma/prisma.module';
+import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
   imports: [PrismaModule],

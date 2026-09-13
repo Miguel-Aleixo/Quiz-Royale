@@ -29,9 +29,9 @@ model Usuario {
   email     String  @unique
   senha     String
   role      Role     @default(JOGADOR)
-  patenteId Int 
+  patenteId Int?
 
-  patente   Patente @relation(fields: [patenteId], references: [id])
+  patente   Patente? @relation(fields: [patenteId], references: [id])
 
   jogadores Jogador[]
 }

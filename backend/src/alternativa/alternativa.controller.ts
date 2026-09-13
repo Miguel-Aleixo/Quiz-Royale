@@ -2,9 +2,9 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, ConflictException, U
 import { AlternativaService } from './alternativa.service';
 import { CreateAlternativaDto } from './dto/create-alternativa.dto';
 import { UpdateAlternativaDto } from './dto/update-alternativa.dto';
-import { PerguntaService } from 'src/pergunta/pergunta.service';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PerguntaService } from '../pergunta/pergunta.service';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('alternativa')
 export class AlternativaController {

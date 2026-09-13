@@ -2,10 +2,10 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, ConflictException, U
 import { JogadorService } from './jogador.service';
 import { CreateJogadorDto } from './dto/create-jogador.dto';
 import { UpdateJogadorDto } from './dto/update-jogador.dto';
-import { UsuarioService } from 'src/usuario/usuario.service';
-import { SalaService } from 'src/sala/sala.service';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { UsuarioService } from '../usuario/usuario.service';
+import { SalaService } from '../sala/sala.service';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('jogador')
 export class JogadorController {

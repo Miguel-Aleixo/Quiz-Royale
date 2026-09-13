@@ -12,36 +12,69 @@ import {
 } from "lucide-react";
 
 export default function CadastroPage() {
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
+  const API = process.env.NEXT_PUBLIC_API
+
+  const [form, setForm] = useState({
+    nome: '',
+    email: '',
+    senha: ''
+  });
+
   const [confirmarSenha, setConfirmarSenha] = useState("");
 
-  function handleCadastro(e: React.FormEvent) {
+  const handleCadastro = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (senha !== confirmarSenha) {
+    if (form.senha !== confirmarSenha) {
       alert("As senhas não coincidem.");
       return;
+    } 
+
+    try {
+      const res = await fetch(`${API}/usuario`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          nome: form.nome.trim(),
+          email: form.email.trim(),
+          senha: form.senha,
+          patenteId: 1
+        })
+      });
+
+      const data = await res.json();
+
+
+      if (!res.ok) {
+        throw new Error(
+          Array.isArray(data.message)
+            ? data.message.join(", ")
+            : data.message || "Falha no cadastro"
+        );
+      };
+
+      alert('Usuario cadastrado!')
+      setForm({
+        nome: '',
+        email: '',
+        senha: ''
+      })
+
+    } catch (err) {
+      alert("Erro ao cadastrar usuário.");
+      console.error(err);
     }
-
-    console.log({
-      nome,
-      email,
-      senha,
-    });
-
-    // Depois vamos conectar ao seu backend:
-    // POST /auth/cadastro
   }
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080812] px-6 py-10 text-white">
       {/* Background */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-[-250px] h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-purple-700/20 blur-[140px]" />
-        <div className="absolute bottom-[-200px] left-[-150px] h-[500px] w-[500px] rounded-full bg-indigo-700/10 blur-[130px]" />
-        <div className="absolute right-[-150px] top-1/3 h-[500px] w-[500px] rounded-full bg-blue-700/10 blur-[130px]" />
+        <div className="absolute left-1/2 top-62.5 h-150 w-150 -translate-x-1/2 rounded-full bg-purple-700/20 blur-[140px]" />
+        <div className="absolute bottom-50 -left-37.5 h-125 w-125 rounded-full bg-indigo-700/10 blur-[130px]" />
+        <div className="absolute right-37.5 top-1/3 h-125 w-125 rounded-full bg-blue-700/10 blur-[130px]" />
       </div>
 
       <div className="relative z-10 w-full max-w-md">
@@ -83,8 +116,8 @@ export default function CadastroPage() {
 
                 <input
                   type="text"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
+                  value={form.nome}
+                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
                   placeholder="Seu nome"
                   required
                   className="
@@ -117,8 +150,8 @@ export default function CadastroPage() {
 
                 <input
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="seu@email.com"
                   required
                   className="
@@ -151,8 +184,8 @@ export default function CadastroPage() {
 
                 <input
                   type="password"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
+                  value={form.senha}
+                  onChange={(e) => setForm({ ...form, senha: e.target.value })}
                   placeholder="Crie uma senha"
                   required
                   minLength={6}

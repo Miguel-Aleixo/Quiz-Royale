@@ -1,7 +1,7 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { CreatePatenteDto } from './dto/create-patente.dto';
 import { UpdatePatenteDto } from './dto/update-patente.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class PatenteService {

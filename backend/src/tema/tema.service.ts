@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateTemaDto } from './dto/create-tema.dto';
 import { UpdateTemaDto } from './dto/update-tema.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { time } from 'console';
 
 @Injectable()
