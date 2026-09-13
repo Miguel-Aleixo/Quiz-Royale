@@ -2,189 +2,143 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Crown, Mail, Lock, ArrowRight, Shield } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Check, Crown, Eye, EyeOff, Lock, Mail, Sparkles } from "lucide-react";
+import Cookies from "js-cookie";
+import LoadingOverlay from "@/app/components/Loading";
+import { useRouter } from "next/navigation";
+import { useToken } from "@/app/hooks/useToken";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
+  const API = process.env.NEXT_PUBLIC_API;
 
-  function handleLogin(e: React.FormEvent) {
+  const router = useRouter()
+
+  const [form, setForm] = useState({ email: "", senha: "" });
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log({
-      email,
-      senha,
-    });
+    setLoading(true);
 
-    // Depois vamos conectar ao seu backend:
-    // POST /auth/login
-  }
+    try {
+      const res = await fetch(`${API}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email.trim(), senha: form.senha }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(Array.isArray(data.message) ? data.message.join(", ") : data.message || "Falha no login");
+      }
+
+      Cookies.set("token", data.token, { expires: 1 });
+
+      const token = useToken();
+
+      if(token?.role == 'ADMIN') {
+        router.push('dashboard')
+      } else {
+        router.push('/')
+      }
+      
+    } catch (err) {
+      alert("Erro ao logar usuário.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080812] px-6 text-white">
-      {/* Background */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-[-250px] h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-purple-700/20 blur-[140px]" />
-        <div className="absolute bottom-[-200px] left-[-150px] h-[500px] w-[500px] rounded-full bg-indigo-700/10 blur-[130px]" />
-        <div className="absolute right-[-150px] top-1/3 h-[500px] w-[500px] rounded-full bg-blue-700/10 blur-[130px]" />
-      </div>
+    <main className="min-h-screen overflow-hidden bg-[#080812] text-white selection:bg-purple-400 selection:text-white">
+      <LoadingOverlay show={loading} message="Autenticando..." />
 
-      <div className="relative z-10 w-full max-w-md">
-        {/* Logo */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 shadow-xl shadow-purple-900/30">
-            <Crown size={30} />
-          </div>
+      <div className="mx-auto grid min-h-screen  lg:grid-cols-[minmax(420px,0.88fr)_minmax(560px,1.12fr)]">
+        {/* Área de acesso */}
+        <section className="relative flex min-h-screen items-center justify-center px-6 py-10 sm:px-10 lg:px-14 xl:px-20">
+          <div className="absolute left-0 top-0 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-700/20 blur-3xl" />
 
-          <h1 className="text-2xl font-black">
-            QUIZ <span className="text-purple-400">ROYALE</span>
-          </h1>
+          <div className="relative w-full max-w-[600px]">
+            <Link href="/" className="relative mb-16 inline-flex items-center gap-2 text-xs font-medium text-white/45 transition hover:text-white focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-4 focus:ring-offset-[#080812]">
+              <ArrowLeft size={15} />
+              Voltar para o início
+            </Link>
 
-          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-white/25">
-            Battle of Knowledge
-          </p>
-        </div>
-
-        {/* Card */}
-        <div className="rounded-3xl border border-white/10 bg-[#10101c]/90 p-8 shadow-2xl backdrop-blur-xl">
-          <div className="mb-7">
-            <h2 className="text-2xl font-black">
-              Bem-vindo de volta
-            </h2>
-
-            <p className="mt-2 text-sm text-white/35">
-              Entre na sua conta para continuar.
-            </p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-5">
-            {/* Email */}
-            <div>
-              <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-white/40">
-                E-mail
-              </label>
-
-              <div className="relative">
-                <Mail
-                  size={18}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white/25"
-                />
-
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  required
-                  className="
-                    h-14 w-full rounded-xl
-                    border border-white/10
-                    bg-black/20
-                    pl-12 pr-4
-                    text-sm text-white
-                    outline-none
-                    placeholder:text-white/20
-                    transition
-                    focus:border-purple-500/60
-                    focus:ring-4 focus:ring-purple-500/10
-                  "
-                />
+            <div className="mb-9">
+              <div className="mb-5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.18em] text-purple-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
+                Acesso do jogador
               </div>
+              <h1 className="text-4xl font-black tracking-tight sm:text-5xl">Bem-vindo de volta</h1>
+              <p className="mt-3 text-sm leading-6 text-white/45">Entre na sua conta para continuar sua jornada.</p>
             </div>
 
-            {/* Senha */}
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-wider text-white/40">
-                  Senha
+            <form onSubmit={handleLogin} className="rounded-[2rem] border border-white/10 bg-[#10101c]/90 p-4 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-5">
+              <div className="grid gap-5">
+                <label className="grid gap-2.5">
+                  <span className="text-[11px] font-bold uppercase tracking-[.1em] text-white/70">E-mail</span>
+                  <div className="relative">
+                    <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
+                    <input name="email" type="email" autoComplete="email" placeholder="seu@email.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required className="h-14 w-full rounded-2xl border border-white/10 bg-black/20 pl-12 pr-4 text-sm text-white outline-none transition placeholder:text-white/25 hover:border-white/20 focus:border-purple-500/70 focus:bg-black/30 focus:ring-4 focus:ring-purple-500/10" />
+                  </div>
                 </label>
 
-                <button
-                  type="button"
-                  className="text-xs font-medium text-purple-400 transition hover:text-purple-300"
-                >
-                  Esqueceu a senha?
+                <label className="grid gap-2.5">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-[11px] font-bold uppercase tracking-[.1em] text-white/70">Senha</span>
+                    <button type="button" className="text-[11px] font-medium text-purple-300 transition hover:text-purple-200 hover:underline">Esqueci minha senha</button>
+                  </div>
+                  <div className="relative">
+                    <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
+                    <input name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Sua senha" value={form.senha} onChange={(e) => setForm({ ...form, senha: e.target.value })} required className="h-14 w-full rounded-2xl border border-white/10 bg-black/20 px-12 pr-14 text-sm text-white outline-none transition placeholder:text-white/25 hover:border-white/20 focus:border-purple-500/70 focus:bg-black/30 focus:ring-4 focus:ring-purple-500/10" />
+                    <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-2 text-purple-300 transition hover:bg-white/5 hover:text-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </label>
+
+                <button type="submit" className="group mt-1 flex h-14 w-full rounded-2xl items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-[13px] font-bold text-white shadow-lg shadow-purple-900/20 transition hover:-translate-y-0.5 hover:from-purple-500 hover:to-indigo-500 hover:shadow-purple-900/40 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-[#10101c]">
+                  Entrar
+                  <ArrowUpRight size={17} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </button>
               </div>
+            </form>
 
-              <div className="relative">
-                <Lock
-                  size={18}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white/25"
-                />
+            <div className="my-7 flex items-center gap-3"><span className="h-px flex-1 bg-white/10" /><span className="text-[10px] font-medium uppercase tracking-[.12em] text-white/30">ou</span><span className="h-px flex-1 bg-white/10" /></div>
 
-                <input
-                  type="password"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  placeholder="Digite sua senha"
-                  required
-                  className="
-                    h-14 w-full rounded-xl
-                    border border-white/10
-                    bg-black/20
-                    pl-12 pr-4
-                    text-sm text-white
-                    outline-none
-                    placeholder:text-white/20
-                    transition
-                    focus:border-purple-500/60
-                    focus:ring-4 focus:ring-purple-500/10
-                  "
-                />
-              </div>
+            <div className="text-center">
+              <p className="text-xs text-white/45">Ainda não possui uma conta?</p>
+              <button onClick={() => router.push('/cadastro')} className="mt-3 flex h-12 w-full rounded-2xl items-center justify-center gap-2 border border-white/15 text-xs font-bold transition hover:border-purple-400 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-[#080812]">Criar minha conta <ArrowUpRight size={15} /></button>
             </div>
 
-            {/* Botão */}
-            <button
-              type="submit"
-              className="
-                flex h-14 w-full items-center justify-center gap-2
-                rounded-xl
-                bg-gradient-to-r from-purple-600 to-indigo-600
-                font-bold
-                shadow-lg shadow-purple-900/20
-                transition
-                hover:scale-[1.01]
-                hover:from-purple-500
-                hover:to-indigo-500
-              "
-            >
-              Entrar
-              <ArrowRight size={18} />
-            </button>
-          </form>
+            <div className="mt-7 flex items-center justify-center gap-2 text-[10px] font-medium text-white/30"><Lock size={13} /> Ambiente seguro e protegido</div>
+          </div>
+        </section>
 
-          {/* Segurança */}
-          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-white/20">
-            <Shield size={14} />
-            <span>Seus dados estão protegidos</span>
+        {/* Painel de posicionamento */}
+        <section className="relative hidden min-h-[calc(100vh-2rem)] overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#10101c] p-10 lg:my-4 lg:mr-4 text-white lg:flex lg:flex-col lg:justify-between xl:p-16">
+          <div className="absolute -right-40 -top-36 h-[520px] w-[520px] rounded-full border border-purple-400/15" />
+          <div className="absolute -right-16 -top-12 h-[360px] w-[360px] rounded-full border border-indigo-400/15" />
+          <div className="absolute bottom-[-220px] left-[-180px] h-[480px] w-[480px] rounded-full bg-purple-600/10 blur-3xl" />
+
+          <Link href="/" className="relative bottom-7 flex w-fit items-center gap-3 text-xl font-black tracking-tight focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-4 focus:ring-offset-[#10101c]">
+            <span className="flex h-6 w-7 items-end gap-[3px]" aria-hidden="true"><i className="block h-3 w-[5px] skew-x-[-18deg] rounded-sm bg-white" /><i className="block h-5 w-[5px] skew-x-[-18deg] rounded-sm bg-purple-400" /><i className="block h-4 w-[5px] skew-x-[-18deg] rounded-sm bg-white" /></span>
+            <span>QUIZ <b className="ml-1 text-[11px] tracking-[.13em] text-purple-400">ROYALE</b></span>
+          </Link>
+
+          <div className="relative max-w-[590px]">
+            <div className="mb-7 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.18em] text-purple-300"><Sparkles size={14} /> Sua evolução começa aqui</div>
+            <h2 className="text-[clamp(54px,6vw,88px)] font-black leading-[.9] tracking-[-.075em]">Conhecimento que<br /><span className="text-purple-400">transforma.</span></h2>
+            <p className="mt-8 max-w-[480px] text-[15px] leading-7 text-white/50">Desafie seus conhecimentos, acompanhe seu progresso e conquiste o topo do Quiz Royale.</p>
+            <div className="mt-10 grid max-w-[480px] gap-3 sm:grid-cols-3">{["Desafios incríveis", "Seu progresso", "Ranking Royale"].map((item) => <div key={item} className="flex items-center gap-2 text-[11px] text-white/70"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-400/15 text-purple-300"><Check size={12} /></span>{item}</div>)}</div>
           </div>
 
-          {/* Cadastro */}
-          <div className="mt-7 border-t border-white/5 pt-6 text-center">
-            <p className="text-sm text-white/30">
-              Ainda não possui uma conta?
-            </p>
-
-            <Link
-              href="/auth/cadastro"
-              className="mt-2 inline-block text-sm font-bold text-purple-400 transition hover:text-purple-300"
-            >
-              Criar minha conta
-            </Link>
-          </div>
-        </div>
-
-        {/* Voltar */}
-        <Link
-          href="/"
-          className="mt-6 block text-center text-xs text-white/20 transition hover:text-white/50"
-        >
-          ← Voltar para o início
-        </Link>
+          <p className="relative top-5 text-[10px] text-white/25">© 2026 Quiz Royale · Conhecimento que transforma.</p>
+        </section>
       </div>
     </main>
   );
 }
-
