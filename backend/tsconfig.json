@@ -1,28 +1,30 @@
 {
-  "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "resolvePackageJsonExports": true,
-    "esModuleInterop": true,
-    "isolatedModules": true,
+
+    "target": "ES2023",
+    "outDir": "./dist",
+    "rootDir": "./src",
+
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ES2023",
+    "esModuleInterop": true,
+
     "sourceMap": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
+
+    "strict": true,
     "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist", "test"]
