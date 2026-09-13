@@ -2,8 +2,8 @@
   "compilerOptions": {
     "module": "nodenext",
     "moduleResolution": "nodenext",
-
     "target": "ES2023",
+
     "outDir": "./dist",
     "rootDir": "./src",
 
@@ -23,7 +23,6 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
-
     "forceConsistentCasingInFileNames": true
   },
   "include": ["src/**/*.ts"],
