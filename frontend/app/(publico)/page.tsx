@@ -13,9 +13,12 @@ import {
   User,
   Users,
 } from "lucide-react";
+import { useBuscarUsuario } from "../hooks/useBuscarUsuario";
 
 export default function Home() {
   const [codigo, setCodigo] = useState("");
+
+  const { usuario, loading, error } = useBuscarUsuario();
 
   function entrarNaSala() {
     if (!codigo.trim()) return;
@@ -49,8 +52,8 @@ export default function Home() {
 
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="hidden text-right sm:block">
-              <p className="text-sm font-bold">Miguel</p>
-              <p className="mt-0.5 text-[11px] font-medium text-violet-300">Jogador iniciante</p>
+              <p className="text-sm font-bold">{usuario ? usuario?.nome : ''}</p>
+              <p className="mt-0.5 text-[11px] font-medium text-violet-300">{usuario ? usuario?.patenteId : ''}</p>
             </div>
             <button aria-label="Abrir perfil" className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-white/70 transition hover:border-violet-400/40 hover:bg-violet-500/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-violet-400">
               <User size={18} />
