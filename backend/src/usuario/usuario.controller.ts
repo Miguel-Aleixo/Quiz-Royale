@@ -15,7 +15,7 @@ export class UsuarioController {
 
     if (emailExiste) {
       return new ConflictException('Esse email já está sendo usado!')
-    };  
+    };
 
     return this.usuarioService.create(createUsuarioDto);
   }
@@ -35,6 +35,12 @@ export class UsuarioController {
   @Get()
   async findAll() {
     return this.usuarioService.findAll();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get(':id')
+  async findOne(@Param('id') id: string,) {
+    return this.usuarioService.findOne(Number(id));
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
