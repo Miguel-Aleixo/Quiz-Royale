@@ -20,8 +20,8 @@ export function useBuscarUsuario() {
   const API = process.env.NEXT_PUBLIC_API;
 
   const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadingUsuario, setLoadingUsuario] = useState(true);
+  const [errorUsuario, setErrorUsuario] = useState<string | null>(null);
 
   useEffect(() => {
     async function buscar() {
@@ -49,9 +49,9 @@ export function useBuscarUsuario() {
 
         setUsuario(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro desconhecido");
+        setErrorUsuario(err instanceof Error ? err.message : "Erro desconhecido");
       } finally {
-        setLoading(false);
+        setLoadingUsuario(false);
       }
     }
 
@@ -60,8 +60,8 @@ export function useBuscarUsuario() {
 
   return {
     usuario,
-    loading,
-    error,
+    loadingUsuario,
+    errorUsuario,
   };
 }
 

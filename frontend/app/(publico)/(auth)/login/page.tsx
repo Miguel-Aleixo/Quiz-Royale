@@ -72,11 +72,11 @@ export default function LoginPage() {
                 <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
                 Acesso do jogador
               </div>
-              <h1 className="text-4xl font-black tracking-tight sm:text-5xl">Bem-vindo de volta</h1>
+              <h1 className="text-3xl font-black tracking-tight">Bem-vindo de volta</h1>
               <p className="mt-3 text-sm leading-6 text-white/45">Entre na sua conta para continuar sua jornada.</p>
             </div>
 
-            <form onSubmit={handleLogin} className="rounded-[2rem] border border-white/10 bg-[#10101c]/90 p-4 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-5">
+            <form onSubmit={handleLogin} className="rounded-[2rem]">
               <div className="grid gap-5">
                 <label className="grid gap-2.5">
                   <span className="text-[11px] font-bold uppercase tracking-[.1em] text-white/70">E-mail</span>
@@ -119,7 +119,7 @@ export default function LoginPage() {
         </section>
 
         {/* Painel de posicionamento */}
-        <section className="relative hidden min-h-[calc(100vh-2rem)] overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#10101c] p-10 lg:my-4 lg:mr-4 text-white lg:flex lg:flex-col lg:justify-between xl:p-16">
+        <section className="relative mb-10 hidden min-h-[calc(90vh-2rem)] overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#10101c] p-10 lg:my-4 lg:mr-4 text-white lg:flex lg:flex-col lg:justify-between xl:p-16">
           <div className="absolute -right-40 -top-36 h-[520px] w-[520px] rounded-full border border-purple-400/15" />
           <div className="absolute -right-16 -top-12 h-[360px] w-[360px] rounded-full border border-indigo-400/15" />
           <div className="absolute bottom-[-220px] left-[-180px] h-[480px] w-[480px] rounded-full bg-purple-600/10 blur-3xl" />
@@ -131,7 +131,7 @@ export default function LoginPage() {
 
           <div className="relative max-w-[590px]">
             <div className="mb-7 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.18em] text-purple-300"><Sparkles size={14} /> Sua evolução começa aqui</div>
-            <h2 className="text-[clamp(54px,6vw,88px)] font-black leading-[.9] tracking-[-.075em]">Conhecimento que<br /><span className="text-purple-400">transforma.</span></h2>
+            <h2 className="text-[clamp(54px,6vw,70px)] font-black leading-[.9] tracking-[-.075em]">Conhecimento que<br /><span className="text-purple-400">transforma.</span></h2>
             <p className="mt-8 max-w-[480px] text-[15px] leading-7 text-white/50">Desafie seus conhecimentos, acompanhe seu progresso e conquiste o topo do Quiz Royale.</p>
             <div className="mt-10 grid max-w-[480px] gap-3 sm:grid-cols-3">{["Desafios incríveis", "Seu progresso", "Ranking Royale"].map((item) => <div key={item} className="flex items-center gap-2 text-[11px] text-white/70"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-400/15 text-purple-300"><Check size={12} /></span>{item}</div>)}</div>
           </div>
