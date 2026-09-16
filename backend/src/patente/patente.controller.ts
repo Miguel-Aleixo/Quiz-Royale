@@ -31,6 +31,12 @@ export class PatenteController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    return this.patenteService.findOne(Number(id));
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @Patch(':id')
   async update(@Param('id') id: string, @Body() updatePatenteDto: UpdatePatenteDto) {

@@ -25,6 +25,14 @@ export class PatenteService {
     })
   };
 
+    async findOne(id: number) {
+    return await this.prisma.patente.findFirst({
+      where: {
+        id: id
+      }
+    })
+  };
+
   async update(id: number, updatePatenteDto: UpdatePatenteDto) {
     return await this.prisma.patente.update({
       where: {
