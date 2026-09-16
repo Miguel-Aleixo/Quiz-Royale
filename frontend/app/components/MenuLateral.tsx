@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BarChart3,
   Gamepad2,
@@ -14,6 +14,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import Cookies from "js-cookie";
 
 interface SidebarProps {
   open?: boolean;
@@ -27,9 +28,9 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
-    label: "Salas",
-    href: "/dashboard/salas",
-    icon: Gamepad2,
+    label: "Patentes",
+    href: "/dashboard/patente",
+    icon: Shield,
   },
   {
     label: "Perguntas",
@@ -58,10 +59,20 @@ export default function MenuLateral({
   onClose,
 }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  function sair() {
+    Cookies.remove("token");
+
+    onClose?.();
+
+    router.push("/login");
+  }
 
   return (
     <>
       {/* Overlay mobile */}
+
       {open && (
         <div
           onClick={onClose}
@@ -69,72 +80,112 @@ export default function MenuLateral({
         />
       )}
 
+      {/* Sidebar */}
+
       <aside
         className={`
           fixed left-0 top-0 z-50 flex h-screen w-72 flex-col
-          border-r border-white/10 bg-[#09090f]
+          border-r border-indigo-500/10
+          bg-[#080812]
+          shadow-[8px_0_30px_rgba(0,0,0,0.15)]
           transition-transform duration-300
           ${open ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0
         `}
       >
-        {/* Logo */}
-        <div className="flex h-20 items-center justify-between border-b border-white/10 px-6">
+
+        {/* =========================
+            LOGO
+        ========================= */}
+
+        <div className="flex h-20 items-center justify-between border-b border-white/5 px-6">
+
           <Link
             href="/dashboard/admin"
             className="flex items-center gap-3"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20">
-              <Shield className="h-5 w-5 text-white" />
+
+            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20">
+
+              <div className="absolute inset-0 rounded-xl bg-purple-500/20 blur-md" />
+
+              <Shield className="relative h-5 w-5 text-white" />
+
             </div>
 
             <div>
               <h1 className="text-lg font-bold text-white">
-                Quiz<span className="text-indigo-400">Royale</span>
+                Quiz
+                <span className="text-indigo-400">
+                  Royale
+                </span>
               </h1>
 
               <p className="text-xs text-zinc-500">
                 Painel administrativo
               </p>
             </div>
+
           </Link>
 
           <button
+            type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 hover:text-white lg:hidden"
+            className="rounded-lg p-2 text-zinc-500 transition hover:bg-indigo-500/10 hover:text-indigo-300 lg:hidden"
           >
             <X className="h-5 w-5" />
           </button>
+
         </div>
 
-        {/* Perfil */}
-        <div className="border-b border-white/10 p-5">
-          <div className="flex items-center gap-3 rounded-xl bg-white/[0.03] p-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 font-bold text-white">
-              A
+        {/* =========================
+            PERFIL
+        ========================= */}
+
+        <div className="border-b border-white/5 p-5">
+
+          <div className="rounded-xl border border-indigo-500/10 bg-gradient-to-r from-indigo-500/[0.06] to-purple-500/[0.04] p-3">
+
+            <div className="flex items-center gap-3">
+
+              <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 font-bold text-white shadow-lg shadow-indigo-500/10">
+
+                A
+
+              </div>
+
+              <div className="min-w-0">
+
+                <p className="truncate text-sm font-semibold text-white">
+                  Administrador
+                </p>
+
+                <p className="truncate text-xs text-indigo-300/40">
+                  Administrador
+                </p>
+
+              </div>
+
+              <div className="ml-auto h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+
             </div>
 
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-white">
-                Administrador
-              </p>
-
-              <p className="truncate text-xs text-zinc-500">
-                Administrador
-              </p>
-            </div>
-
-            <div className="ml-auto h-2 w-2 rounded-full bg-emerald-400" />
           </div>
+
         </div>
 
-        {/* Menu */}
+        {/* =========================
+            MENU
+        ========================= */}
+
         <nav className="flex-1 space-y-1 overflow-y-auto p-4">
-          <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-600">
+
+          <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-indigo-300/30">
             Menu principal
           </p>
 
           {menuItems.map((item) => {
+
             const Icon = item.icon;
 
             const isActive =
@@ -148,61 +199,97 @@ export default function MenuLateral({
                 href={item.href}
                 onClick={onClose}
                 className={`
-                  group flex items-center gap-3 rounded-xl px-3 py-3
-                  text-sm font-medium transition-all
+                  group relative flex items-center gap-3
+                  rounded-xl px-3 py-3
+                  text-sm font-medium
+                  transition-all duration-200
+
                   ${
                     isActive
-                      ? "bg-indigo-500/10 text-indigo-400"
-                      : "text-zinc-400 hover:bg-white/[0.04] hover:text-white"
+                      ? "bg-gradient-to-r from-indigo-500/15 to-purple-500/10 text-indigo-300 shadow-sm"
+                      : "text-zinc-400 hover:bg-indigo-500/[0.06] hover:text-white"
                   }
                 `}
               >
+
+                {/* Indicador lateral */}
+
+                {isActive && (
+                  <span className="absolute left-0 h-6 w-0.5 rounded-full bg-gradient-to-b from-indigo-400 to-purple-500" />
+                )}
+
                 <Icon
                   className={`
-                    h-5 w-5 transition-colors
+                    h-5 w-5 transition-all duration-200
+
                     ${
                       isActive
                         ? "text-indigo-400"
-                        : "text-zinc-500 group-hover:text-zinc-300"
+                        : "text-zinc-500 group-hover:text-indigo-300"
                     }
                   `}
                 />
 
-                <span>{item.label}</span>
+                <span>
+                  {item.label}
+                </span>
 
                 {isActive && (
-                  <span className="ml-auto h-2 w-2 rounded-full bg-indigo-400" />
+                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.7)]" />
                 )}
+
               </Link>
             );
           })}
 
+          {/* Separador */}
+
           <div className="my-5 border-t border-white/5" />
 
-          <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-600">
+          <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-indigo-300/30">
             Sistema
           </p>
 
+          {/* Área do jogador */}
+
           <Link
             href="/dashboard"
-            className="group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-400 transition-all hover:bg-white/[0.04] hover:text-white"
+            onClick={onClose}
+            className="group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-400 transition-all hover:bg-purple-500/[0.06] hover:text-white"
           >
-            <BarChart3 className="h-5 w-5 text-zinc-500 group-hover:text-zinc-300" />
 
-            <span>Área do jogador</span>
+            <BarChart3 className="h-5 w-5 text-zinc-500 transition-colors group-hover:text-purple-300" />
+
+            <span>
+              Área do jogador
+            </span>
+
           </Link>
+
         </nav>
 
-        {/* Logout */}
-        <div className="border-t border-white/10 p-4">
-          <button
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-400 transition-all hover:bg-red-500/10 hover:text-red-400"
-          >
-            <LogOut className="h-5 w-5" />
+        {/* =========================
+            LOGOUT
+        ========================= */}
 
-            <span>Sair da conta</span>
+        <div className="border-t border-white/5 p-4">
+
+          <button
+            type="button"
+            onClick={sair}
+            className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-500 transition-all hover:bg-red-500/[0.07] hover:text-red-400"
+          >
+
+            <LogOut className="h-5 w-5 transition-colors group-hover:text-red-400" />
+
+            <span>
+              Sair da conta
+            </span>
+
           </button>
+
         </div>
+
       </aside>
     </>
   );

@@ -18,6 +18,7 @@ import {
   Activity,
   Shield,
 } from "lucide-react";
+import Header from "@/app/components/Header";
 
 export default function AdminDashboard() {
   const [menuAberto, setMenuAberto] = useState(false);
@@ -30,55 +31,7 @@ export default function AdminDashboard() {
         {/* CONTEÚDO */}
         <section className="flex-1">
 
-          {/* HEADER */}
-          <header className="flex h-20 items-center justify-between border-b border-white/5 bg-[#080812]/80 px-6 backdrop-blur-xl lg:px-8">
-
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-purple-400">
-                Painel administrativo
-              </p>
-
-              <h2 className="mt-1 text-xl font-black">
-                Dashboard
-              </h2>
-            </div>
-
-            <div className="flex items-center gap-3">
-
-              <button
-                onClick={() => setMenuAberto(!menuAberto)}
-                className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 transition hover:bg-white/[0.06]"
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
-                  <Shield size={16} />
-                </div>
-
-                <div className="hidden text-left sm:block">
-                  <p className="text-xs font-bold">
-                    Admin
-                  </p>
-
-                  <p className="text-[10px] text-white/25">
-                    Administrador
-                  </p>
-                </div>
-              </button>
-
-              {menuAberto && (
-                <div className="absolute right-6 top-16 z-50 w-44 rounded-xl border border-white/10 bg-[#12121e] p-2 shadow-2xl">
-                  <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/60 hover:bg-white/5 hover:text-white">
-                    <Settings size={15} />
-                    Configurações
-                  </button>
-
-                  <button className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-400 hover:bg-red-500/5">
-                    <LogOut size={15} />
-                    Sair
-                  </button>
-                </div>
-              )}
-            </div>
-          </header>
+          <Header/>
 
           {/* MAIN */}
           <div className="p-6 lg:p-8">
