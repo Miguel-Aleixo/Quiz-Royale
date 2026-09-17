@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, ArrowUpRight, Check, Crown, Eye, EyeOff, Lock, Mail, Sparkles } from "lucide-react";
 import Cookies from "js-cookie";
-import LoadingOverlay from "@/app/components/Loading";
+import LoadingOverlay from "@/app/components/global/Loading";
 import { useRouter } from "next/navigation";
-import { useToken } from "@/app/hooks/useToken";
+import { useToken } from "@/app/hooks/usuario/useToken";
+import Image from "next/image";
 
 export default function LoginPage() {
   const API = process.env.NEXT_PUBLIC_API;
@@ -38,12 +39,12 @@ export default function LoginPage() {
 
       const token = useToken();
 
-      if(token?.role == 'ADMIN') {
+      if (token?.role == 'ADMIN') {
         router.push('dashboard')
       } else {
         router.push('/')
       }
-      
+
     } catch (err) {
       alert("Erro ao logar usuário.");
       console.error(err);
@@ -123,11 +124,15 @@ export default function LoginPage() {
           <div className="absolute -right-40 -top-36 h-[520px] w-[520px] rounded-full border border-purple-400/15" />
           <div className="absolute -right-16 -top-12 h-[360px] w-[360px] rounded-full border border-indigo-400/15" />
           <div className="absolute bottom-[-220px] left-[-180px] h-[480px] w-[480px] rounded-full bg-purple-600/10 blur-3xl" />
-
-          <Link href="/" className="relative bottom-7 flex w-fit items-center gap-3 text-xl font-black tracking-tight focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-4 focus:ring-offset-[#10101c]">
-            <span className="flex h-6 w-7 items-end gap-[3px]" aria-hidden="true"><i className="block h-3 w-[5px] skew-x-[-18deg] rounded-sm bg-white" /><i className="block h-5 w-[5px] skew-x-[-18deg] rounded-sm bg-purple-400" /><i className="block h-4 w-[5px] skew-x-[-18deg] rounded-sm bg-white" /></span>
-            <span>QUIZ <b className="ml-1 text-[11px] tracking-[.13em] text-purple-400">ROYALE</b></span>
-          </Link>
+          <div className="relative right-5">
+            <Image
+              src="/imagens/logo_dark_menor.png"
+              alt="Logo Quiz Royale"
+              width={200}
+              height={200}
+              className="object-contain"
+            />
+          </div>
 
           <div className="relative max-w-[590px]">
             <div className="mb-7 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.18em] text-purple-300"><Sparkles size={14} /> Sua evolução começa aqui</div>

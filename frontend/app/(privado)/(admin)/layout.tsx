@@ -1,6 +1,6 @@
 "use client";
 
-import MenuLateral from "@/app/components/MenuLateral";
+import MenuLateral from "@/app/components/dashboard/MenuLateral";
 import { Menu } from "lucide-react";
 import { useState } from "react";
 

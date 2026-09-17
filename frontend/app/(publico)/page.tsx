@@ -1,198 +1,640 @@
 "use client";
 
-import { useState } from "react";
 import {
   ArrowRight,
   Crown,
   Gamepad2,
-  LogOut,
+  Plus,
   Shield,
   Sparkles,
   Swords,
+  Tags,
   Trophy,
-  User,
   Users,
 } from "lucide-react";
-import { useBuscarUsuario } from "../hooks/useBuscarUsuario";
+
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { useBuscarPatente } from "../hooks/useBuscarPatente";
+
+import Header from "../components/inicio/Header";
+
+interface Usuario {
+  id: number;
+  nome: string;
+  email: string;
+  role: "ADMIN" | "JOGADOR";
+  patenteId: number | null;
+  patente?: {
+    id: number;
+    nome: string;
+  } | null;
+}
+
+interface Sala {
+  id: number;
+  nome: string;
+  codigo: string;
+  status: string;
+  maxJogadores: number;
+
+  _count?: {
+    jogadores: number;
+    rodadas: number;
+  };
+}
+
+interface Pergunta {
+  id: number;
+  enunciado: string;
+  temaId: number;
+}
 
 export default function Home() {
-  const [codigo, setCodigo] = useState("");
-
   const router = useRouter();
 
-  const { usuario, loadingUsuario, errorUsuario } = useBuscarUsuario();
+  const API = process.env.NEXT_PUBLIC_API;
 
-  const patenteId = usuario?.patenteId
+  const token = Cookies.get("token");
 
-  const { patente, loadingPatente, errorPatente} = useBuscarPatente(Number(patenteId));
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [salas, setSalas] = useState<Sala[]>([]);
+  const [perguntas, setPerguntas] = useState<Pergunta[]>([]);
 
-  function entrarNaSala() {
-    if (!codigo.trim()) return;
-    console.log("Entrando na sala:", codigo);
-  }
+  const [codigo, setCodigo] = useState("");
 
-  const logout = async () => {
-    Cookies.remove('token');
-    window.location.reload();
-  }
+  const [loadingUsuario, setLoadingUsuario] = useState(false);
+  const [loadingSalas, setLoadingSalas] = useState(false);
+  const [loadingPerguntas, setLoadingPerguntas] = useState(false);
+
+  /*
+   * ============================
+   * BUSCAR USUÁRIO
+   * ============================
+   */
+
+  const buscarUsuario = async () => {
+    if (!token) {
+      return;
+    }
+
+    try {
+      setLoadingUsuario(true);
+
+      const payload = JSON.parse(
+        atob(token.split(".")[1])
+      );
+
+      const id = payload.sub;
+
+      if (!id) {
+        throw new Error("Usuário não encontrado no token");
+      }
+
+      const res = await fetch(`${API}/usuario/${id}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error("Erro ao buscar usuário");
+      }
+
+      const data: Usuario = await res.json();
+
+      setUsuario(data);
+    } catch (error) {
+      console.error("Erro ao buscar usuário:", error);
+    } finally {
+      setLoadingUsuario(false);
+    }
+  };
+
+  /*
+   * ============================
+   * BUSCAR SALAS
+   * ============================
+   */
+
+  const buscarSalas = async () => {
+    try {
+      setLoadingSalas(true);
+
+      const res = await fetch(`${API}/sala`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && {
+            Authorization: `Bearer ${token}`,
+          }),
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error("Erro ao buscar salas");
+      }
+
+      const data: Sala[] = await res.json();
+
+      setSalas(data);
+    } catch (error) {
+      console.error("Erro ao buscar salas:", error);
+    } finally {
+      setLoadingSalas(false);
+    }
+  };
+
+  /*
+   * ============================
+   * BUSCAR PERGUNTAS
+   * ============================
+   */
+
+  const buscarPerguntas = async () => {
+    if (!token) {
+      return;
+    }
+
+    try {
+      setLoadingPerguntas(true);
+
+      const res = await fetch(`${API}/pergunta`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error("Erro ao buscar perguntas");
+      }
+
+      const data: Pergunta[] = await res.json();
+
+      setPerguntas(data);
+    } catch (error) {
+      console.error("Erro ao buscar perguntas:", error);
+    } finally {
+      setLoadingPerguntas(false);
+    }
+  };
+
+  /*
+   * ============================
+   * BUSCAR DADOS AO ABRIR
+   * ============================
+   */
+
+  useEffect(() => {
+    buscarUsuario();
+    buscarSalas();
+    buscarPerguntas();
+  }, []);
+
+  /*
+   * ============================
+   * SALAS ABERTAS
+   * ============================
+   */
+
+  const salasAbertas = useMemo(() => {
+    return salas.filter(
+      (sala) => sala.status === "aberta"
+    );
+  }, [salas]);
+
+  /*
+   * ============================
+   * JOGADORES NAS SALAS
+   * ============================
+   */
+
+  const jogadoresNasSalas = useMemo(() => {
+    return salas.reduce((total, sala) => {
+      return total + (sala._count?.jogadores ?? 0);
+    }, 0);
+  }, [salas]);
+
+  /*
+   * ============================
+   * ENTRAR NA SALA
+   * ============================
+   */
+
+  const entrarNaSala = () => {
+    const codigoLimpo = codigo.trim();
+
+    if (!codigoLimpo) {
+      return;
+    }
+
+    router.push(
+      `/partida?codigo=${encodeURIComponent(codigoLimpo)}`
+    );
+  };
+
+  /*
+   * ============================
+   * RENDER
+   * ============================
+   */
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#070812] text-white selection:bg-fuchsia-400 selection:text-white">
-      {/* Background atmosférico */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute left-1/2 top-[-24rem] h-[48rem] w-[48rem] -translate-x-1/2 rounded-full bg-violet-700/20 blur-[10rem]" />
-        <div className="absolute -bottom-72 -left-56 h-[42rem] w-[42rem] rounded-full bg-fuchsia-700/10 blur-[9rem]" />
-        <div className="absolute right-[-18rem] top-1/4 h-[38rem] w-[38rem] rounded-full bg-indigo-600/10 blur-[9rem]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent_34%)]" />
-        <div className="absolute inset-0 opacity-[0.025] [background-image:linear-gradient(rgba(255,255,255,0.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.8)_1px,transparent_1px)] [background-size:44px_44px]" />
+    <main className="min-h-screen overflow-hidden bg-[#080812] text-white">
+
+      {/* Background */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+
+        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-violet-600/10 blur-3xl" />
+
+        <div className="absolute right-[-120px] top-1/3 h-[500px] w-[500px] rounded-full bg-fuchsia-600/10 blur-3xl" />
+
+        <div className="absolute bottom-[-200px] left-1/3 h-[500px] w-[500px] rounded-full bg-indigo-600/10 blur-3xl" />
+
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.04),transparent_55%)]" />
+
       </div>
 
-      {/* Navbar */}
-      <header className="fixed left-1/2 top-5 z-[100] w-[calc(100%-2rem)] max-w-7xl -translate-x-1/2 rounded-3xl border border-white/[0.1] bg-[#070812]/75 shadow-2xl shadow-black/20 backdrop-blur-2xl">
-        <div className="flex h-[70px] items-center justify-between px-4 sm:h-[76px] sm:px-6 lg:px-7">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
-
-            <div className="leading-none">
-              <h1 className="text-[15px] font-black tracking-[-0.03em] text-white sm:text-[17px]">
-                QUIZ <span className="text-violet-300">ROYALE</span>
-              </h1>
-
-              <p className="mt-1 text-[8px] font-bold uppercase tracking-[0.2em] text-white/35 sm:text-[9px]">
-                Battle of Knowledge
-              </p>
-            </div>
-          </div>
-
-          {/* Ações do usuário */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {usuario ? (
-              <>
-                <div className="hidden items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.045] px-3 py-2 sm:flex">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-sm font-bold text-white shadow-md shadow-violet-500/20">
-                    {usuario?.nome?.charAt(0)?.toUpperCase()}
-                  </div>
-
-                  <div className="max-w-[130px] min-w-0">
-                    <p className="truncate text-sm font-semibold text-white">
-                      {usuario?.nome}
-                    </p>
-
-                    <p className="mt-1 truncate text-[10px] font-medium uppercase tracking-wide text-violet-300/80">
-                      {usuario?.patenteId}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  aria-label="Abrir perfil"
-                  className="group flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.1] bg-white/[0.06] text-white/60 transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-400/50 hover:bg-violet-500/15 hover:text-violet-200 hover:shadow-lg hover:shadow-violet-500/10 focus:outline-none focus:ring-2 focus:ring-violet-400/70 sm:h-11 sm:w-11"
-                >
-                  <User
-                    size={18}
-                    className="transition-transform duration-200 group-hover:scale-110"
-                  />
-                </button>
-
-                <button
-                  aria-label="Sair"
-                  onClick={logout}
-                  className="group cursor-pointer hidden h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.025] text-white/35 transition-all duration-200 hover:-translate-y-0.5 hover:border-red-400/50 hover:bg-red-500/10 hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-400/70 sm:flex sm:h-11 sm:w-11"
-                >
-                  <LogOut
-                    size={17}
-                    className="transition-transform duration-200 group-hover:translate-x-0.5"
-                  />
-                </button>
-              </>
-            ) : (
-              <button onClick={() => router.push('/login')}
-                className="group cursor-pointer flex items-center gap-2 rounded-xl border border-violet-400/30 bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 px-3.5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/10 transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-300/60 hover:from-violet-500/30 hover:to-fuchsia-500/30 hover:shadow-violet-500/20 focus:outline-none focus:ring-2 focus:ring-violet-400/70 sm:rounded-2xl sm:px-4"
-              >
-                Entrar
-
-                <ArrowRight
-                  size={17}
-                  className="transition-transform duration-200 group-hover:translate-x-1"
-                />
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
-
+      {/* Header */}
+      <Header
+        nome={usuario?.nome}
+        patente={usuario?.patente?.nome}
+      />
 
       {/* Conteúdo */}
-      <section className="relative z-10 mx-auto max-w-7xl mt-15 px-5 py-10 sm:px-8 sm:py-14">
+      <section className="relative z-10 mx-auto max-w-7xl px-5 pb-16 pt-32">
 
-        {/* Passos */}
-        <div className="mb-5">
-          <div className="mb-5 flex items-end justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">Como funciona</p><h3 className="mt-2 text-2xl font-black tracking-tight">Prepare-se para a batalha</h3></div></div>
-          <div className="grid  gap-4 md:grid-cols-3"><Step number="01" title="Digite o código" description="Receba o código da sala e informe acima para entrar." /><Step number="02" title="Responda" description="Responda às perguntas antes que o tempo acabe." /><Step number="03" title="Sobreviva" description="Evite ser eliminado e seja o último jogador de pé." /></div>
-        </div>
+        {/* Hero */}
+        <div className="mb-10 max-w-3xl">
 
-        {/* Área principal */}
-        <div className="grid gap-6 lg:grid-cols-[1.45fr_0.9fr]">
-          <section className="group relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-[#19152d] via-[#121124] to-[#0c0d19] p-6 shadow-2xl shadow-black/30 sm:p-8">
-            <div className="absolute -right-28 -top-32 h-80 w-80 rounded-full bg-fuchsia-600/15 blur-[5rem] transition duration-700 group-hover:bg-fuchsia-500/20" />
-            <div className="absolute bottom-[-7rem] left-[-5rem] h-56 w-56 rounded-full bg-violet-600/10 blur-[5rem]" />
-            <div className="relative">
-              <div className="mb-7 flex items-center justify-between">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 text-violet-300 ring-1 ring-violet-400/25">
-                  <Swords size={26} />
-                </div>
-                <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-emerald-300">Salas abertas</span>
-              </div>
-              <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-violet-300">Entrar na batalha</p>
-              <h3 className="text-3xl font-black tracking-tight sm:text-4xl">Digite o código da sala</h3>
-              <p className="mt-3 max-w-lg text-sm leading-6 text-white/40">Insira o código de acesso fornecido pelo administrador da partida para começar.</p>
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-400/20 bg-violet-500/10 px-3 py-1.5">
 
-              <form onSubmit={(e) => { e.preventDefault(); entrarNaSala(); }} className="mt-8">
-                <label htmlFor="codigo" className="mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">Código da sala</label>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <input id="codigo" type="text" maxLength={10} value={codigo} onChange={(e) => setCodigo(e.target.value.toUpperCase())} placeholder="EX: 8K4P2A" className="h-14 min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/25 px-5 text-center text-lg font-black tracking-[0.25em] text-white outline-none transition placeholder:text-white/15 hover:border-white/20 focus:border-fuchsia-400/70 focus:bg-black/35 focus:ring-4 focus:ring-fuchsia-400/10" />
-                  <button type="submit" disabled={!codigo.trim()} className="group flex h-14 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-600 to-orange-500 px-7 font-bold shadow-xl shadow-fuchsia-950/30 transition hover:-translate-y-0.5 hover:shadow-fuchsia-900/50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0">
-                    Entrar <ArrowRight size={18} className="transition group-hover:translate-x-1" />
-                  </button>
-                </div>
-              </form>
+            <Sparkles
+              size={13}
+              className="text-violet-300"
+            />
 
-              <div className="mt-7 flex items-center gap-2 text-xs text-white/30"><Shield size={14} className="text-emerald-400/80" /><span>O código é fornecido pelo administrador da sala.</span></div>
-            </div>
-          </section>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-violet-200">
+              Arena principal
+            </span>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1">
-            <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] p-6 shadow-xl shadow-black/10 sm:p-7">
-              <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-amber-400/10 blur-3xl" />
-              <div className="relative flex items-start justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Sua patente</p><h3 className="mt-2 text-3xl font-black">{patente ? patente?.nome : 'Sem classificação'}</h3></div><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-300 ring-1 ring-amber-300/10"><Trophy size={23} /></div></div>
-              <div className="mt-7 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full w-[65%] rounded-full  shadow-[0_0_14px_rgba(251,191,36,0.35)]" /></div>
-              <div className="mt-3 flex justify-between text-[11px] text-white/30"><span>Progresso</span><span>0%</span></div>
-            </section>
-
-            <section className="rounded-[2rem] border border-white/10 bg-white/[0.045] p-6 shadow-xl shadow-black/10 sm:p-7">
-              <div className="flex items-center justify-between"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">Estatísticas</p><span className="text-[10px] font-semibold text-violet-300">Últimos 30 dias</span></div>
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                <Stat icon={<Gamepad2 size={15} />} label="Partidas" value="24" accent="text-violet-300" />
-                <Stat icon={<Users size={15} />} label="Vitórias" value="12" accent="text-fuchsia-300" />
-              </div>
-            </section>
           </div>
+
+          <h2 className="text-4xl font-black tracking-tight sm:text-5xl">
+
+            Pronto para entrar
+            <br />
+
+            <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">
+              na batalha?
+            </span>
+
+          </h2>
+
+          <p className="mt-4 max-w-xl text-sm leading-6 text-white/45">
+            Entre em uma sala existente ou crie sua própria
+            batalha e configure as perguntas que serão usadas
+            na partida.
+          </p>
+
         </div>
 
+        {/* Ações */}
+        <div className="grid gap-5 lg:grid-cols-2">
 
+          {/* Entrar */}
+          <div className="group relative overflow-hidden rounded-3xl border border-violet-400/20 bg-gradient-to-br from-violet-600/20 via-[#161427] to-[#10101b] p-6">
+
+            <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-violet-500/10 blur-3xl" />
+
+            <div className="relative">
+
+              <div className="mb-7 flex items-center justify-between">
+
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-300">
+                  <Gamepad2 size={24} />
+                </div>
+
+                <Users
+                  size={20}
+                  className="text-white/20"
+                />
+
+              </div>
+
+              <h3 className="text-xl font-black">
+                Entrar em uma sala
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-white/40">
+                Digite o código da sala para participar
+                de uma batalha.
+              </p>
+
+              <div className="mt-6 flex gap-3">
+
+                <input
+                  value={codigo}
+                  onChange={(e) =>
+                    setCodigo(e.target.value.toUpperCase())
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      entrarNaSala();
+                    }
+                  }}
+                  placeholder="CÓDIGO DA SALA"
+                  maxLength={20}
+                  className="h-12 min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-4 text-sm font-bold tracking-widest text-white outline-none placeholder:text-white/20 focus:border-violet-400/50"
+                />
+
+                <button
+                  onClick={entrarNaSala}
+                  disabled={!codigo.trim()}
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-500 transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  <ArrowRight size={19} />
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* Criar sala */}
+          <button
+            onClick={() => router.push("sala/criar")}
+            className="group relative overflow-hidden rounded-3xl border border-fuchsia-400/20 bg-gradient-to-br from-fuchsia-600/15 via-[#161322] to-[#10101b] p-6 text-left transition duration-300 hover:-translate-y-1 hover:border-fuchsia-400/40 hover:shadow-2xl hover:shadow-fuchsia-950/20"
+          >
+
+            <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-fuchsia-500/10 blur-3xl" />
+
+            <div className="relative">
+
+              <div className="mb-8 flex items-center justify-between">
+
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-fuchsia-500/15 text-fuchsia-300">
+                  <Plus size={24} />
+                </div>
+
+                <ArrowRight
+                  size={20}
+                  className="text-white/25 transition group-hover:translate-x-1 group-hover:text-fuchsia-300"
+                />
+
+              </div>
+
+              <h3 className="text-xl font-black">
+                Criar uma sala
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-white/40">
+                Crie uma batalha, defina os jogadores e
+                configure as perguntas e alternativas da
+                partida.
+              </p>
+
+              <div className="mt-6 flex items-center gap-2 text-xs font-bold text-fuchsia-300">
+                <Crown size={14} />
+                Montar nova batalha
+              </div>
+
+            </div>
+
+          </button>
+
+        </div>
+
+        {/* Salas */}
+        <div className="mt-6 rounded-3xl border border-white/10 bg-[#10101b]/70 p-6 backdrop-blur-xl">
+
+          <div className="mb-6 flex items-center justify-between">
+
+            <div>
+
+              <div className="flex items-center gap-2">
+
+                <Swords
+                  size={18}
+                  className="text-violet-300"
+                />
+
+                <h3 className="text-lg font-black">
+                  Salas abertas
+                </h3>
+
+              </div>
+
+              <p className="mt-1 text-xs text-white/30">
+                Partidas aguardando jogadores.
+              </p>
+
+            </div>
+
+            <span className="rounded-lg border border-violet-400/10 bg-violet-500/10 px-3 py-1.5 text-xs font-bold text-violet-300">
+              {salasAbertas.length} abertas
+            </span>
+
+          </div>
+
+          {loadingSalas ? (
+
+            <div className="flex h-24 items-center justify-center text-sm text-white/30">
+              Carregando salas...
+            </div>
+
+          ) : salasAbertas.length === 0 ? (
+
+            <div className="flex h-24 items-center justify-center rounded-2xl border border-dashed border-white/10 text-sm text-white/25">
+              Nenhuma sala aberta no momento.
+            </div>
+
+          ) : (
+
+            <div className="grid gap-3 md:grid-cols-3">
+
+              {salasAbertas.slice(0, 3).map((sala) => (
+
+                <button
+                  key={sala.id}
+                  onClick={() => setCodigo(sala.codigo)}
+                  className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 text-left transition hover:border-violet-400/30 hover:bg-violet-500/5"
+                >
+
+                  <div className="flex items-center justify-between">
+
+                    <span className="truncate text-sm font-bold">
+                      {sala.nome}
+                    </span>
+
+                    <span className="h-2 w-2 rounded-full bg-emerald-400" />
+
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between">
+
+                    <span className="font-mono text-xs tracking-widest text-violet-300">
+                      {sala.codigo}
+                    </span>
+
+                    <span className="flex items-center gap-1 text-[10px] text-white/25">
+
+                      <Users size={11} />
+
+                      {sala._count?.jogadores ?? 0}/
+                      {sala.maxJogadores}
+
+                    </span>
+
+                  </div>
+
+                </button>
+
+              ))}
+
+            </div>
+
+          )}
+
+        </div>
+
+        {/* Informações */}
+        <div className="mt-6 grid gap-5 lg:grid-cols-[1.5fr_1fr]">
+
+          {/* Conteúdo */}
+          <div className="rounded-3xl border border-white/10 bg-[#10101b]/80 p-7 backdrop-blur-xl">
+
+            <div className="flex items-center justify-between">
+
+              <div>
+
+                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-white/5 text-white/70">
+                  <Tags size={21} />
+                </div>
+
+                <h3 className="text-lg font-black">
+                  Banco de perguntas
+                </h3>
+
+                <p className="mt-2 max-w-md text-sm leading-6 text-white/35">
+                  As perguntas e alternativas são utilizadas
+                  para montar as rodadas das suas batalhas.
+                </p>
+
+              </div>
+
+              <div className="ml-5 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-fuchsia-400/10 bg-fuchsia-500/5">
+
+                <span className="text-xl font-black text-fuchsia-300">
+                  {loadingPerguntas
+                    ? "..."
+                    : perguntas.length}
+                </span>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* Patente */}
+          <button
+            onClick={() => router.push("/perfil")}
+            className="group relative overflow-hidden rounded-3xl border border-amber-400/15 bg-gradient-to-br from-amber-500/10 via-[#15131b] to-[#10101b] p-7 text-left transition hover:-translate-y-1 hover:border-amber-400/30"
+          >
+
+            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-amber-500/10 blur-3xl" />
+
+            <div className="relative">
+
+              <div className="flex items-start justify-between">
+
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 text-amber-300">
+                  <Trophy size={21} />
+                </div>
+
+                <Shield
+                  size={18}
+                  className="text-amber-300/30"
+                />
+
+              </div>
+
+              <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
+                Sua patente
+              </p>
+
+              <h3 className="mt-1 text-xl font-black">
+                {loadingUsuario
+                  ? "Carregando..."
+                  : usuario?.patente?.nome ?? "Sem patente"}
+              </h3>
+
+            </div>
+
+          </button>
+
+        </div>
+
+        {/* Estatísticas */}
+        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+
+          <div className="rounded-2xl border border-white/10 bg-[#10101b]/70 p-5">
+
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">
+              Salas
+            </p>
+
+            <p className="mt-2 text-2xl font-black">
+              {salas.length}
+            </p>
+
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-[#10101b]/70 p-5">
+
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">
+              Abertas
+            </p>
+
+            <p className="mt-2 text-2xl font-black text-violet-300">
+              {salasAbertas.length}
+            </p>
+
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-[#10101b]/70 p-5">
+
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">
+              Perguntas
+            </p>
+
+            <p className="mt-2 text-2xl font-black text-fuchsia-300">
+              {perguntas.length}
+            </p>
+
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-[#10101b]/70 p-5">
+
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">
+              Jogadores
+            </p>
+
+            <p className="mt-2 text-2xl font-black text-indigo-300">
+              {jogadoresNasSalas}
+            </p>
+
+          </div>
+
+        </div>
 
       </section>
     </main>
   );
-}
-
-function Stat({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent: string }) {
-  return <div className="rounded-2xl border border-white/[0.06] bg-black/10 p-4"><div className="flex items-center gap-2 text-white/35">{icon}<span className="text-xs">{label}</span></div><p className={`mt-2 text-3xl font-black ${accent}`}>{value}</p></div>;
-}
-
-function Step({ number, title, description }: { number: string; title: string; description: string }) {
-  return <div className="group rounded-[1.5rem] border border-white/10 bg-white/[0.035] p-6 transition hover:-translate-y-1 hover:border-violet-400/30 hover:bg-violet-500/[0.06]"><div className="flex items-center justify-between"><span className="text-xs font-black text-violet-300">{number}</span><ArrowRight size={16} className="text-white/20 transition group-hover:translate-x-1 group-hover:text-violet-300" /></div><h4 className="mt-6 font-bold">{title}</h4><p className="mt-2 text-sm leading-6 text-white/35">{description}</p></div>;
 }

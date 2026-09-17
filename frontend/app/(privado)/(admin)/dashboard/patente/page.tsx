@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Cookies from "js-cookie";
-import Header from "@/app/components/Header";
+import Header from "@/app/components/dashboard/Header";
+import LoadingOverlay from "@/app/components/global/Loading";
 
 type Patente = {
     id: number;
@@ -44,7 +45,7 @@ export default function PatentesPage() {
     const [patenteEditando, setPatenteEditando] =
         useState<Patente | null>(null);
 
-    const [form, setForm] = useState<FormPatente>(patenteInicial);
+    const [form, setForm] = useState<FormPatente>();
 
     const [loading, setLoading] = useState(false);
 
@@ -95,6 +96,8 @@ export default function PatentesPage() {
      */
 
     const criarPatente = async () => {
+        setLoading(true);
+
         try {
             const res = await fetch(`${API}/patente`, {
                 method: "POST",
@@ -103,7 +106,7 @@ export default function PatentesPage() {
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    nome: form.nome.trim(),
+                    nome: form?.nome.trim(),
                 }),
             });
 
@@ -116,6 +119,8 @@ export default function PatentesPage() {
             await buscarPatentes();
         } catch (error) {
             console.error("Erro ao criar patente:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -130,6 +135,8 @@ export default function PatentesPage() {
             return;
         }
 
+        setLoading(true);
+
         try {
             const res = await fetch(
                 `${API}/patente/${patenteEditando.id}`,
@@ -140,7 +147,7 @@ export default function PatentesPage() {
                         Authorization: `Bearer ${token}`,
                     },
                     body: JSON.stringify({
-                        nome: form.nome.trim(),
+                        nome: form?.nome.trim(),
                     }),
                 }
             );
@@ -154,6 +161,8 @@ export default function PatentesPage() {
             await buscarPatentes();
         } catch (error) {
             console.error("Erro ao editar patente:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -171,6 +180,8 @@ export default function PatentesPage() {
         if (!confirmou) {
             return;
         }
+
+        setLoading(true);
 
         try {
             const res = await fetch(
@@ -193,6 +204,8 @@ export default function PatentesPage() {
             await buscarPatentes();
         } catch (error) {
             console.error("Erro ao excluir patente:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -301,7 +314,7 @@ export default function PatentesPage() {
     ) {
         event.preventDefault();
 
-        if (!form.nome.trim()) {
+        if (!form?.nome.trim()) {
             return;
         }
 
@@ -327,6 +340,8 @@ export default function PatentesPage() {
 
     return (
         <main className="min-h-screen bg-[#080812] text-white">
+
+            <LoadingOverlay show={loading} message="Autenticando..." />
 
             {/* =========================
                 HEADER

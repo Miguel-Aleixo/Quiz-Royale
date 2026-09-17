@@ -1,457 +1,806 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
-  LayoutDashboard,
+  Activity,
+  CheckCircle2,
+  Crown,
   Gamepad2,
   HelpCircle,
-  Users,
-  Tags,
-  Settings,
-  LogOut,
-  Crown,
-  Plus,
-  ArrowUpRight,
-  MoreHorizontal,
-  Circle,
-  Activity,
+  Lock,
   Shield,
+  Tags,
+  Trophy,
+  UserRound,
+  Users,
 } from "lucide-react";
-import Header from "@/app/components/Header";
+import Header from "@/app/components/dashboard/Header";
 
-export default function AdminDashboard() {
-  const [menuAberto, setMenuAberto] = useState(false);
+interface Usuario {
+  id: number;
+  nome: string;
+  email: string;
+  role: "ADMIN" | "JOGADOR";
+  patente?: {
+    id: number;
+    nome: string;
+  } | null;
+}
+
+interface Sala {
+  id: number;
+  nome: string;
+  codigo: string;
+  status: string;
+  maxJogadores: number;
+  _count?: {
+    jogadores: number;
+    rodadas: number;
+  };
+}
+
+interface Pergunta {
+  id: number;
+  enunciado: string;
+}
+
+interface Tema {
+  id: number;
+  nome: string;
+}
+
+interface Patente {
+  id: number;
+  nome: string;
+}
+
+export default function DashboardPage() {
+  const API = process.env.NEXT_PUBLIC_API;
+
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [salas, setSalas] = useState<Sala[]>([]);
+  const [perguntas, setPerguntas] = useState<Pergunta[]>([]);
+  const [temas, setTemas] = useState<Tema[]>([]);
+  const [patentes, setPatentes] = useState<Patente[]>([]);
+
+  const [loading, setLoading] = useState(true);
+
+  // =========================================================
+  // TOKEN
+  // =========================================================
+
+  function getToken() {
+    return document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("token="))
+      ?.split("=")[1];
+  }
+
+  // =========================================================
+  // CARREGAR DASHBOARD
+  // =========================================================
+
+  async function carregarDashboard() {
+    try {
+      setLoading(true);
+
+      const token = getToken();
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
+
+      const [
+        usuariosResponse,
+        salasResponse,
+        perguntasResponse,
+        temasResponse,
+        patentesResponse,
+      ] = await Promise.all([
+        fetch(`${API}/usuario`, { headers }),
+        fetch(`${API}/sala`, { headers }),
+        fetch(`${API}/pergunta`, { headers }),
+        fetch(`${API}/tema`, { headers }),
+        fetch(`${API}/patente`, { headers }),
+      ]);
+
+      if (
+        !usuariosResponse.ok ||
+        !salasResponse.ok ||
+        !perguntasResponse.ok ||
+        !temasResponse.ok ||
+        !patentesResponse.ok
+      ) {
+        throw new Error("Erro ao carregar dados do dashboard.");
+      }
+
+      const [
+        usuariosData,
+        salasData,
+        perguntasData,
+        temasData,
+        patentesData,
+      ] = await Promise.all([
+        usuariosResponse.json(),
+        salasResponse.json(),
+        perguntasResponse.json(),
+        temasResponse.json(),
+        patentesResponse.json(),
+      ]);
+
+      setUsuarios(usuariosData);
+      setSalas(salasData);
+      setPerguntas(perguntasData);
+      setTemas(temasData);
+      setPatentes(patentesData);
+    } catch (error) {
+      console.error("Erro ao carregar dashboard:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    carregarDashboard();
+  }, []);
+
+  // =========================================================
+  // ESTATÍSTICAS
+  // =========================================================
+
+  const totalUsuarios = usuarios.length;
+
+  const totalAdmins = usuarios.filter(
+    (usuario) => usuario.role === "ADMIN"
+  ).length;
+
+  const totalJogadores = usuarios.filter(
+    (usuario) => usuario.role === "JOGADOR"
+  ).length;
+
+  const totalSalas = salas.length;
+
+  const salasAbertas = salas.filter(
+    (sala) => sala.status.toLowerCase() === "aberta"
+  ).length;
+
+  const salasEmAndamento = salas.filter(
+    (sala) => sala.status.toLowerCase() === "em andamento"
+  ).length;
+
+  const salasFinalizadas = salas.filter(
+    (sala) => sala.status.toLowerCase() === "finalizada"
+  ).length;
+
+  const jogadoresEmSalas = salas.reduce(
+    (total, sala) => total + (sala._count?.jogadores ?? 0),
+    0
+  );
+
+  // =========================================================
+  // ÚLTIMAS SALAS
+  // =========================================================
+
+  const ultimasSalas = useMemo(() => {
+    return [...salas]
+      .sort((a, b) => b.id - a.id)
+      .slice(0, 5);
+  }, [salas]);
+
+  // =========================================================
+  // PATENTES
+  // =========================================================
+
+  const usuariosPorPatente = useMemo(() => {
+    return patentes.map((patente) => {
+      const quantidade = usuarios.filter(
+        (usuario) => usuario.patente?.id === patente.id
+      ).length;
+
+      return {
+        id: patente.id,
+        nome: patente.nome,
+        quantidade,
+      };
+    });
+  }, [patentes, usuarios]);
+
+  // =========================================================
+  // LOADING
+  // =========================================================
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#080812]">
+        <div className="flex flex-col items-center">
+          <div className="relative h-11 w-11">
+            <div className="absolute inset-0 rounded-full border-2 border-white/10" />
+
+            <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-violet-500 border-r-fuchsia-500" />
+          </div>
+
+          <p className="mt-4 text-sm text-white/40">
+            Carregando dashboard...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  // =========================================================
+  // DASHBOARD
+  // =========================================================
 
   return (
     <main className="min-h-screen bg-[#080812] text-white">
-      <div className="flex min-h-screen">
 
-        
-        {/* CONTEÚDO */}
-        <section className="flex-1">
+      <Header />
 
-          <Header/>
+      <div className="mx-auto max-w-7xlpx-4 py-6 sm:px-6 lg:px-8">
 
-          {/* MAIN */}
-          <div className="p-6 lg:p-8">
 
-            {/* Saudação */}
-            <div className="mb-8">
-              <h3 className="text-2xl font-black">
+        {/* ================================================= */}
+        {/* HEADER */}
+        {/* ================================================= */}
+
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <div className="flex items-center gap-3">
+
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-violet-400/20 bg-violet-500/10">
+              <Activity className="h-5 w-5 text-violet-400" />
+            </div>
+
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">
                 Visão geral
-              </h3>
+              </h1>
 
-              <p className="mt-1 text-sm text-white/30">
-                Acompanhe o estado do Quiz Royale.
+              <p className="mt-1 text-sm text-white/40">
+                Acompanhe os principais dados do Quiz Royale.
               </p>
             </div>
 
-            {/* ESTATÍSTICAS */}
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          </div>
+        </motion.div>
 
-              <StatCard
-                icon={<Gamepad2 size={20} />}
-                label="Salas criadas"
-                value="18"
-                change="+12%"
-              />
+        {/* ================================================= */}
+        {/* CARDS PRINCIPAIS */}
+        {/* ================================================= */}
 
-              <StatCard
-                icon={<Users size={20} />}
-                label="Jogadores"
-                value="146"
-                change="+8%"
-              />
+        <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-              <StatCard
-                icon={<HelpCircle size={20} />}
-                label="Perguntas"
-                value="324"
-                change="+24%"
-              />
+          <DashboardCard
+            icon={<Users className="h-5 w-5" />}
+            title="Usuários"
+            value={totalUsuarios}
+            description={`${totalJogadores} jogadores cadastrados`}
+          />
 
-              <StatCard
-                icon={<Tags size={20} />}
-                label="Temas"
-                value="12"
-                change="+5%"
-              />
+          <DashboardCard
+            icon={<HelpCircle className="h-5 w-5" />}
+            title="Perguntas"
+            value={perguntas.length}
+            description="Perguntas cadastradas"
+          />
+
+          <DashboardCard
+            icon={<Gamepad2 className="h-5 w-5" />}
+            title="Salas"
+            value={totalSalas}
+            description={`${salasAbertas} salas abertas`}
+          />
+
+          <DashboardCard
+            icon={<Tags className="h-5 w-5" />}
+            title="Temas"
+            value={temas.length}
+            description="Temas cadastrados"
+          />
+
+        </div>
+
+        {/* ================================================= */}
+        {/* CARDS SECUNDÁRIOS */}
+        {/* ================================================= */}
+
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+          <SmallCard
+            icon={<Shield className="h-4 w-4" />}
+            title="Administradores"
+            value={totalAdmins}
+          />
+
+          <SmallCard
+            icon={<UserRound className="h-4 w-4" />}
+            title="Jogadores"
+            value={totalJogadores}
+          />
+
+          <SmallCard
+            icon={<Crown className="h-4 w-4" />}
+            title="Patentes"
+            value={patentes.length}
+          />
+
+          <SmallCard
+            icon={<Trophy className="h-4 w-4" />}
+            title="Partidas finalizadas"
+            value={salasFinalizadas}
+          />
+
+        </div>
+
+        {/* ================================================= */}
+        {/* SALAS + STATUS */}
+        {/* ================================================= */}
+
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+
+          {/* ================================================= */}
+          {/* ÚLTIMAS SALAS */}
+          {/* ================================================= */}
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] lg:col-span-2"
+          >
+
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+
+              <div>
+                <h2 className="text-sm font-semibold">
+                  Últimas salas
+                </h2>
+
+                <p className="mt-1 text-xs text-white/30">
+                  Salas criadas recentemente
+                </p>
+              </div>
+
+              <Gamepad2 className="h-5 w-5 text-white/20" />
 
             </div>
 
-            {/* GRID */}
-            <div className="mt-6 grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+            {ultimasSalas.length === 0 ? (
+              <div className="flex h-52 items-center justify-center">
+                <div className="text-center">
 
-              {/* SALAS ATIVAS */}
-              <div className="rounded-2xl border border-white/10 bg-white/[0.025]">
+                  <Gamepad2 className="mx-auto mb-3 h-7 w-7 text-white/15" />
 
-                <div className="flex items-center justify-between border-b border-white/5 p-6">
-                  <div>
-                    <h4 className="font-bold">
-                      Salas recentes
-                    </h4>
-
-                    <p className="mt-1 text-xs text-white/25">
-                      Últimas salas criadas
-                    </p>
-                  </div>
-
-                  <Link
-                    href="/dashboard/admin/salas"
-                    className="text-xs font-bold text-purple-400 hover:text-purple-300"
-                  >
-                    Ver todas
-                  </Link>
-                </div>
-
-                <div className="divide-y divide-white/5">
-
-                  <RoomRow
-                    name="Batalha de Matemática"
-                    code="7K4P2A"
-                    players="32"
-                    status="Em andamento"
-                  />
-
-                  <RoomRow
-                    name="Conhecimentos Gerais"
-                    code="9X2M8B"
-                    players="18"
-                    status="Aguardando"
-                  />
-
-                  <RoomRow
-                    name="Desafio de Tecnologia"
-                    code="Q8L5Z1"
-                    players="24"
-                    status="Em andamento"
-                  />
-
-                  <RoomRow
-                    name="História do Brasil"
-                    code="M4T7K2"
-                    players="0"
-                    status="Finalizada"
-                  />
-
-                </div>
-              </div>
-
-              {/* AÇÕES */}
-              <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-6">
-
-                <div className="mb-6">
-                  <h4 className="font-bold">
-                    Ações rápidas
-                  </h4>
-
-                  <p className="mt-1 text-xs text-white/25">
-                    Acesse rapidamente as principais funções.
+                  <p className="text-sm text-white/40">
+                    Nenhuma sala criada
                   </p>
-                </div>
-
-                <div className="space-y-3">
-
-                  <QuickAction
-                    icon={<Plus size={19} />}
-                    title="Criar nova sala"
-                    description="Iniciar uma nova batalha"
-                    href="/dashboard/admin/salas/nova"
-                  />
-
-                  <QuickAction
-                    icon={<HelpCircle size={19} />}
-                    title="Nova pergunta"
-                    description="Adicionar pergunta ao banco"
-                    href="/dashboard/admin/perguntas/nova"
-                  />
-
-                  <QuickAction
-                    icon={<Tags size={19} />}
-                    title="Novo tema"
-                    description="Criar categoria de perguntas"
-                    href="/dashboard/admin/temas"
-                  />
 
                 </div>
               </div>
-            </div>
-
-            {/* ATIVIDADE */}
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.025]">
-
-              <div className="border-b border-white/5 p-6">
-                <div className="flex items-center gap-2">
-                  <Activity size={18} className="text-purple-400" />
-
-                  <h4 className="font-bold">
-                    Atividade recente
-                  </h4>
-                </div>
-              </div>
-
+            ) : (
               <div className="divide-y divide-white/5">
 
-                <ActivityRow
-                  text="Sala criada"
-                  detail="Batalha de Matemática"
-                  time="há 5 minutos"
-                />
+                {ultimasSalas.map((sala, index) => (
+                  <motion.div
+                    key={sala.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{
+                      delay: 0.15 + index * 0.05,
+                    }}
+                    className="flex items-center justify-between px-5 py-4 transition hover:bg-white/[0.025]"
+                  >
 
-                <ActivityRow
-                  text="Nova pergunta adicionada"
-                  detail="Conhecimentos Gerais"
-                  time="há 18 minutos"
-                />
+                    <div className="flex min-w-0 items-center gap-3">
 
-                <ActivityRow
-                  text="Sala finalizada"
-                  detail="História do Brasil"
-                  time="há 32 minutos"
-                />
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-400/15 bg-violet-500/10">
+                        <Gamepad2 className="h-4 w-4 text-violet-400" />
+                      </div>
 
-                <ActivityRow
-                  text="Novo tema criado"
-                  detail="Tecnologia"
-                  time="há 1 hora"
-                />
+                      <div className="min-w-0">
+
+                        <p className="truncate text-sm font-semibold">
+                          {sala.nome}
+                        </p>
+
+                        <div className="mt-1 flex items-center gap-2">
+
+                          <span className="font-mono text-[10px] tracking-wider text-white/30">
+                            {sala.codigo}
+                          </span>
+
+                          <span className="text-white/10">
+                            •
+                          </span>
+
+                          <span className="text-[10px] text-white/30">
+                            {sala._count?.jogadores ?? 0}/
+                            {sala.maxJogadores} jogadores
+                          </span>
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                    <StatusBadge status={sala.status} />
+
+                  </motion.div>
+                ))}
 
               </div>
+            )}
+
+          </motion.div>
+
+          {/* ================================================= */}
+          {/* STATUS DAS PARTIDAS */}
+          {/* ================================================= */}
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="rounded-2xl border border-white/10 bg-white/[0.025]"
+          >
+
+            <div className="border-b border-white/10 px-5 py-4">
+
+              <h2 className="text-sm font-semibold">
+                Status das partidas
+              </h2>
+
+              <p className="mt-1 text-xs text-white/30">
+                Situação atual das salas
+              </p>
+
+            </div>
+
+            <div className="space-y-5 p-5">
+
+              <StatusRow
+                icon={<CheckCircle2 className="h-4 w-4" />}
+                title="Salas abertas"
+                value={salasAbertas}
+                percentage={
+                  totalSalas > 0
+                    ? (salasAbertas / totalSalas) * 100
+                    : 0
+                }
+              />
+
+              <StatusRow
+                icon={<Activity className="h-4 w-4" />}
+                title="Em andamento"
+                value={salasEmAndamento}
+                percentage={
+                  totalSalas > 0
+                    ? (salasEmAndamento / totalSalas) * 100
+                    : 0
+                }
+              />
+
+              <StatusRow
+                icon={<Trophy className="h-4 w-4" />}
+                title="Finalizadas"
+                value={salasFinalizadas}
+                percentage={
+                  totalSalas > 0
+                    ? (salasFinalizadas / totalSalas) * 100
+                    : 0
+                }
+              />
+
+              <StatusRow
+                icon={<Lock className="h-4 w-4" />}
+                title="Outros"
+                value={
+                  totalSalas -
+                  salasAbertas -
+                  salasEmAndamento -
+                  salasFinalizadas
+                }
+                percentage={
+                  totalSalas > 0
+                    ? (
+                      (totalSalas -
+                        salasAbertas -
+                        salasEmAndamento -
+                        salasFinalizadas) /
+                      totalSalas
+                    ) * 100
+                    : 0
+                }
+              />
+
+            </div>
+
+          </motion.div>
+
+        </div>
+
+        {/* ================================================= */}
+        {/* PATENTES */}
+        {/* ================================================= */}
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mt-5 rounded-2xl border border-white/10 bg-white/[0.025]"
+        >
+
+          <div className="border-b border-white/10 px-5 py-4">
+
+            <div className="flex items-center gap-3">
+
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-yellow-400/15 bg-yellow-500/10">
+                <Crown className="h-4 w-4 text-yellow-400" />
+              </div>
+
+              <div>
+                <h2 className="text-sm font-semibold">
+                  Jogadores por patente
+                </h2>
+
+                <p className="mt-1 text-xs text-white/30">
+                  Distribuição dos jogadores entre as patentes
+                </p>
+              </div>
+
             </div>
 
           </div>
-        </section>
+
+          {usuariosPorPatente.length === 0 ? (
+            <div className="px-5 py-10 text-center text-sm text-white/30">
+              Nenhuma patente cadastrada.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
+
+              {usuariosPorPatente.map((patente) => {
+
+                const percentual =
+                  totalJogadores > 0
+                    ? (patente.quantidade / totalJogadores) * 100
+                    : 0;
+
+                return (
+                  <div
+                    key={patente.id}
+                    className="rounded-xl border border-white/10 bg-white/[0.02] p-4"
+                  >
+
+                    <div className="mb-3 flex items-center justify-between">
+
+                      <span className="text-sm font-semibold">
+                        {patente.nome}
+                      </span>
+
+                      <Crown className="h-4 w-4 text-yellow-400/60" />
+
+                    </div>
+
+                    <div className="mb-2 flex items-end justify-between">
+
+                      <span className="text-2xl font-bold">
+                        {patente.quantidade}
+                      </span>
+
+                      <span className="text-xs text-white/30">
+                        {percentual.toFixed(0)}%
+                      </span>
+
+                    </div>
+
+                    <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{
+                          width: `${Math.min(percentual, 100)}%`,
+                        }}
+                        transition={{ duration: 0.7 }}
+                        className="h-full rounded-full bg-violet-500"
+                      />
+
+                    </div>
+
+                  </div>
+                );
+              })}
+
+            </div>
+          )}
+
+        </motion.div>
+
       </div>
     </main>
   );
 }
 
-/* SIDEBAR ITEM */
+// =========================================================
+// DASHBOARD CARD
+// =========================================================
 
-function SidebarItem({
+function DashboardCard({
   icon,
-  label,
-  active = false,
-  href,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  active?: boolean;
-  href?: string;
-}) {
-  const content = (
-    <div
-      className={`
-        mb-1 flex items-center gap-3 rounded-xl px-3 py-3
-        text-sm font-medium transition
-        ${
-          active
-            ? "bg-purple-500/10 text-purple-400"
-            : "text-white/35 hover:bg-white/[0.04] hover:text-white"
-        }
-      `}
-    >
-      {icon}
-
-      <span>{label}</span>
-    </div>
-  );
-
-  if (href) {
-    return <Link href={href}>{content}</Link>;
-  }
-
-  return content;
-}
-
-/* STAT CARD */
-
-function StatCard({
-  icon,
-  label,
+  title,
   value,
-  change,
+  description,
 }: {
   icon: React.ReactNode;
-  label: string;
-  value: string;
-  change: string;
+  title: string;
+  value: number;
+  description: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5 transition hover:border-purple-500/20">
+    <motion.div
+      whileHover={{ y: -2 }}
+      className="rounded-2xl border border-white/10 bg-white/[0.025] p-5"
+    >
 
-      <div className="flex items-start justify-between">
+      <div className="mb-4 flex items-center justify-between">
 
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-400/15 bg-violet-500/10 text-violet-400">
           {icon}
         </div>
 
-        <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400">
-          <ArrowUpRight size={12} />
-          {change}
+        <Activity className="h-4 w-4 text-white/10" />
+
+      </div>
+
+      <p className="text-xs text-white/35">
+        {title}
+      </p>
+
+      <p className="mt-1 text-2xl font-bold tracking-tight">
+        {value}
+      </p>
+
+      <p className="mt-2 text-[11px] text-white/25">
+        {description}
+      </p>
+
+    </motion.div>
+  );
+}
+
+// =========================================================
+// SMALL CARD
+// =========================================================
+
+function SmallCard({
+  icon,
+  title,
+  value,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value: number;
+}) {
+  return (
+    <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40">
+        {icon}
+      </div>
+
+      <div>
+
+        <p className="text-[11px] text-white/30">
+          {title}
+        </p>
+
+        <p className="mt-0.5 text-lg font-bold">
+          {value}
+        </p>
+
+      </div>
+
+    </div>
+  );
+}
+
+// =========================================================
+// STATUS BADGE
+// =========================================================
+
+function StatusBadge({
+  status,
+}: {
+  status: string;
+}) {
+  const normalized = status.toLowerCase();
+
+  let style =
+    "border-white/10 bg-white/5 text-white/40";
+
+  if (normalized === "aberta") {
+    style =
+      "border-emerald-400/20 bg-emerald-400/10 text-emerald-300";
+  }
+
+  if (normalized === "em andamento") {
+    style =
+      "border-violet-400/20 bg-violet-400/10 text-violet-300";
+  }
+
+  if (normalized === "finalizada") {
+    style =
+      "border-blue-400/20 bg-blue-400/10 text-blue-300";
+  }
+
+  return (
+    <span
+      className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${style}`}
+    >
+      {status}
+    </span>
+  );
+}
+
+// =========================================================
+// STATUS ROW
+// =========================================================
+
+function StatusRow({
+  icon,
+  title,
+  value,
+  percentage,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value: number;
+  percentage: number;
+}) {
+  return (
+    <div>
+
+      <div className="mb-2 flex items-center justify-between">
+
+        <div className="flex items-center gap-2">
+
+          <span className="text-white/30">
+            {icon}
+          </span>
+
+          <span className="text-xs text-white/50">
+            {title}
+          </span>
+
+        </div>
+
+        <span className="text-sm font-semibold">
+          {value}
         </span>
 
       </div>
 
-      <p className="mt-5 text-xs text-white/30">
-        {label}
-      </p>
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
 
-      <p className="mt-1 text-2xl font-black">
-        {value}
-      </p>
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{
+            width: `${Math.min(
+              Math.max(percentage, 0),
+              100
+            )}%`,
+          }}
+          transition={{ duration: 0.7 }}
+          className="h-full rounded-full bg-violet-500"
+        />
+
+      </div>
 
     </div>
   );
 }
-
-/* ROOM ROW */
-
-function RoomRow({
-  name,
-  code,
-  players,
-  status,
-}: {
-  name: string;
-  code: string;
-  players: string;
-  status: string;
-}) {
-  const andamento = status === "Em andamento";
-  const aguardando = status === "Aguardando";
-
-  return (
-    <div className="flex items-center justify-between gap-4 p-5 transition hover:bg-white/[0.02]">
-
-      <div className="flex min-w-0 items-center gap-4">
-
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400">
-          <Gamepad2 size={18} />
-        </div>
-
-        <div className="min-w-0">
-          <p className="truncate text-sm font-bold">
-            {name}
-          </p>
-
-          <p className="mt-1 text-[11px] font-bold tracking-widest text-purple-400">
-            {code}
-          </p>
-        </div>
-
-      </div>
-
-      <div className="hidden items-center gap-6 sm:flex">
-
-        <div className="flex items-center gap-2 text-xs text-white/30">
-          <Users size={14} />
-          {players}
-        </div>
-
-        <div className="flex items-center gap-2 text-xs">
-          <Circle
-            size={8}
-            fill="currentColor"
-            className={
-              andamento
-                ? "text-emerald-400"
-                : aguardando
-                  ? "text-yellow-400"
-                  : "text-white/20"
-            }
-          />
-
-          <span className="text-white/40">
-            {status}
-          </span>
-        </div>
-
-        <button className="text-white/20 hover:text-white">
-          <MoreHorizontal size={18} />
-        </button>
-
-      </div>
-    </div>
-  );
-}
-
-/* QUICK ACTION */
-
-function QuickAction({
-  icon,
-  title,
-  description,
-  href,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-4 rounded-xl border border-white/5 bg-white/[0.02] p-4 transition hover:border-purple-500/20 hover:bg-purple-500/[0.04]"
-    >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
-        {icon}
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold">
-          {title}
-        </p>
-
-        <p className="mt-1 truncate text-xs text-white/25">
-          {description}
-        </p>
-      </div>
-
-      <ArrowUpRight
-        size={16}
-        className="text-white/20"
-      />
-    </Link>
-  );
-}
-
-/* ACTIVITY */
-
-function ActivityRow({
-  text,
-  detail,
-  time,
-}: {
-  text: string;
-  detail: string;
-  time: string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 p-5">
-
-      <div className="flex items-center gap-3">
-
-        <div className="h-2 w-2 rounded-full bg-purple-400" />
-
-        <div>
-          <p className="text-sm font-medium">
-            {text}
-          </p>
-
-          <p className="mt-1 text-xs text-white/25">
-            {detail}
-          </p>
-        </div>
-
-      </div>
-
-      <span className="shrink-0 text-[10px] text-white/20">
-        {time}
-      </span>
-
-    </div>
-  );
-}
-

@@ -5,8 +5,9 @@ import { useState } from "react";
 import { ArrowLeft, ArrowUpRight, Check, Crown, Eye, EyeOff, Lock, Mail, Sparkles, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { useToken } from "@/app/hooks/useToken";
-import LoadingOverlay from "@/app/components/Loading";
+import { useToken } from "@/app/hooks/usuario/useToken";
+import LoadingOverlay from "@/app/components/global/Loading";
+import Image from "next/image";
 
 export default function CadastroPage() {
   const API = process.env.NEXT_PUBLIC_API;
@@ -93,9 +94,9 @@ export default function CadastroPage() {
           <div className="relative w-full max-w-[600px]">
             <Link href="/" className="relative mb-12 inline-flex items-center gap-2 text-xs font-medium text-white/45 transition hover:text-white focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-4 focus:ring-offset-[#080812]"><ArrowLeft size={15} /> Voltar para o início</Link>
 
-            <div className="mb-8"><div className="mb-5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.18em] text-purple-300"><span className="h-1.5 w-1.5 rounded-full bg-purple-400" /> Cadastro do jogador</div><h1 className="text-4xl font-black tracking-tight sm:text-5xl">Criar sua conta</h1><p className="mt-3 text-sm leading-6 text-white/45">Cadastre-se para jogar, competir e conquistar o topo.</p></div>
+            <div className="mb-8"><div className="mb-5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.18em] text-purple-300"><span className="h-1.5 w-1.5 rounded-full bg-purple-400" /> Cadastro do jogador</div><h1 className="text-2xl font-black tracking-tight md:text-3xl">Criar sua conta</h1><p className="mt-3 text-sm leading-6 text-white/45">Cadastre-se para jogar, competir e conquistar o topo.</p></div>
 
-            <form onSubmit={handleCadastro} className="rounded-[2rem] border border-white/10 bg-[#10101c]/90 p-4 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-5">
+            <form onSubmit={handleCadastro} className="rounded-[2rem] ">
               <div className="grid gap-4">
                 <label className="grid gap-2.5"><span className="text-[11px] font-bold uppercase tracking-[.1em] text-white/70">Nome</span><div className="relative"><User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" /><input type="text" autoComplete="name" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Seu nome" required className="h-13 w-full rounded-2xl border border-white/10 bg-black/20 pl-12 pr-4 text-sm text-white outline-none transition placeholder:text-white/25 hover:border-white/20 focus:border-purple-500/70 focus:bg-black/30 focus:ring-4 focus:ring-purple-500/10" /></div></label>
                 <label className="grid gap-2.5"><span className="text-[11px] font-bold uppercase tracking-[.1em] text-white/70">E-mail</span><div className="relative"><Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" /><input type="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="seu@email.com" required className="h-13 w-full rounded-2xl border border-white/10 bg-black/20 pl-12 pr-4 text-sm text-white outline-none transition placeholder:text-white/25 hover:border-white/20 focus:border-purple-500/70 focus:bg-black/30 focus:ring-4 focus:ring-purple-500/10" /></div></label>
@@ -113,8 +114,18 @@ export default function CadastroPage() {
 
         {/* Painel de posicionamento */}
         <section className="relative hidden min-h-[calc(100vh-2rem)] overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#10101c] p-10 lg:my-4 lg:mr-4 text-white lg:flex lg:flex-col lg:justify-between xl:p-16"><div className="absolute -right-40 -top-36 h-[520px] w-[520px] rounded-full border border-purple-400/15" /><div className="absolute -right-16 -top-12 h-[360px] w-[360px] rounded-full border border-indigo-400/15" /><div className="absolute bottom-[-220px] left-[-180px] h-[480px] w-[480px] rounded-full bg-purple-600/10 blur-3xl" />
-          <Link href="/" className="relative bottom-7 flex w-fit items-center gap-3 text-xl font-black tracking-tight"><span className="flex h-6 w-7 items-end gap-[3px]"><i className="block h-3 w-[5px] skew-x-[-18deg] rounded-sm bg-white" /><i className="block h-5 w-[5px] skew-x-[-18deg] rounded-sm bg-purple-400" /><i className="block h-4 w-[5px] skew-x-[-18deg] rounded-sm bg-white" /></span><span>QUIZ <b className="ml-1 text-[11px] tracking-[.13em] text-purple-400">ROYALE</b></span></Link>
-          <div className="relative max-w-[590px]"><div className="mb-7 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.18em] text-purple-300"><Sparkles size={14} /> Sua jornada começa aqui</div><h2 className="text-[clamp(54px,6vw,88px)] font-black leading-[.9] tracking-[-.075em]">Jogue. Aprenda.<br /><span className="text-purple-400">Conquiste.</span></h2><p className="mt-8 max-w-[480px] text-[15px] leading-7 text-white/50">Crie sua conta, teste seus conhecimentos e descubra até onde você pode chegar.</p><div className="mt-10 grid max-w-[480px] gap-3 sm:grid-cols-3">{["Desafios incríveis", "Seu progresso", "Ranking Royale"].map((item) => <div key={item} className="flex items-center gap-2 text-[11px] text-white/70"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-400/15 text-purple-300"><Check size={12} /></span>{item}</div>)}</div></div><p className="relative top-5 text-[10px] text-white/25">© 2026 Quiz Royale · Conhecimento que transforma.</p>
+          <div className="relative right-5">
+            <Image
+              src="/imagens/logo_dark_menor.png"
+              alt="Logo Quiz Royale"
+              width={200}
+              height={200}
+              className="object-contain"
+            />
+          </div>
+
+
+          <div className="relative max-w-[590px]"><div className="mb-7 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.18em] text-purple-300"><Sparkles size={14} /> Sua jornada começa aqui</div><h2 className="text-[clamp(54px,6vw,70px)] font-black leading-[.9] tracking-[-.075em]">Jogue. Aprenda.<br /><span className="text-purple-400">Conquiste.</span></h2><p className="mt-8 max-w-[480px] text-[15px] leading-7 text-white/50">Crie sua conta, teste seus conhecimentos e descubra até onde você pode chegar.</p><div className="mt-10 grid max-w-[480px] gap-3 sm:grid-cols-3">{["Desafios incríveis", "Seu progresso", "Ranking Royale"].map((item) => <div key={item} className="flex items-center gap-2 text-[11px] text-white/70"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-400/15 text-purple-300"><Check size={12} /></span>{item}</div>)}</div></div><p className="relative top-5 text-[10px] text-white/25">© 2026 Quiz Royale · Conhecimento que transforma.</p>
         </section>
       </div>
     </main>

@@ -24,7 +24,6 @@ export class TemaController {
   };
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
   @Get()
   findAll() {
     return this.temaService.findAll();

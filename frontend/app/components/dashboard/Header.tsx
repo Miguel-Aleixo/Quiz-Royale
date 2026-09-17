@@ -5,6 +5,7 @@ import {
     Shield,
     Settings,
     LogOut,
+    User,
 } from "lucide-react";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
@@ -22,10 +23,10 @@ export default function Header() {
         setMenuAberto(false);
     }
 
-    function abrirConfiguracoes() {
+    function abrirPerfil() {
         fecharMenu();
 
-        router.push("/dashboard/admin/configuracoes");
+        router.push("/perfil");
     }
 
     function sair() {
@@ -84,12 +85,12 @@ export default function Header() {
 
                         <button
                             type="button"
-                            onClick={abrirConfiguracoes}
+                            onClick={abrirPerfil}
                             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/60 transition hover:bg-white/5 hover:text-white"
                         >
-                            <Settings size={15} />
+                            <User size={15} />
 
-                            Configurações
+                            Perfil
                         </button>
 
                         {/* SAIR */}
