@@ -55,8 +55,8 @@ model Sala {
   status       String @default("aberta")
   maxJogadores Int
 
-  criadorId    Int
-  criador      Usuario @relation(fields: [criadorId], references: [id])
+  criadorId    Int?
+  criador      Usuario? @relation(fields: [criadorId], references: [id])
 
   jogadores    Jogador[]
   rodadas      Rodada[]
