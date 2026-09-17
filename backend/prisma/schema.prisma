@@ -28,12 +28,13 @@ model Usuario {
   nome      String
   email     String  @unique
   senha     String
-  role      Role     @default(JOGADOR)
+  role      Role    @default(JOGADOR)
   patenteId Int?
 
   patente   Patente? @relation(fields: [patenteId], references: [id])
 
   jogadores Jogador[]
+  salas     Sala[]
 }
 
 model Jogador {
@@ -52,7 +53,10 @@ model Sala {
   nome         String
   codigo       String @unique
   status       String @default("aberta")
-  maxJogadores Int 
+  maxJogadores Int
+
+  criadorId    Int
+  criador      Usuario @relation(fields: [criadorId], references: [id])
 
   jogadores    Jogador[]
   rodadas      Rodada[]

@@ -91,24 +91,6 @@ export default function CriarSalaPage() {
   }, []);
 
   // =========================================================
-  // GERAR CÓDIGO
-  // =========================================================
-
-  const gerarCodigo = () => {
-    const caracteres = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-    let novoCodigo = "";
-
-    for (let i = 0; i < 6; i++) {
-      novoCodigo += caracteres.charAt(
-        Math.floor(Math.random() * caracteres.length)
-      );
-    }
-
-    setCodigo(novoCodigo);
-  };
-
-  // =========================================================
   // ADICIONAR PERGUNTA
   // =========================================================
 
@@ -231,11 +213,6 @@ export default function CriarSalaPage() {
       return false;
     }
 
-    if (!codigo.trim()) {
-      setErro("Digite ou gere um código para a sala.");
-      return false;
-    }
-
     if (maxJogadores < 2 || maxJogadores > 50) {
       setErro("A sala deve ter entre 2 e 50 jogadores.");
       return false;
@@ -325,8 +302,8 @@ export default function CriarSalaPage() {
         },
         body: JSON.stringify({
           nome: nomeSala.trim(),
-          codigo: codigo.trim().toUpperCase(),
           maxJogadores,
+          status: 'ABERTA'
         }),
       });
 
@@ -339,6 +316,8 @@ export default function CriarSalaPage() {
       }
 
       const sala = await salaRes.json();
+
+      setCodigo(sala.codigo)
 
       // -----------------------------------------------------
       // 2. CRIAR PERGUNTAS
@@ -424,7 +403,7 @@ export default function CriarSalaPage() {
 
       setTimeout(() => {
         router.push(`/partida?codigo=${encodeURIComponent(codigo)}`);
-      }, 800);
+      }, 2000);
     } catch (error) {
       console.error("Erro ao criar sala:", error);
 
@@ -516,9 +495,9 @@ export default function CriarSalaPage() {
               </div>
             </div>
 
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-5 w-full">
               {/* NOME */}
-              <div className="md:col-span-2">
+              <div>
                 <label className="mb-2 block text-xs font-bold text-white/60">
                   Nome da sala
                 </label>
@@ -531,40 +510,8 @@ export default function CriarSalaPage() {
                 />
               </div>
 
-              {/* CÓDIGO */}
-              <div>
-                <label className="mb-2 block text-xs font-bold text-white/60">
-                  Código da sala
-                </label>
-
-                <div className="flex gap-2">
-                  <input
-                    value={codigo}
-                    onChange={(e) =>
-                      setCodigo(
-                        e.target.value
-                          .toUpperCase()
-                          .replace(/[^A-Z0-9]/g, "")
-                          .slice(0, 6)
-                      )
-                    }
-                    placeholder="ABC123"
-                    maxLength={6}
-                    className="h-12 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 text-sm font-bold tracking-[0.2em] outline-none transition placeholder:text-white/20 focus:border-violet-400/40"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={gerarCodigo}
-                    className="h-12 rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 text-xs font-bold text-violet-200 transition hover:border-violet-400/40 hover:bg-violet-500/20"
-                  >
-                    Gerar
-                  </button>
-                </div>
-              </div>
-
               {/* JOGADORES */}
-              <div>
+              <div >
                 <label className="mb-2 block text-xs font-bold text-white/60">
                   Máximo de jogadores
                 </label>

@@ -24,4 +24,6 @@ export class UpdateSalaDto extends PartialType(CreateSalaDto) {
     })
     status?: StatusSala;
 
+    criadorId?: number;
+
 }

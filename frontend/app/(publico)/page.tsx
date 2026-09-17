@@ -127,9 +127,7 @@ export default function Home() {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          ...(token && {
-            Authorization: `Bearer ${token}`,
-          }),
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -203,7 +201,7 @@ export default function Home() {
 
   const salasAbertas = useMemo(() => {
     return salas.filter(
-      (sala) => sala.status === "aberta"
+      (sala) => sala.status === "ABERTA"
     );
   }, [salas]);
 
@@ -271,18 +269,7 @@ export default function Home() {
         {/* Hero */}
         <div className="mb-10 max-w-3xl">
 
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-400/20 bg-violet-500/10 px-3 py-1.5">
-
-            <Sparkles
-              size={13}
-              className="text-violet-300"
-            />
-
-            <span className="text-[11px] font-bold uppercase tracking-wider text-violet-200">
-              Arena principal
-            </span>
-
-          </div>
+          
 
           <h2 className="text-4xl font-black tracking-tight sm:text-5xl">
 
