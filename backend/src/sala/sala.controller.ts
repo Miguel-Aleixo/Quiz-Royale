@@ -9,7 +9,8 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { Request } from 'express';
+
+import type { Request } from 'express';
 
 import { SalaService } from './sala.service';
 import { CreateSalaDto } from './dto/create-sala.dto';
@@ -18,6 +19,14 @@ import { EntrarSalaDto } from './dto/entrar-sala.dto';
 
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: number;
+    email: string;
+    role: string;
+  };
+}
 
 @Controller('sala')
 export class SalaController {
@@ -42,7 +51,7 @@ export class SalaController {
   @Post()
   async create(
     @Body() createSalaDto: CreateSalaDto,
-    @Req() req: Request,
+    @Req() req: AuthenticatedRequest,
   ) {
     const codigo = this.gerarCodigo();
 
@@ -59,7 +68,7 @@ export class SalaController {
   @Post('entrar')
   async entrar(
     @Body() entrarSalaDto: EntrarSalaDto,
-    @Req() req: Request,
+    @Req() req: AuthenticatedRequest,
   ) {
     const usuarioId = req.user.id;
 
