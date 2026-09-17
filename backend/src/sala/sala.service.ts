@@ -77,23 +77,7 @@ export class SalaService {
   }
 
   async findAll() {
-    return await this.prisma.sala.findMany({
-      include: {
-        criador: {
-          select: {
-            id: true,
-            nome: true,
-            email: true,
-          },
-        },
-        _count: {
-          select: {
-            jogadores: true,
-            rodadas: true,
-          },
-        },
-      },
-    });
+    return await this.prisma.sala.findMany();
   }
 
   async findOne(id: number) {
