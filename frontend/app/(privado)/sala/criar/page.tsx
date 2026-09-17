@@ -14,6 +14,7 @@ import {
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
+import { useBuscarUsuario } from "@/app/hooks/usuario/useBuscarUsuario";
 
 interface Tema {
   id: number;
@@ -37,6 +38,8 @@ export default function CriarSalaPage() {
 
   const API = process.env.NEXT_PUBLIC_API;
   const token = Cookies.get("token");
+
+  const { usuario } = useBuscarUsuario();
 
   const [nomeSala, setNomeSala] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -303,7 +306,8 @@ export default function CriarSalaPage() {
         body: JSON.stringify({
           nome: nomeSala.trim(),
           maxJogadores,
-          status: 'ABERTA'
+          status: 'ABERTA',
+          criadorId: usuario?.id
         }),
       });
 

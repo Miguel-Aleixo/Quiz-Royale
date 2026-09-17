@@ -9,6 +9,7 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 
 import { SalaService } from './sala.service';
 import { CreateSalaDto } from './dto/create-sala.dto';
@@ -41,7 +42,7 @@ export class SalaController {
   @Post()
   async create(
     @Body() createSalaDto: CreateSalaDto,
-    @Req() req,
+    @Req() req: Request,
   ) {
     const codigo = this.gerarCodigo();
 
@@ -58,7 +59,7 @@ export class SalaController {
   @Post('entrar')
   async entrar(
     @Body() entrarSalaDto: EntrarSalaDto,
-    @Req() req,
+    @Req() req: Request,
   ) {
     const usuarioId = req.user.id;
 
