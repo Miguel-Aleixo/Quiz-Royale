@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import Cookies from "js-cookie";
@@ -34,7 +34,7 @@ interface Sala {
   jogadores: Jogador[];
 }
 
-export default function EntrarSalaPage() {
+function SalaContent() {
   const searchParams = useSearchParams();
 
   const codigo = searchParams.get("codigo");
@@ -66,11 +66,7 @@ export default function EntrarSalaPage() {
       return;
     }
 
-    const socket: Socket = io(API, {
-      auth: {
-        token,
-      },
-    });
+    const socket: Socket = io(API);
 
     socket.on("connect", () => {
       console.log("Socket conectado:", socket.id);
@@ -81,7 +77,7 @@ export default function EntrarSalaPage() {
     });
 
     socket.on("sala_atualizada", (data: Sala) => {
-      console.log("Sala recebida:", data);
+      console.log("Sala atualizada:", data);
 
       setSala(data);
       setCarregando(false);
@@ -94,7 +90,7 @@ export default function EntrarSalaPage() {
     });
 
     socket.on("connect_error", (error) => {
-      console.error("Erro ao conectar Socket.IO:", error);
+      console.error("Erro Socket.IO:", error);
 
       setErro("Não foi possível conectar ao servidor.");
       setCarregando(false);
@@ -143,10 +139,7 @@ export default function EntrarSalaPage() {
     <main className="min-h-screen bg-[#080812] px-5 py-10 text-white">
       <div className="mx-auto max-w-4xl">
 
-        {/* Cabeçalho */}
-
         <div className="mb-8 text-center">
-
           <p className="text-xs font-bold uppercase tracking-[0.25em] text-purple-400">
             Lobby
           </p>
@@ -164,19 +157,13 @@ export default function EntrarSalaPage() {
           <p className="mt-4 text-sm text-white/40">
             Aguardando o início da partida...
           </p>
-
         </div>
 
-        {/* Conteúdo */}
-
         <div className="grid gap-5 md:grid-cols-[1fr_280px]">
-
-          {/* Jogadores */}
 
           <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
 
             <div className="mb-6 flex items-center justify-between">
-
               <div>
                 <h2 className="text-lg font-black">
                   Jogadores
@@ -197,23 +184,18 @@ export default function EntrarSalaPage() {
                   {sala.maxJogadores}
                 </span>
               </div>
-
             </div>
 
             <div className="space-y-2">
-
               {sala.jogadores.map((jogador) => (
                 <div
                   key={jogador.id}
                   className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3"
                 >
-
                   <div className="flex items-center gap-3">
 
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 font-black text-purple-300">
-                      {jogador.usuario.nome
-                        .charAt(0)
-                        .toUpperCase()}
+                      {jogador.usuario.nome.charAt(0).toUpperCase()}
                     </div>
 
                     <div>
@@ -229,15 +211,11 @@ export default function EntrarSalaPage() {
                     </div>
 
                   </div>
-
                 </div>
               ))}
-
             </div>
 
           </section>
-
-          {/* Informações */}
 
           <aside className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
 
@@ -282,8 +260,23 @@ export default function EntrarSalaPage() {
           </aside>
 
         </div>
-
       </div>
     </main>
+  );
+}
+
+export default function EntrarSalaPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[#080812] text-white">
+          <p className="text-sm text-white/40">
+            Carregando sala...
+          </p>
+        </main>
+      }
+    >
+      <SalaContent />
+    </Suspense>
   );
 }
