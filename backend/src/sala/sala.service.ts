@@ -29,7 +29,7 @@ export class SalaService {
       throw new NotFoundException('Sala não encontrada');
     }
 
-    if (sala.status !== 'aberta') {
+    if (sala.status !== 'ABERTA') {
       throw new BadRequestException(
         'Essa sala não está aberta',
       );

@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 
 import Header from "../components/inicio/Header";
+import LoadingOverlay from "../components/global/Loading";
 
 interface Usuario {
   id: number;
@@ -54,6 +55,8 @@ export default function Home() {
   const router = useRouter();
 
   const API = process.env.NEXT_PUBLIC_API;
+
+  const [loading ,setLoading] = useState(false)
 
   const token = Cookies.get("token");
 
@@ -223,17 +226,46 @@ export default function Home() {
    * ============================
    */
 
-  const entrarNaSala = () => {
-    const codigoLimpo = codigo.trim();
 
-    if (!codigoLimpo) {
-      return;
+  async function entrarNaSala() {
+    try {
+      setLoading(true);
+
+      const token = Cookies.get("token");
+
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      const res = await fetch(`${API}/sala/entrar`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          codigo: codigo.trim().toUpperCase(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          Array.isArray(data.message)
+            ? data.message.join(", ")
+            : data.message || "Erro ao entrar na sala"
+        );
+      }
+
+      router.push(`/partida?codigo=${codigo.trim().toUpperCase()}`);
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setLoading(false);
     }
-
-    router.push(
-      `/partida?codigo=${encodeURIComponent(codigoLimpo)}`
-    );
-  };
+  }
 
   /*
    * ============================
@@ -243,6 +275,8 @@ export default function Home() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#080812] text-white">
+
+      <LoadingOverlay show={loading} />
 
       {/* Background */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
@@ -269,7 +303,7 @@ export default function Home() {
         {/* Hero */}
         <div className="mb-10 max-w-3xl">
 
-          
+
 
           <h2 className="text-4xl font-black tracking-tight sm:text-5xl">
 
