@@ -30,8 +30,8 @@ model Usuario {
   senha     String
   role      Role    @default(JOGADOR)
   patenteId Int?
-  pontuacao Int?
-
+  pontuacao Int?    @default(0)
+ 
   patente   Patente? @relation(fields: [patenteId], references: [id])
 
   jogadores Jogador[]
