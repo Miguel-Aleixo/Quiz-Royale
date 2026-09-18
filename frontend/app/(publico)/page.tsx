@@ -225,7 +225,7 @@ export default function Home() {
 
   const jogadoresNasSalas = useMemo(() => {
     return salas.reduce((total, sala) => {
-      return total + (sala._count?.jogadores ?? 0);
+      return total + (sala.jogadores?.length ?? 0);
     }, 0);
   }, [salas]);
 
