@@ -32,6 +32,13 @@ interface Usuario {
   } | null;
 }
 
+interface Jogador {
+  id: number;
+  usuarioId: number;
+  eliminado: boolean;
+  usuario: Usuario;
+}
+
 interface Sala {
   id: number;
   nome: string;
@@ -39,10 +46,12 @@ interface Sala {
   status: string;
   maxJogadores: number;
 
-  _count?: {
-    jogadores: number;
-    rodadas: number;
-  };
+  jogadores: Jogador[];
+
+  criador: {
+    id: number;
+    nome: string;
+  } | null;
 }
 
 interface Pergunta {
@@ -56,7 +65,7 @@ export default function Home() {
 
   const API = process.env.NEXT_PUBLIC_API;
 
-  const [loading ,setLoading] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const token = Cookies.get("token");
 
@@ -507,7 +516,7 @@ export default function Home() {
 
                       <Users size={11} />
 
-                      {sala._count?.jogadores ?? 0}/
+                      {sala.jogadores?.length ?? 0}/
                       {sala.maxJogadores}
 
                     </span>
