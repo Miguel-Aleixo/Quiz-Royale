@@ -61,7 +61,7 @@ export class SalaGateway {
       return;
     }
 
-    if (sala.status !== 'aberta') {
+    if (sala.status !== 'ABERTA') {
       socket.emit('erro_sala', {
         mensagem: 'Essa sala não está aberta.',
       });
