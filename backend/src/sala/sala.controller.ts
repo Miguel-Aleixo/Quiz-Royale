@@ -30,7 +30,7 @@ interface AuthenticatedRequest extends Request {
 
 @Controller('sala')
 export class SalaController {
-  constructor(private readonly salaService: SalaService) {}
+  constructor(private readonly salaService: SalaService) { }
 
   private gerarCodigo(): string {
     const caracteres =
@@ -75,6 +75,26 @@ export class SalaController {
     return await this.salaService.entrar(
       entrarSalaDto.codigo,
       usuarioId,
+    );
+  }
+
+  @Get('codigo/:codigo')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async buscarPorCodigo(
+    @Param('codigo') codigo: string,
+  ) {
+    return await this.salaService.buscarPorCodigo(codigo);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Delete('sair/:codigo')
+  async sairDaSala(
+    @Param('codigo') codigo: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return await this.salaService.sairDaSala(
+      codigo,
+      req.user.id,
     );
   }
 

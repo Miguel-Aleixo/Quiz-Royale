@@ -9,7 +9,7 @@ import {
 
 @Injectable()
 export class SalaService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async entrar(codigo: string, usuarioId: number) {
     const sala = await this.prisma.sala.findUnique({
@@ -119,6 +119,39 @@ export class SalaService {
     return sala;
   }
 
+  async buscarPorCodigo(codigo: string) {
+    const sala = await this.prisma.sala.findUnique({
+      where: {
+        codigo: codigo.toUpperCase(),
+      },
+      include: {
+        criador: {
+          select: {
+            id: true,
+            nome: true,
+          },
+        },
+        jogadores: {
+          include: {
+            usuario: {
+              select: {
+                id: true,
+                nome: true,
+                pontuacao: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!sala) {
+      throw new NotFoundException('Sala não encontrada');
+    }
+
+    return sala;
+  }
+
   async update(id: number, updateSalaDto: UpdateSalaDto) {
     return await this.prisma.sala.update({
       where: {
@@ -126,6 +159,39 @@ export class SalaService {
       },
       data: updateSalaDto,
     });
+  }
+
+  async sairDaSala(codigo: string, usuarioId: number) {
+    const sala = await this.prisma.sala.findUnique({
+      where: {
+        codigo: codigo.toUpperCase(),
+      },
+    });
+
+    if (!sala) {
+      throw new NotFoundException('Sala não encontrada');
+    }
+
+    const jogador = await this.prisma.jogador.findFirst({
+      where: {
+        usuarioId,
+        salaId: sala.id,
+      },
+    });
+
+    if (!jogador) {
+      throw new NotFoundException('Você não está nessa sala');
+    }
+
+    await this.prisma.jogador.delete({
+      where: {
+        id: jogador.id,
+      },
+    });
+
+    return {
+      mensagem: 'Você saiu da sala',
+    };
   }
 
   async remove(id: number) {
