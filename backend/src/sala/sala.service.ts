@@ -77,7 +77,16 @@ export class SalaService {
   }
 
   async findAll() {
-    return await this.prisma.sala.findMany();
+    return await this.prisma.sala.findMany({
+      include: {
+        _count: {
+          select: {
+            jogadores: true,
+            rodadas: true,
+          },
+        },
+      },
+    });
   }
 
   async findOne(id: number) {
