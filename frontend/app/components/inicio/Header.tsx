@@ -4,6 +4,7 @@ import Image from "next/image";
 import { LogIn, LogOut, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
+import { useEffect, useState } from "react";
 
 interface HeaderProps {
   nome?: string;
@@ -16,7 +17,13 @@ export default function Header({
 }: HeaderProps) {
   const router = useRouter();
 
-  const token = Cookies.get("token");
+  const [token, setToken] = useState<string | undefined>(undefined);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setToken(Cookies.get("token"));
+    setMounted(true);
+  }, []);
 
   function irParaPerfil() {
     router.push("/perfil");
@@ -28,6 +35,7 @@ export default function Header({
 
   function logout() {
     Cookies.remove("token");
+    setToken(undefined);
     router.push("/login");
   }
 
@@ -46,13 +54,13 @@ export default function Header({
               alt="Logo Quiz Royale"
               width={150}
               height={150}
-              className="object-contain relative right-3"
+              className="relative right-3 object-contain"
               priority
             />
           </button>
 
           {/* Usuário / Entrar */}
-          {token ? (
+          {mounted && token ? (
             <div className="flex items-center gap-3">
 
               {/* Informações */}
@@ -88,11 +96,11 @@ export default function Header({
               </button>
 
             </div>
-          ) : (
+          ) : mounted ? (
             /* Entrar */
             <button
               onClick={entrar}
-              className="flex cursor-pointer h-10 items-center gap-2 rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 text-sm font-bold text-violet-200 transition hover:border-violet-400/40 hover:bg-violet-500/20"
+              className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 text-sm font-bold text-violet-200 transition hover:border-violet-400/40 hover:bg-violet-500/20"
             >
               <LogIn size={17} />
 
@@ -100,7 +108,7 @@ export default function Header({
                 Entrar
               </span>
             </button>
-          )}
+          ) : null}
 
         </nav>
       </div>

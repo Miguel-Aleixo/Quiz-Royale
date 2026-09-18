@@ -259,7 +259,7 @@ export default function Home() {
         );
       }
 
-      router.push(`/partida?codigo=${codigo.trim().toUpperCase()}`);
+      router.push(`/sala/entrar?codigo=${codigo.trim().toUpperCase()}`);
     } catch (error) {
       console.error(error)
     } finally {
