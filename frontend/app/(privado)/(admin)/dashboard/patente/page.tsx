@@ -680,7 +680,7 @@ export default function PatentesPage() {
                                     <input
                                         required
                                         autoFocus
-                                        value={form.nome}
+                                        value={form?.nome}
                                         onChange={(event) =>
                                             atualizarCampo(
                                                 "nome",
