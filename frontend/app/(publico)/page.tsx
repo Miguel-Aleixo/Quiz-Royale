@@ -40,18 +40,17 @@ interface Jogador {
 }
 
 interface Sala {
-  id: number;
-  nome: string;
-  codigo: string;
-  status: string;
-  maxJogadores: number;
 
-  jogadores: Jogador[];
+  id: number;
+  nome: string;
+  codigo: string;
+  status: string;
+  maxJogadores: number;
 
-  criador: {
-    id: number;
-    nome: string;
-  } | null;
+  _count?: {
+    jogadores: number;
+    rodadas: number;
+  };
 }
 
 interface Pergunta {
@@ -225,7 +224,7 @@ export default function Home() {
 
   const jogadoresNasSalas = useMemo(() => {
     return salas.reduce((total, sala) => {
-      return total + (sala.jogadores?.length ?? 0);
+      return total + (sala._count?.jogadores ?? 0);
     }, 0);
   }, [salas]);
 
@@ -516,7 +515,7 @@ export default function Home() {
 
                       <Users size={11} />
 
-                      {sala.jogadores?.length ?? 0}/
+                      {sala._count?.jogadores ?? 0}/
                       {sala.maxJogadores}
 
                     </span>
