@@ -19,5 +19,4 @@ export class CreateSalaDto {
     })
     status!: StatusSala;
 
-    criadorId!: number;
 }

@@ -610,59 +610,6 @@ export default function Home() {
 
         </div>
 
-        {/* Estatísticas */}
-        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-
-          <div className="rounded-2xl border border-white/10 bg-[#10101b]/70 p-5">
-
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">
-              Salas
-            </p>
-
-            <p className="mt-2 text-2xl font-black">
-              {salas.length}
-            </p>
-
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-[#10101b]/70 p-5">
-
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">
-              Abertas
-            </p>
-
-            <p className="mt-2 text-2xl font-black text-violet-300">
-              {salasAbertas.length}
-            </p>
-
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-[#10101b]/70 p-5">
-
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">
-              Perguntas
-            </p>
-
-            <p className="mt-2 text-2xl font-black text-fuchsia-300">
-              {perguntas.length}
-            </p>
-
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-[#10101b]/70 p-5">
-
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">
-              Jogadores
-            </p>
-
-            <p className="mt-2 text-2xl font-black text-indigo-300">
-              {jogadoresNasSalas}
-            </p>
-
-          </div>
-
-        </div>
-
       </section>
     </main>
   );

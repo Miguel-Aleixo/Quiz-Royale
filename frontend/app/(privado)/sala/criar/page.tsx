@@ -39,8 +39,6 @@ export default function CriarSalaPage() {
   const API = process.env.NEXT_PUBLIC_API;
   const token = Cookies.get("token");
 
-  const { usuario } = useBuscarUsuario();
-
   const [nomeSala, setNomeSala] = useState("");
   const [codigo, setCodigo] = useState("");
   const [maxJogadores, setMaxJogadores] = useState(10);
@@ -306,8 +304,7 @@ export default function CriarSalaPage() {
         body: JSON.stringify({
           nome: nomeSala.trim(),
           maxJogadores,
-          status: 'ABERTA',
-          criadorId: usuario?.id
+          status: 'ABERTA'
         }),
       });
 
