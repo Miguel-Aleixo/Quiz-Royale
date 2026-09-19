@@ -1,9 +1,13 @@
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsInt, IsNotEmpty, IsString, Min } from "class-validator";
 
 export class CreatePatenteDto {
 
     @IsString()
-    @IsNotEmpty({message: 'Nome da patente não pode ser vazio!'})
+    @IsNotEmpty({ message: 'Nome da patente não pode ser vazio!' })
     nome!: string
+
+    @IsInt()
+    @Min(0)
+    pontos!: number;
 
 }

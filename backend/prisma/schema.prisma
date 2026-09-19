@@ -19,6 +19,7 @@ enum Role {
 model Patente {
   id        Int    @id @default(autoincrement())
   nome      String @unique
+  pontos    Int    @default(0)
 
   usuarios  Usuario[]
 }
