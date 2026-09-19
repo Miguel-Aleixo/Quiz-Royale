@@ -72,6 +72,10 @@ export class SalaGateway {
     // Entra na room do Socket.IO
     socket.join(`sala:${codigo}`);
 
+    console.log(
+      `Socket ${socket.id} entrou na sala ${codigo}`,
+    );
+
     // Atualiza todos que estão na sala
     this.server.to(`sala:${codigo}`).emit('sala_atualizada', {
       id: sala.id,
@@ -82,5 +86,25 @@ export class SalaGateway {
       criador: sala.criador,
       jogadores: sala.jogadores,
     });
+  }
+
+  /*
+   * =========================================================
+   * AVISAR QUE A PARTIDA COMEÇOU
+   * =========================================================
+   */
+
+  avisarPartidaIniciada(codigo: string) {
+    const codigoNormalizado = codigo.toUpperCase();
+
+    console.log(
+      `Partida iniciada na sala ${codigoNormalizado}`,
+    );
+
+    this.server
+      .to(`sala:${codigoNormalizado}`)
+      .emit('partida_iniciada', {
+        codigo: codigoNormalizado,
+      });
   }
 }

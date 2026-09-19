@@ -8,6 +8,6 @@ import { SalaGateway } from './sala.gateway';
   imports: [PrismaModule],
   controllers: [SalaController],
   providers: [SalaService, SalaGateway],
-  exports: [SalaService]
+  exports: [SalaService, SalaGateway]
 })
 export class SalaModule {}
