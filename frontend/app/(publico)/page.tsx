@@ -30,6 +30,7 @@ interface Usuario {
   patente?: {
     id: number;
     nome: string;
+    pontos: number
   } | null;
 }
 
