@@ -20,6 +20,18 @@ export class PartidaService {
       },
       include: {
         jogadores: true,
+        rodadas: {
+          orderBy: {
+            ordem: 'asc',
+          },
+          include: {
+            pergunta: {
+              include: {
+                alternativas: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -51,92 +63,34 @@ export class PartidaService {
       );
     }
 
-    // 6. Buscar perguntas disponíveis
-    const perguntas = await this.prisma.pergunta.findMany({
-      include: {
-        alternativas: true,
-      },
-    });
-
-    if (perguntas.length === 0) {
+    // 6. Verificar se existem rodadas
+    if (sala.rodadas.length === 0) {
       throw new BadRequestException(
-        'Não existem perguntas cadastradas',
+        'Essa sala não possui perguntas cadastradas',
       );
     }
 
-    // 7. Embaralhar as perguntas
-    const perguntasEmbaralhadas = [...perguntas].sort(
-      () => Math.random() - 0.5,
-    );
-
-    // Quantidade de perguntas da partida
-    const quantidadePerguntas = Math.min(
-      10,
-      perguntasEmbaralhadas.length,
-    );
-
-    const perguntasSelecionadas =
-      perguntasEmbaralhadas.slice(
-        0,
-        quantidadePerguntas,
-      );
-
-    // 8. Criar as rodadas
-    const rodadas = await this.prisma.$transaction(
-      async (tx) => {
-        const rodadasCriadas = [];
-
-        for (
-          let i = 0;
-          i < perguntasSelecionadas.length;
-          i++
-        ) {
-          const pergunta = perguntasSelecionadas[i];
-
-          const rodada = await tx.rodada.create({
-            data: {
-              salaId: sala.id,
-              perguntaId: pergunta.id,
-              ordem: i + 1,
-              tempoLimite: 15,
-            },
-            include: {
-              pergunta: {
-                include: {
-                  alternativas: true,
-                },
-              },
-            },
-          });
-
-          rodadasCriadas.push(rodada);
-        }
-
-        // 9. Alterar status da sala
-        await tx.sala.update({
-          where: {
-            id: sala.id,
-          },
-          data: {
-            status: 'ANDAMENTO',
-          },
-        });
-
-        return rodadasCriadas;
+    // 7. Alterar status da sala
+    const salaAtualizada = await this.prisma.sala.update({
+      where: {
+        id: sala.id,
       },
-    );
+      data: {
+        status: 'ANDAMENTO',
+      },
+    });
 
-    // 10. Retornar resultado
+    // 8. Retornar resultado
     return {
       mensagem: 'Partida iniciada',
       sala: {
-        id: sala.id,
-        nome: sala.nome,
-        codigo: sala.codigo,
-        status: 'ANDAMENTO',
+        id: salaAtualizada.id,
+        nome: salaAtualizada.nome,
+        codigo: salaAtualizada.codigo,
+        status: salaAtualizada.status,
       },
-      quantidadeRodadas: rodadas.length,
-      rodadas,
+      quantidadeRodadas: sala.rodadas.length,
+      rodadas: sala.rodadas,
     };
   }
 }
