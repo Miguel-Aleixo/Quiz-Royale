@@ -49,10 +49,8 @@ export class UsuarioService {
   };
 
   async findOne(id: number) {
-    const usuario = await this.prisma.usuario.findFirst({
-      where: {
-        id: id,
-      },
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id },
       include: {
         patente: true,
       },
@@ -62,7 +60,44 @@ export class UsuarioService {
       throw new NotFoundException('Usuário não encontrado');
     }
 
-    return usuario;
+    const proximaPatente = usuario.patente
+      ? await this.prisma.patente.findFirst({
+        where: {
+          pontos: {
+            gt: usuario.patente.pontos,
+          },
+        },
+        orderBy: {
+          pontos: 'asc',
+        },
+      })
+      : await this.prisma.patente.findFirst({
+        orderBy: {
+          pontos: 'asc',
+        },
+      });
+
+    let progresso = 0;
+
+    if (proximaPatente && usuario.patente) {
+      const pontosIniciais = usuario.patente.pontos;
+      const pontosFinais = proximaPatente.pontos;
+
+      progresso =
+        ((usuario.pontuacao - pontosIniciais) /
+          (pontosFinais - pontosIniciais)) *
+        100;
+
+      progresso = Math.max(0, Math.min(100, progresso));
+    } else if (!proximaPatente && usuario.patente) {
+      progresso = 100;
+    }
+
+    return {
+      ...usuario,
+      proximaPatente,
+      progresso,
+    };
   }
 
   async update(id: number, updateUsuarioDto: UpdateUsuarioDto) {

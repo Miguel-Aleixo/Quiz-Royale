@@ -271,6 +271,8 @@ export default function CriarSalaPage() {
   // =========================================================
 
   const criarSala = async () => {
+    console.log("🔥 CRIAR SALA FOI CHAMADA");
+
     setErro("");
     setSucesso("");
 
@@ -291,9 +293,9 @@ export default function CriarSalaPage() {
     try {
       setCriandoSala(true);
 
-      // -----------------------------------------------------
+      // =====================================================
       // 1. CRIAR SALA
-      // -----------------------------------------------------
+      // =====================================================
 
       const salaRes = await fetch(`${API}/sala`, {
         method: "POST",
@@ -304,7 +306,7 @@ export default function CriarSalaPage() {
         body: JSON.stringify({
           nome: nomeSala.trim(),
           maxJogadores,
-          status: 'ABERTA'
+          status: "ABERTA",
         }),
       });
 
@@ -318,13 +320,25 @@ export default function CriarSalaPage() {
 
       const sala = await salaRes.json();
 
-      setCodigo(sala.codigo)
+      // O código retornado pela API é a fonte correta
+      const codigoSala = String(sala.codigo ?? "")
+        .trim()
+        .toUpperCase();
 
-      // -----------------------------------------------------
+      if (!codigoSala) {
+        throw new Error(
+          "A sala foi criada, mas a API não retornou um código."
+        );
+      }
+
+      // Atualiza apenas para mostrar na tela
+      setCodigo(codigoSala);
+
+      // =====================================================
       // 2. CRIAR PERGUNTAS
-      // -----------------------------------------------------
+      // =====================================================
 
-      for (const pergunta of perguntas) {
+      for (const [index, pergunta] of perguntas.entries()) {
         const perguntaRes = await fetch(`${API}/pergunta`, {
           method: "POST",
           headers: {
@@ -347,23 +361,26 @@ export default function CriarSalaPage() {
 
         const perguntaCriada = await perguntaRes.json();
 
-        // ---------------------------------------------------
+        // ===================================================
         // 3. CRIAR ALTERNATIVAS
-        // ---------------------------------------------------
+        // ===================================================
 
         for (const alternativa of pergunta.alternativas) {
-          const alternativaRes = await fetch(`${API}/alternativa`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              texto: alternativa.texto.trim(),
-              correta: alternativa.correta,
-              perguntaId: perguntaCriada.id,
-            }),
-          });
+          const alternativaRes = await fetch(
+            `${API}/alternativa`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                texto: alternativa.texto.trim(),
+                correta: alternativa.correta,
+                perguntaId: perguntaCriada.id,
+              }),
+            }
+          );
 
           if (!alternativaRes.ok) {
             const mensagem = await alternativaRes.text();
@@ -374,9 +391,9 @@ export default function CriarSalaPage() {
           }
         }
 
-        // ---------------------------------------------------
+        // ===================================================
         // 4. CRIAR RODADA
-        // ---------------------------------------------------
+        // ===================================================
 
         const rodadaRes = await fetch(`${API}/rodada`, {
           method: "POST",
@@ -387,7 +404,7 @@ export default function CriarSalaPage() {
           body: JSON.stringify({
             perguntaId: perguntaCriada.id,
             salaId: sala.id,
-            ordem: perguntas.indexOf(pergunta) + 1,
+            ordem: index + 1,
             tempoLimite: pergunta.tempoLimite,
           }),
         });
@@ -399,51 +416,55 @@ export default function CriarSalaPage() {
             mensagem || "Erro ao criar a rodada."
           );
         }
-
       }
+
+      // =====================================================
+      // 5. ENTRAR AUTOMATICAMENTE NA SALA
+      // =====================================================
 
       setSucesso("Sala criada com sucesso!");
 
-      /*
-   * ============================
-   * ENTRAR NA SALA
-   * ============================
-   */
+      const tokenAtual = Cookies.get("token");
 
-      try {
-
-        const token = Cookies.get("token");
-
-        if (!token) {
-          router.push("/login");
-          return;
-        }
-
-        const res = await fetch(`${API}/sala/entrar`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            codigo: codigo.trim().toUpperCase(),
-          }),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(
-            Array.isArray(data.message)
-              ? data.message.join(", ")
-              : data.message || "Erro ao entrar na sala"
-          );
-        }
-
-        router.push(`/sala/entrar?codigo=${encodeURIComponent(sala.codigo)}`);
-      } catch (error) {
-        console.error(error)
+      if (!tokenAtual) {
+        router.push("/login");
+        return;
       }
+
+      console.log("🔥 VOU ENTRAR NA SALA");
+      console.log("sala:", sala);
+      console.log("sala.codigo:", sala.codigo);
+      console.log("codigoSala:", codigoSala);
+
+      const entrarRes = await fetch(`${API}/sala/entrar`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokenAtual}`,
+        },
+        body: JSON.stringify({
+          codigo: codigoSala,
+        }),
+      });
+
+      const entrarData = await entrarRes.json();
+
+      if (!entrarRes.ok) {
+        throw new Error(
+          Array.isArray(entrarData.message)
+            ? entrarData.message.join(", ")
+            : entrarData.message ||
+            "Erro ao entrar na sala."
+        );
+      }
+
+      // =====================================================
+      // 6. IR PARA A SALA
+      // =====================================================
+
+      router.push(
+        `/sala/entrar?codigo=${encodeURIComponent(codigoSala)}`
+      );
 
     } catch (error) {
       console.error("Erro ao criar sala:", error);

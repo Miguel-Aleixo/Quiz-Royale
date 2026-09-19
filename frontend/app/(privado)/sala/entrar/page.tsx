@@ -149,7 +149,7 @@ function SalaEntrarContent() {
             Array.isArray(data.message)
               ? data.message.join(", ")
               : data.message ||
-                  "Erro ao buscar sala."
+              "Erro ao buscar sala."
           );
         }
 
@@ -409,7 +409,7 @@ function SalaEntrarContent() {
       setErro("");
 
       const res = await fetch(
-        `${API}/sala/${sala.id}/sair`,
+        `${API}/sala/sair/${encodeURIComponent(sala.codigo)}`,
         {
           method: "DELETE",
 
@@ -426,7 +426,7 @@ function SalaEntrarContent() {
           Array.isArray(data.message)
             ? data.message.join(", ")
             : data.message ||
-                "Não foi possível sair da sala."
+            "Não foi possível sair da sala."
         );
       }
 
@@ -490,7 +490,7 @@ function SalaEntrarContent() {
           Array.isArray(data.message)
             ? data.message.join(", ")
             : data.message ||
-                "Não foi possível iniciar a partida."
+            "Não foi possível iniciar a partida."
         );
       }
 
@@ -629,11 +629,10 @@ function SalaEntrarContent() {
           {/* CONEXÃO */}
 
           <div
-            className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${
-              conectado
+            className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${conectado
                 ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-300"
                 : "border-yellow-400/20 bg-yellow-500/10 text-yellow-300"
-            }`}
+              }`}
           >
             {conectado ? (
               <>
@@ -765,14 +764,14 @@ function SalaEntrarContent() {
 
               {quantidadeJogadores ===
                 0 && (
-                <div className="rounded-2xl border border-dashed border-white/10 px-5 py-10 text-center">
-                  <Users className="mx-auto h-8 w-8 text-white/20" />
+                  <div className="rounded-2xl border border-dashed border-white/10 px-5 py-10 text-center">
+                    <Users className="mx-auto h-8 w-8 text-white/20" />
 
-                  <p className="mt-3 text-sm text-white/40">
-                    Aguardando jogadores...
-                  </p>
-                </div>
-              )}
+                    <p className="mt-3 text-sm text-white/40">
+                      Aguardando jogadores...
+                    </p>
+                  </div>
+                )}
             </div>
 
             {/* STATUS */}
