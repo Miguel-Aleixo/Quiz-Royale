@@ -24,7 +24,6 @@ export class PatenteController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
   @Get()
   async findAll() {
     return this.patenteService.findAll();

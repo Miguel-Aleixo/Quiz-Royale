@@ -33,8 +33,12 @@ export class UsuarioService {
   };
 
   async findAll() {
-    return await this.prisma.usuario.findMany()
-  };
+    return await this.prisma.usuario.findMany({
+      include: {
+        patente: true,
+      },
+    });
+  }
 
   async findByEmail(email: string) {
     return await this.prisma.usuario.findFirst({
