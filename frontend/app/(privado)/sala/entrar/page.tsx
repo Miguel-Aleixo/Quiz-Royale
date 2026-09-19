@@ -17,6 +17,7 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { useToken } from "@/app/hooks/usuario/useToken";
 
@@ -64,12 +65,16 @@ interface ErroSocket {
   mensagem: string;
 }
 
+interface SalaFechada {
+  codigo: string;
+  mensagem: string;
+}
+
 function SalaEntrarContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const codigoParam = searchParams.get("codigo");
-
   const API = process.env.NEXT_PUBLIC_API;
 
   const usuario = useToken();
@@ -92,6 +97,9 @@ function SalaEntrarContent() {
     useState(false);
 
   const [iniciando, setIniciando] =
+    useState(false);
+
+  const [modalSair, setModalSair] =
     useState(false);
 
   /*
@@ -145,21 +153,26 @@ function SalaEntrarContent() {
         const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(
-            Array.isArray(data.message)
-              ? data.message.join(", ")
-              : data.message ||
-              "Erro ao buscar sala."
-          );
+          const mensagem = Array.isArray(
+            data?.message
+          )
+            ? data.message.join(", ")
+            : data?.message ||
+              "Erro ao buscar sala.";
+
+          throw new Error(mensagem);
         }
 
         setSala(data);
       } catch (error) {
-        setErro(
+        const mensagem =
           error instanceof Error
             ? error.message
-            : "Erro ao carregar a sala."
-        );
+            : "Erro ao carregar a sala.";
+
+        setErro(mensagem);
+
+        toast.error(mensagem);
       } finally {
         setCarregando(false);
       }
@@ -190,10 +203,6 @@ function SalaEntrarContent() {
       return;
     }
 
-    console.log(
-      "Tentando conectar ao SalaGateway..."
-    );
-
     const socketInstance: Socket = io(API, {
       auth: {
         token,
@@ -201,9 +210,7 @@ function SalaEntrarContent() {
     });
 
     /*
-     * =======================================================
      * CONECTADO
-     * =======================================================
      */
 
     socketInstance.on(
@@ -216,10 +223,6 @@ function SalaEntrarContent() {
 
         setConectado(true);
 
-        /*
-         * Entra na room da sala.
-         */
-
         socketInstance.emit(
           "entrar_sala",
           {
@@ -230,9 +233,7 @@ function SalaEntrarContent() {
     );
 
     /*
-     * =======================================================
      * SALA ATUALIZADA
-     * =======================================================
      */
 
     socketInstance.on(
@@ -248,35 +249,56 @@ function SalaEntrarContent() {
     );
 
     /*
-     * =======================================================
+     * SALA FECHADA
+     */
+
+    socketInstance.on(
+      "sala_fechada",
+      (data: SalaFechada) => {
+        console.log(
+          "Sala fechada:",
+          data.codigo
+        );
+
+        setConectado(false);
+
+        toast.info(
+          data.mensagem ||
+            "O criador saiu. A sala foi fechada."
+        );
+
+        setTimeout(() => {
+          router.push("/");
+        }, 800);
+      }
+    );
+
+    /*
      * PARTIDA INICIADA
-     * =======================================================
-     *
-     * Esse evento é enviado pelo SalaGateway
-     * quando o criador inicia a partida.
-     *
-     * Todos os jogadores que estão na sala
-     * recebem esse evento.
      */
 
     socketInstance.on(
       "partida_iniciada",
       (data: { codigo: string }) => {
         console.log(
-          "PARTIDA INICIADA:",
+          "Partida iniciada:",
           data.codigo
         );
 
-        router.push(
-          `/sala/partida?codigo=${data.codigo}`
+        toast.success(
+          "A partida começou!"
         );
+
+        setTimeout(() => {
+          router.push(
+            `/sala/partida?codigo=${data.codigo}`
+          );
+        }, 500);
       }
     );
 
     /*
-     * =======================================================
      * ERRO DA SALA
-     * =======================================================
      */
 
     socketInstance.on(
@@ -288,13 +310,15 @@ function SalaEntrarContent() {
         );
 
         setErro(data.mensagem);
+
+        toast.error(
+          data.mensagem
+        );
       }
     );
 
     /*
-     * =======================================================
      * ERRO DE CONEXÃO
-     * =======================================================
      */
 
     socketInstance.on(
@@ -307,23 +331,21 @@ function SalaEntrarContent() {
 
         setConectado(false);
 
-        setErro(
+        toast.error(
           "Não foi possível conectar ao servidor em tempo real."
         );
       }
     );
 
     /*
-     * =======================================================
      * DESCONECTADO
-     * =======================================================
      */
 
     socketInstance.on(
       "disconnect",
       (reason) => {
         console.log(
-          "Desconectado do SalaGateway:",
+          "Desconectado:",
           reason
         );
 
@@ -332,16 +354,10 @@ function SalaEntrarContent() {
     );
 
     /*
-     * =======================================================
      * LIMPEZA
-     * =======================================================
      */
 
     return () => {
-      console.log(
-        "Desconectando SalaGateway..."
-      );
-
       socketInstance.disconnect();
     };
   }, [
@@ -368,11 +384,15 @@ function SalaEntrarContent() {
 
       setCopiado(true);
 
+      toast.success(
+        "Código copiado!"
+      );
+
       setTimeout(() => {
         setCopiado(false);
       }, 2000);
     } catch {
-      setErro(
+      toast.error(
         "Não foi possível copiar o código."
       );
     }
@@ -397,7 +417,7 @@ function SalaEntrarContent() {
     }
 
     if (!API) {
-      setErro(
+      toast.error(
         "API não configurada."
       );
 
@@ -409,7 +429,9 @@ function SalaEntrarContent() {
       setErro("");
 
       const res = await fetch(
-        `${API}/sala/sair/${encodeURIComponent(sala.codigo)}`,
+        `${API}/sala/sair/${encodeURIComponent(
+          sala.codigo
+        )}`,
         {
           method: "DELETE",
 
@@ -422,21 +444,32 @@ function SalaEntrarContent() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(
-          Array.isArray(data.message)
-            ? data.message.join(", ")
-            : data.message ||
-            "Não foi possível sair da sala."
-        );
+        const mensagem = Array.isArray(
+          data?.message
+        )
+          ? data.message.join(", ")
+          : data?.message ||
+            "Não foi possível sair da sala.";
+
+        throw new Error(mensagem);
       }
+
+      toast.success(
+        "Você saiu da sala."
+      );
+
+      setModalSair(false);
 
       router.push("/");
     } catch (error) {
-      setErro(
+      const mensagem =
         error instanceof Error
           ? error.message
-          : "Erro ao sair da sala."
-      );
+          : "Erro ao sair da sala.";
+
+      setErro(mensagem);
+
+      toast.error(mensagem);
     } finally {
       setSaindo(false);
     }
@@ -461,7 +494,7 @@ function SalaEntrarContent() {
     }
 
     if (!API) {
-      setErro(
+      toast.error(
         "API não configurada."
       );
 
@@ -486,37 +519,38 @@ function SalaEntrarContent() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(
-          Array.isArray(data.message)
-            ? data.message.join(", ")
-            : data.message ||
-            "Não foi possível iniciar a partida."
-        );
+        const mensagem = Array.isArray(
+          data?.message
+        )
+          ? data.message.join(", ")
+          : data?.message ||
+            "Não foi possível iniciar a partida.";
+
+        throw new Error(mensagem);
       }
 
       console.log(
-        "Partida iniciada pelo criador:",
+        "Partida iniciada:",
         data
       );
 
-      /*
-       * Não precisamos fazer router.push aqui.
-       *
-       * O backend vai emitir:
-       *
-       * partida_iniciada
-       *
-       * para todos os jogadores da sala.
-       *
-       * Inclusive o criador.
-       */
+      toast.success(
+        "Partida iniciada!"
+      );
 
+      /*
+       * O redirect acontece através
+       * do evento partida_iniciada.
+       */
     } catch (error) {
-      setErro(
+      const mensagem =
         error instanceof Error
           ? error.message
-          : "Erro ao iniciar partida."
-      );
+          : "Erro ao iniciar partida.";
+
+      setErro(mensagem);
+
+      toast.error(mensagem);
 
       setIniciando(false);
     }
@@ -530,13 +564,25 @@ function SalaEntrarContent() {
 
   if (carregando) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-purple-400" />
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080611] text-white">
+        <div className="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-purple-600/20 blur-3xl" />
 
-          <p className="text-sm text-white/50">
-            Entrando na sala...
-          </p>
+        <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-indigo-600/20 blur-3xl" />
+
+        <div className="relative flex flex-col items-center gap-5">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-purple-400/20 bg-purple-500/10 shadow-lg shadow-purple-950/30">
+            <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
+          </div>
+
+          <div className="text-center">
+            <p className="font-bold">
+              Entrando na sala...
+            </p>
+
+            <p className="mt-1 text-sm text-white/40">
+              Aguarde um momento
+            </p>
+          </div>
         </div>
       </main>
     );
@@ -544,29 +590,32 @@ function SalaEntrarContent() {
 
   /*
    * =========================================================
-   * ERRO
+   * ERRO SEM SALA
    * =========================================================
    */
 
   if (erro && !sala) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-white">
-        <div className="w-full max-w-md rounded-3xl border border-red-400/20 bg-red-500/10 p-8 text-center">
-          <WifiOff className="mx-auto h-12 w-12 text-red-400" />
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080611] px-6 text-white">
+        <div className="absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-red-600/10 blur-3xl" />
 
-          <h1 className="mt-5 text-xl font-bold">
-            Erro
+        <div className="relative w-full max-w-md rounded-[2rem] border border-red-400/15 bg-white/[0.035] p-8 text-center shadow-2xl backdrop-blur-xl">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10">
+            <WifiOff className="h-8 w-8 text-red-400" />
+          </div>
+
+          <h1 className="mt-6 text-xl font-black">
+            Não foi possível entrar
           </h1>
 
-          <p className="mt-3 text-sm text-white/50">
+          <p className="mt-3 text-sm leading-6 text-white/45">
             {erro}
           </p>
 
           <button
-            onClick={() =>
-              router.back()
-            }
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:bg-white/15"
+            type="button"
+            onClick={() => router.back()}
+            className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl bg-white/10 px-5 py-3.5 text-sm font-bold transition hover:bg-white/15"
           >
             <ArrowLeft className="h-4 w-4" />
             Voltar
@@ -582,7 +631,7 @@ function SalaEntrarContent() {
 
   /*
    * =========================================================
-   * VERIFICAR CRIADOR
+   * INFORMAÇÕES
    * =========================================================
    */
 
@@ -593,9 +642,15 @@ function SalaEntrarContent() {
   const quantidadeJogadores =
     sala.jogadores?.length ?? 0;
 
-  const salaCheia =
-    quantidadeJogadores >=
-    sala.maxJogadores;
+  const percentualSala =
+    sala.maxJogadores > 0
+      ? Math.min(
+          (quantidadeJogadores /
+            sala.maxJogadores) *
+            100,
+          100
+        )
+      : 0;
 
   /*
    * =========================================================
@@ -604,24 +659,31 @@ function SalaEntrarContent() {
    */
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-5 py-8 md:px-8">
+    <main className="relative min-h-screen overflow-hidden bg-[#080611] text-white">
+
+      {/* BACKGROUND */}
+
+      <div className="pointer-events-none absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-purple-600/10 blur-3xl" />
+
+      <div className="pointer-events-none absolute -bottom-60 -right-40 h-[500px] w-[500px] rounded-full bg-indigo-600/10 blur-3xl" />
+
+      <div className="relative mx-auto min-h-screen w-full max-w-6xl px-5 py-6 md:px-8 md:py-10">
 
         {/* HEADER */}
 
-        <header className="flex items-center justify-between gap-4">
+        <header className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-purple-400/20 bg-purple-500/10">
-              <Gamepad2 className="h-6 w-6 text-purple-400" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-purple-400/20 bg-purple-500/10 shadow-lg shadow-purple-950/20">
+              <Gamepad2 className="h-5 w-5 text-purple-400" />
             </div>
 
             <div>
-              <h1 className="font-black">
-                Quiz Royale
+              <h1 className="text-sm font-black">
+                QUIZ ROYALE
               </h1>
 
-              <p className="text-xs text-white/40">
-                Sala de espera
+              <p className="text-[11px] font-medium text-white/35">
+                Lobby da partida
               </p>
             </div>
           </div>
@@ -629,231 +691,449 @@ function SalaEntrarContent() {
           {/* CONEXÃO */}
 
           <div
-            className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${conectado
-                ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-300"
-                : "border-yellow-400/20 bg-yellow-500/10 text-yellow-300"
-              }`}
+            className={`flex items-center gap-2 rounded-full border px-3 py-2 ${
+              conectado
+                ? "border-emerald-400/15 bg-emerald-500/10 text-emerald-300"
+                : "border-yellow-400/15 bg-yellow-500/10 text-yellow-300"
+            }`}
           >
-            {conectado ? (
-              <>
-                <Wifi className="h-4 w-4" />
+            <span
+              className={`h-2 w-2 rounded-full ${
+                conectado
+                  ? "bg-emerald-400"
+                  : "animate-pulse bg-yellow-400"
+              }`}
+            />
 
-                <span className="text-xs font-bold">
-                  Conectado
-                </span>
-              </>
-            ) : (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-
-                <span className="text-xs font-bold">
-                  Conectando...
-                </span>
-              </>
-            )}
+            <span className="hidden text-[11px] font-bold sm:block">
+              {conectado
+                ? "Conectado"
+                : "Conectando..."}
+            </span>
           </div>
         </header>
 
-        {/* ERRO DE SOCKET */}
+        {/* ERRO */}
 
-        {erro && (
-          <div className="mt-6 rounded-2xl border border-red-400/20 bg-red-500/10 px-5 py-4 text-sm text-red-300">
+        {erro && sala && (
+          <div className="mt-5 rounded-2xl border border-red-400/15 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {erro}
           </div>
         )}
 
-        {/* SALA */}
+        {/* CONTEÚDO */}
 
-        <section className="mt-8">
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 shadow-2xl md:p-8">
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
 
-            {/* NOME */}
+          {/* CARD PRINCIPAL */}
 
-            <div className="text-center">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-400">
-                Sala
-              </p>
+          <section className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-6 shadow-2xl shadow-black/20 backdrop-blur-xl md:p-8">
 
-              <h2 className="mt-3 text-3xl font-black md:text-4xl">
+            {/* TOPO */}
+
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-purple-400/15 bg-purple-500/10 px-3 py-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-purple-400" />
+
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-300">
+                  Sala aberta
+                </span>
+              </div>
+
+              <h2 className="text-3xl font-black tracking-tight md:text-4xl">
                 {sala.nome}
               </h2>
+
+              <p className="mt-2 text-sm text-white/35">
+                Compartilhe o código para seus amigos entrarem
+              </p>
             </div>
 
             {/* CÓDIGO */}
 
-            <div className="mx-auto mt-8 max-w-md">
-              <p className="mb-2 text-center text-xs font-bold uppercase tracking-wider text-white/30">
+            <div className="mx-auto mt-8 max-w-lg">
+              <p className="mb-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
                 Código da sala
               </p>
 
               <button
+                type="button"
                 onClick={copiarCodigo}
-                className="group flex w-full items-center justify-between rounded-2xl border border-purple-400/20 bg-purple-500/10 px-5 py-4 transition hover:border-purple-400/40 hover:bg-purple-500/15"
+                className="group relative flex w-full items-center justify-center overflow-hidden rounded-2xl border border-purple-400/20 bg-gradient-to-r from-purple-500/10 via-purple-500/5 to-indigo-500/10 px-5 py-5 transition hover:border-purple-400/40 hover:bg-purple-500/10"
               >
-                <span className="font-mono text-2xl font-black tracking-[0.25em] text-purple-300">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent opacity-0 transition group-hover:opacity-100" />
+
+                <span className="relative font-mono text-3xl font-black tracking-[0.3em] text-purple-200 sm:text-4xl">
                   {sala.codigo}
                 </span>
 
-                {copiado ? (
-                  <Check className="h-5 w-5 text-emerald-400" />
-                ) : (
-                  <Copy className="h-5 w-5 text-white/40 transition group-hover:text-purple-300" />
-                )}
+                <div className="absolute right-4 flex h-9 w-9 items-center justify-center rounded-xl bg-white/5">
+                  {copiado ? (
+                    <Check className="h-4 w-4 text-emerald-400" />
+                  ) : (
+                    <Copy className="h-4 w-4 text-white/35 transition group-hover:text-purple-300" />
+                  )}
+                </div>
               </button>
 
-              {copiado && (
-                <p className="mt-2 text-center text-xs text-emerald-400">
-                  Código copiado!
-                </p>
-              )}
+              <p className="mt-2 text-center text-[11px] text-white/25">
+                Clique no código para copiar
+              </p>
+            </div>
+
+            {/* STATUS DOS JOGADORES */}
+
+            <div className="mt-9 rounded-2xl border border-white/10 bg-black/10 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10">
+                    <Users className="h-5 w-5 text-purple-400" />
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-black">
+                      Jogadores
+                    </p>
+
+                    <p className="text-[11px] text-white/30">
+                      Aguardando participantes
+                    </p>
+                  </div>
+                </div>
+
+                <span className="text-lg font-black text-white">
+                  {quantidadeJogadores}
+
+                  <span className="text-sm text-white/25">
+                    /{sala.maxJogadores}
+                  </span>
+                </span>
+              </div>
+
+              {/* PROGRESSO */}
+
+              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/5">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-purple-500 to-indigo-400 transition-all duration-500"
+                  style={{
+                    width: `${percentualSala}%`,
+                  }}
+                />
+              </div>
             </div>
 
             {/* JOGADORES */}
 
-            <div className="mt-10">
-              <div className="mb-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-purple-400" />
+            <div className="mt-6">
+              {quantidadeJogadores > 0 ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {sala.jogadores.map(
+                    (jogador) => {
+                      const ehJogadorCriador =
+                        jogador.usuarioId ===
+                        sala.criador?.id;
 
-                  <h3 className="font-black">
-                    Jogadores
-                  </h3>
+                      return (
+                        <div
+                          key={jogador.id}
+                          className="group flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.025] px-4 py-3 transition hover:border-purple-400/15 hover:bg-white/[0.04]"
+                        >
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-indigo-500/10 text-sm font-black text-purple-300">
+                            {jogador.usuario.nome
+                              .charAt(0)
+                              .toUpperCase()}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-bold">
+                              {jogador.usuario.nome}
+                            </p>
+
+                            {ehJogadorCriador ? (
+                              <div className="mt-0.5 flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-yellow-300">
+                                <Crown className="h-3 w-3" />
+                                Criador
+                              </div>
+                            ) : (
+                              <p className="mt-0.5 text-[10px] text-white/25">
+                                Jogador
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+                  )}
                 </div>
-
-                <span className="rounded-lg bg-white/5 px-3 py-1.5 text-xs font-bold text-white/60">
-                  {quantidadeJogadores}/
-                  {sala.maxJogadores}
-                </span>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                {sala.jogadores.map(
-                  (jogador) => {
-                    const ehJogadorCriador =
-                      jogador.usuarioId ===
-                      sala.criador?.id;
-
-                    return (
-                      <div
-                        key={jogador.id}
-                        className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-4"
-                      >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-500/10 font-black text-purple-300">
-                          {jogador.usuario.nome
-                            .charAt(0)
-                            .toUpperCase()}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-bold">
-                            {jogador.usuario.nome}
-                          </p>
-
-                          {ehJogadorCriador && (
-                            <div className="mt-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-yellow-300">
-                              <Crown className="h-3 w-3" />
-                              Criador
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  }
-                )}
-              </div>
-
-              {quantidadeJogadores ===
-                0 && (
-                  <div className="rounded-2xl border border-dashed border-white/10 px-5 py-10 text-center">
-                    <Users className="mx-auto h-8 w-8 text-white/20" />
-
-                    <p className="mt-3 text-sm text-white/40">
-                      Aguardando jogadores...
-                    </p>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-white/10 px-5 py-8 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5">
+                    <Users className="h-5 w-5 text-white/20" />
                   </div>
-                )}
+
+                  <p className="mt-3 text-sm font-bold text-white/50">
+                    Aguardando jogadores
+                  </p>
+
+                  <p className="mt-1 text-xs text-white/25">
+                    Compartilhe o código da sala
+                  </p>
+                </div>
+              )}
             </div>
+          </section>
+
+          {/* SIDEBAR */}
+
+          <aside className="flex flex-col gap-4">
 
             {/* STATUS */}
 
-            <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.025] px-5 py-4 text-center">
-              <p className="text-xs text-white/30">
-                Status da sala
-              </p>
+            <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5 shadow-xl backdrop-blur-xl">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10">
+                  <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-400" />
+                </div>
 
-              <p className="mt-1 text-sm font-black text-emerald-400">
-                Aguardando início
-              </p>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wider text-white/35">
+                    Status
+                  </p>
+
+                  <p className="mt-1 text-sm font-black text-emerald-400">
+                    Aguardando início
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 border-t border-white/5 pt-5">
+                <p className="text-xs leading-5 text-white/35">
+                  {ehCriador
+                    ? "Você é o criador desta sala. Quando estiver pronto, inicie a partida."
+                    : "Aguarde o criador iniciar a partida."}
+                </p>
+              </div>
             </div>
 
-            {/* BOTÃO INICIAR */}
+            {/* CRIADOR */}
+
+            <div className="rounded-[2rem] border border-yellow-400/10 bg-yellow-500/[0.035] p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-500/10">
+                  <Crown className="h-5 w-5 text-yellow-300" />
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-yellow-300/50">
+                    Criador
+                  </p>
+
+                  <p className="truncate text-sm font-bold">
+                    {sala.criador?.nome ||
+                      "Desconhecido"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* INICIAR */}
 
             {ehCriador && (
               <button
+                type="button"
                 onClick={iniciarPartida}
                 disabled={
                   iniciando ||
                   quantidadeJogadores === 0
                 }
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-purple-600 px-5 py-4 text-sm font-black transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-40"
+                className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 px-5 py-4 text-sm font-black shadow-lg shadow-purple-950/30 transition hover:-translate-y-0.5 hover:from-purple-500 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
               >
                 {iniciando ? (
                   <>
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    Iniciando partida...
+                    Iniciando...
                   </>
                 ) : (
                   <>
-                    <Play className="h-5 w-5" />
+                    <Play className="h-5 w-5 transition group-hover:scale-110" />
                     Iniciar partida
                   </>
                 )}
               </button>
             )}
 
-            {/* MENSAGEM PARA JOGADORES */}
+            {/* AVISO */}
 
-            {!ehCriador && (
-              <div className="mt-6 rounded-2xl border border-purple-400/10 bg-purple-500/5 px-5 py-4 text-center">
-                <p className="text-sm font-semibold text-white/60">
-                  Aguardando o criador iniciar a partida...
-                </p>
-              </div>
-            )}
+            <div className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3">
+              <p className="text-center text-[11px] leading-5 text-white/30">
+                A partida começará para todos os jogadores
+                simultaneamente.
+              </p>
+            </div>
 
             {/* SAIR */}
 
             <button
-              onClick={sairDaSala}
+              type="button"
+              onClick={() => setModalSair(true)}
               disabled={saindo}
-              className="mx-auto mt-6 flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-bold text-white/40 transition hover:bg-white/5 hover:text-white/70 disabled:opacity-40"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/8 bg-white/[0.02] px-5 py-3.5 text-xs font-bold text-white/40 transition hover:border-red-400/15 hover:bg-red-500/5 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {saindo ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <LogOut className="h-4 w-4" />
-              )}
+              <LogOut className="h-4 w-4" />
 
-              {saindo
-                ? "Saindo..."
-                : "Sair da sala"}
+              Sair da sala
             </button>
-          </div>
-        </section>
+          </aside>
+        </div>
+
+        {/* RODAPÉ */}
+
+        <div className="mt-6 text-center">
+          <p className="text-[10px] font-medium text-white/20">
+            Quiz Royale • Sala de espera
+          </p>
+        </div>
       </div>
+
+      {/* =====================================================
+          MODAL SAIR DA SALA
+          ===================================================== */}
+
+      {modalSair && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-5 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setModalSair(false);
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-[#11101c] shadow-2xl shadow-black/50"
+            onMouseDown={(event) => {
+              event.stopPropagation();
+            }}
+          >
+
+            {/* CABEÇALHO */}
+
+            <div className="border-b border-white/5 px-6 py-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-500/10">
+                  <LogOut className="h-5 w-5 text-red-400" />
+                </div>
+
+                <div>
+                  <h2 className="text-base font-black">
+                    Sair da sala?
+                  </h2>
+
+                  <p className="mt-0.5 text-xs text-white/35">
+                    Essa ação precisa de confirmação
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* CONTEÚDO */}
+
+            <div className="px-6 py-6">
+
+              {/* ALERTA */}
+
+              <div className="rounded-2xl border border-red-400/10 bg-red-500/5 p-4">
+                <div className="flex gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/10">
+                    <span className="text-sm font-black text-red-400">
+                      !
+                    </span>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-bold text-red-300">
+                      Atenção
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-white/45">
+                      Ao sair da sala, ela será
+                      fechada para todos os
+                      jogadores que estão
+                      aguardando.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* PERGUNTA */}
+
+              <p className="mt-5 text-sm leading-6 text-white/50">
+                Tem certeza que deseja sair da sala{" "}
+                <span className="font-bold text-white">
+                  {sala.nome}
+                </span>
+                ?
+              </p>
+            </div>
+
+            {/* BOTÕES */}
+
+            <div className="flex gap-3 border-t border-white/5 px-6 py-5">
+
+              <button
+                type="button"
+                onClick={() =>
+                  setModalSair(false)
+                }
+                disabled={saindo}
+                className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-bold text-white/60 transition hover:bg-white/[0.06] hover:text-white disabled:opacity-40"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={sairDaSala}
+                disabled={saindo}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-black text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {saindo ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saindo...
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="h-4 w-4" />
+                    Sair da sala
+                  </>
+                )}
+              </button>
+
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
+
+/*
+ * ===========================================================
+ * PAGE
+ * ===========================================================
+ */
 
 export default function Page() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-purple-400" />
+        <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080611] text-white">
+          <div className="flex flex-col items-center gap-5">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-purple-400/20 bg-purple-500/10">
+              <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
+            </div>
 
-            <p className="text-sm text-white/50">
+            <p className="text-sm font-bold text-white/50">
               Carregando sala...
             </p>
           </div>

@@ -44,6 +44,7 @@ model Jogador {
   usuarioId    Int    
   salaId       Int
   eliminado    Boolean @default(false)
+  posicaoFinal Int?
 
   usuario      Usuario @relation(fields: [usuarioId], references: [id])
   sala         Sala    @relation(fields: [salaId], references: [id])

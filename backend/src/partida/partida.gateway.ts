@@ -41,30 +41,16 @@ export class PartidaGateway {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly usuarioService: UsuarioService
-  ) { }
+    private readonly usuarioService: UsuarioService,
+  ) {}
 
   /*
    * =========================================================
    * CONTROLE DAS PARTIDAS
    * =========================================================
-   *
-   * Cada sala possui seu próprio estado:
-   *
-   * codigo da sala
-   *      ↓
-   * rodada atual
-   *      ↓
-   * timer
-   *      ↓
-   * controle de encerramento
-   *
    */
 
-  private partidas = new Map<
-    string,
-    RodadaState
-  >();
+  private partidas = new Map<string, RodadaState>();
 
   /*
    * =========================================================
@@ -74,13 +60,11 @@ export class PartidaGateway {
 
   handleConnection(socket: Socket) {
     try {
-      const token =
-        socket.handshake.auth?.token;
+      const token = socket.handshake.auth?.token;
 
       if (!token) {
         socket.emit('erro_partida', {
-          mensagem:
-            'Token não informado.',
+          mensagem: 'Token não informado.',
         });
 
         socket.disconnect();
@@ -88,14 +72,9 @@ export class PartidaGateway {
         return;
       }
 
-      const tokenLimpo =
-        token.replace(
-          'Bearer ',
-          '',
-        );
+      const tokenLimpo = token.replace('Bearer ', '');
 
-      const secret =
-        process.env.JWT_SECRET;
+      const secret = process.env.JWT_SECRET;
 
       if (!secret) {
         throw new UnauthorizedException(
@@ -103,16 +82,10 @@ export class PartidaGateway {
         );
       }
 
-      const decoded =
-        jwt.verify(
-          tokenLimpo,
-          secret,
-        );
-
-      /*
-       * jwt.verify() pode retornar
-       * uma string.
-       */
+      const decoded = jwt.verify(
+        tokenLimpo,
+        secret,
+      );
 
       if (
         typeof decoded === 'string' ||
@@ -123,12 +96,7 @@ export class PartidaGateway {
         );
       }
 
-      /*
-       * O sub do JWT é o ID do Usuario.
-       */
-
-      socket.data.usuarioId =
-        Number(decoded.sub);
+      socket.data.usuarioId = Number(decoded.sub);
 
       console.log(
         `Socket autenticado - Usuario: ${socket.data.usuarioId}`,
@@ -139,13 +107,9 @@ export class PartidaGateway {
         error,
       );
 
-      socket.emit(
-        'erro_partida',
-        {
-          mensagem:
-            'Sessão inválida ou expirada.',
-        },
-      );
+      socket.emit('erro_partida', {
+        mensagem: 'Sessão inválida ou expirada.',
+      });
 
       socket.disconnect();
     }
@@ -168,12 +132,7 @@ export class PartidaGateway {
     socket: Socket,
   ) {
     try {
-      /*
-       * Pegar Usuario pelo JWT
-       */
-
-      const usuarioId =
-        socket.data.usuarioId;
+      const usuarioId = socket.data.usuarioId;
 
       if (!usuarioId) {
         throw new UnauthorizedException(
@@ -181,22 +140,13 @@ export class PartidaGateway {
         );
       }
 
-      /*
-       * Validar código
-       */
-
       if (!data?.codigo) {
         throw new BadRequestException(
           'Código da sala não informado.',
         );
       }
 
-      const codigo =
-        data.codigo.toUpperCase();
-
-      /*
-       * Buscar sala
-       */
+      const codigo = data.codigo.toUpperCase();
 
       const sala =
         await this.prisma.sala.findUnique({
@@ -237,35 +187,17 @@ export class PartidaGateway {
         );
       }
 
-      /*
-       * Verificar status
-       */
-
-      if (
-        sala.status !==
-        'ANDAMENTO'
-      ) {
+      if (sala.status !== 'ANDAMENTO') {
         throw new BadRequestException(
           'A partida ainda não foi iniciada.',
         );
       }
 
-      /*
-       * Verificar rodadas
-       */
-
-      if (
-        sala.rodadas.length === 0
-      ) {
+      if (sala.rodadas.length === 0) {
         throw new BadRequestException(
           'Essa partida não possui rodadas.',
         );
       }
-
-      /*
-       * Verificar se o usuário
-       * realmente está na sala.
-       */
 
       const jogador =
         await this.prisma.jogador.findFirst({
@@ -282,24 +214,30 @@ export class PartidaGateway {
       }
 
       /*
-       * Entrar na room do Socket.IO
+       * Se o jogador já foi eliminado,
+       * ele pode reconectar no socket,
+       * mas não recebe mais perguntas.
        */
 
-      socket.join(
-        `partida:${codigo}`,
-      );
+      socket.join(`partida:${codigo}`);
+
+      if (jogador.eliminado) {
+        socket.emit('jogador_eliminado', {
+          mensagem:
+            'Você foi eliminado e não participa mais das rodadas.',
+        });
+
+        return;
+      }
 
       /*
-       * Verificar se essa partida
-       * já possui estado.
+       * Verificar estado da partida.
        */
 
-      let estado =
-        this.partidas.get(codigo);
+      let estado = this.partidas.get(codigo);
 
       /*
-       * Se não existe estado,
-       * começamos na primeira rodada.
+       * Primeira conexão da partida.
        */
 
       if (!estado) {
@@ -314,10 +252,6 @@ export class PartidaGateway {
           estado,
         );
 
-        /*
-         * Começa a primeira rodada.
-         */
-
         await this.iniciarRodada(
           codigo,
           sala.rodadas,
@@ -327,14 +261,14 @@ export class PartidaGateway {
       }
 
       /*
-       * Se a partida já estava acontecendo,
-       * enviamos a rodada atual somente
+       * Partida já começou.
+       * Enviar a rodada atual somente
        * para esse jogador.
        */
 
       const rodadaAtual =
         sala.rodadas[
-        estado.rodadaAtual
+          estado.rodadaAtual
         ];
 
       if (!rodadaAtual) {
@@ -355,19 +289,17 @@ export class PartidaGateway {
       );
 
       console.log(
-        `Jogador ${jogador.id} entrou na partida ${codigo} na rodada ${estado.rodadaAtual + 1
+        `Jogador ${jogador.id} entrou na partida ${codigo} na rodada ${
+          estado.rodadaAtual + 1
         }`,
       );
     } catch (error) {
-      socket.emit(
-        'erro_partida',
-        {
-          mensagem:
-            error instanceof Error
-              ? error.message
-              : 'Erro ao entrar na partida.',
-        },
-      );
+      socket.emit('erro_partida', {
+        mensagem:
+          error instanceof Error
+            ? error.message
+            : 'Erro ao entrar na partida.',
+      });
     }
   }
 
@@ -390,7 +322,7 @@ export class PartidaGateway {
 
     const rodada =
       rodadas[
-      estado.rodadaAtual
+        estado.rodadaAtual
       ];
 
     if (!rodada) {
@@ -398,7 +330,7 @@ export class PartidaGateway {
     }
 
     /*
-     * Limpar timer anterior
+     * Limpar timer anterior.
      */
 
     if (estado.timer) {
@@ -410,30 +342,86 @@ export class PartidaGateway {
     estado.encerrando = false;
 
     /*
-     * Enviar pergunta para todos
-     * os jogadores da sala.
+     * Buscar sala.
      */
 
-    this.server
-      .to(`partida:${codigo}`)
-      .emit(
-        'pergunta',
-        {
-          rodada,
-          numeroRodada:
-            estado.rodadaAtual + 1,
-          totalRodadas:
-            rodadas.length,
-        } satisfies PerguntaSocket,
+    const sala =
+      await this.prisma.sala.findUnique({
+        where: {
+          codigo,
+        },
+      });
+
+    if (!sala) {
+      return;
+    }
+
+    /*
+     * Buscar somente jogadores ativos.
+     */
+
+    const jogadoresAtivos =
+      await this.prisma.jogador.findMany({
+        where: {
+          salaId: sala.id,
+          eliminado: false,
+        },
+
+        select: {
+          usuarioId: true,
+        },
+      });
+
+    const usuariosAtivos =
+      new Set(
+        jogadoresAtivos.map(
+          (jogador) =>
+            jogador.usuarioId,
+        ),
       );
 
+    /*
+     * Buscar sockets conectados na partida.
+     */
+
+    const sockets =
+      await this.server
+        .in(`partida:${codigo}`)
+        .fetchSockets();
+
+    /*
+     * Enviar pergunta somente
+     * para jogadores ativos.
+     */
+
+    for (const socket of sockets) {
+      const usuarioId =
+        Number(socket.data.usuarioId);
+
+      if (
+        usuariosAtivos.has(usuarioId)
+      ) {
+        socket.emit(
+          'pergunta',
+          {
+            rodada,
+            numeroRodada:
+              estado.rodadaAtual + 1,
+            totalRodadas:
+              rodadas.length,
+          } satisfies PerguntaSocket,
+        );
+      }
+    }
+
     console.log(
-      `Partida ${codigo} iniciou a rodada ${estado.rodadaAtual + 1
+      `Partida ${codigo} iniciou a rodada ${
+        estado.rodadaAtual + 1
       }`,
     );
 
     /*
-     * Timer da rodada
+     * Timer da rodada.
      */
 
     estado.timer =
@@ -451,8 +439,7 @@ export class PartidaGateway {
             );
           }
         },
-        rodada.tempoLimite *
-        1000,
+        rodada.tempoLimite * 1000,
       );
   }
 
@@ -476,10 +463,6 @@ export class PartidaGateway {
     socket: Socket,
   ) {
     try {
-      /*
-       * Usuario vindo do JWT
-       */
-
       const usuarioId =
         socket.data.usuarioId;
 
@@ -488,10 +471,6 @@ export class PartidaGateway {
           'Usuário não autenticado.',
         );
       }
-
-      /*
-       * Validar dados
-       */
 
       if (!data?.codigo) {
         throw new BadRequestException(
@@ -515,7 +494,7 @@ export class PartidaGateway {
         data.codigo.toUpperCase();
 
       /*
-       * Verificar estado da partida
+       * Estado da partida.
        */
 
       const estado =
@@ -528,7 +507,7 @@ export class PartidaGateway {
       }
 
       /*
-       * Buscar sala
+       * Buscar sala.
        */
 
       const sala =
@@ -545,9 +524,7 @@ export class PartidaGateway {
       }
 
       /*
-       * Buscar jogador
-       *
-       * Usuario.id -> Jogador.id
+       * Buscar jogador.
        */
 
       const jogador =
@@ -565,7 +542,23 @@ export class PartidaGateway {
       }
 
       /*
-       * Buscar rodada
+       * Jogador eliminado não pode responder.
+       */
+
+      if (jogador.eliminado) {
+        socket.emit(
+          'jogador_eliminado',
+          {
+            mensagem:
+              'Você foi eliminado e não pode mais responder.',
+          },
+        );
+
+        return;
+      }
+
+      /*
+       * Buscar rodada.
        */
 
       const rodada =
@@ -578,27 +571,6 @@ export class PartidaGateway {
       if (!rodada) {
         throw new BadRequestException(
           'Rodada não encontrada.',
-        );
-      }
-
-      /*
-       * Verificar se é a rodada atual
-       */
-
-      const rodadaAtualBanco =
-        await this.prisma.rodada.findFirst({
-          where: {
-            salaId: sala.id,
-            ordem:
-              rodada.ordem,
-          },
-        });
-
-      if (
-        !rodadaAtualBanco
-      ) {
-        throw new BadRequestException(
-          'Rodada inválida.',
         );
       }
 
@@ -617,8 +589,7 @@ export class PartidaGateway {
       }
 
       /*
-       * Verificar se o jogador
-       * está respondendo a rodada atual.
+       * Verificar rodada atual.
        */
 
       const rodadaAtual =
@@ -626,9 +597,11 @@ export class PartidaGateway {
           where: {
             salaId: sala.id,
           },
+
           orderBy: {
             ordem: 'asc',
           },
+
           skip:
             estado.rodadaAtual,
         });
@@ -636,7 +609,7 @@ export class PartidaGateway {
       if (
         !rodadaAtual ||
         rodadaAtual.id !==
-        rodada.id
+          rodada.id
       ) {
         throw new BadRequestException(
           'Essa não é a rodada atual.',
@@ -644,7 +617,7 @@ export class PartidaGateway {
       }
 
       /*
-       * Buscar alternativa
+       * Buscar alternativa.
        */
 
       const alternativa =
@@ -661,8 +634,8 @@ export class PartidaGateway {
       }
 
       /*
-       * Verificar se a alternativa
-       * pertence à pergunta.
+       * Verificar se alternativa pertence
+       * à pergunta.
        */
 
       if (
@@ -675,7 +648,7 @@ export class PartidaGateway {
       }
 
       /*
-       * Verificar se já respondeu
+       * Verificar se já respondeu.
        */
 
       const respostaExistente =
@@ -698,7 +671,7 @@ export class PartidaGateway {
       }
 
       /*
-       * Criar resposta
+       * Registrar resposta.
        */
 
       const resposta =
@@ -724,89 +697,55 @@ export class PartidaGateway {
           },
         });
 
-      /*
-       * Verificar se acertou
-       */
-
       const correta =
         resposta.alternativa.correta;
 
       /*
        * =====================================================
-       * PONTUAÇÃO
+       * RESULTADO DA RESPOSTA
        * =====================================================
        *
-       * Acertou = +100
-       * Errou   = +0
+       * Acertou:
+       * continua na partida.
+       *
+       * Errou:
+       * é eliminado.
+       *
+       * NÃO existe pontuação aqui.
        *
        */
 
-      if (correta) {
-        const usuarioAtualizado =
-          await this.prisma.usuario.update({
-            where: {
-              id: usuarioId,
-            },
-            data: {
-              pontuacao: {
-                increment: 100,
-              },
-            },
-            select: {
-              id: true,
-              nome: true,
-              pontuacao: true,
-              patenteId: true,
-            },
-          });
+      if (!correta) {
+        await this.prisma.jogador.update({
+          where: {
+            id: jogador.id,
+          },
 
-        /*
-         * Buscar a maior patente que o jogador
-         * já alcançou com a pontuação atual.
-         */
-        const novaPatente =
-          await this.prisma.patente.findFirst({
-            where: {
-              pontos: {
-                lte: usuarioAtualizado.pontuacao,
-              },
-            },
-            orderBy: {
-              pontos: 'desc',
-            },
-          });
+          data: {
+            eliminado: true,
+          },
+        });
 
-        /*
-         * Atualizar a patente somente se
-         * existir uma patente compatível e
-         * ela for diferente da atual.
-         */
-        if (
-          novaPatente &&
-          novaPatente.id !== usuarioAtualizado.patenteId
-        ) {
-          await this.prisma.usuario.update({
-            where: {
-              id: usuarioId,
-            },
-            data: {
-              patenteId: novaPatente.id,
-            },
-          });
-
-          console.log(
-            `Usuário ${usuarioAtualizado.nome} subiu para a patente ${novaPatente.nome}!`,
-          );
-        }
+        socket.emit(
+          'jogador_eliminado',
+          {
+            mensagem:
+              'Você errou a pergunta e foi eliminado!',
+          },
+        );
 
         console.log(
-          `Pontuação de ${usuarioAtualizado.nome}: ${usuarioAtualizado.pontuacao}`,
+          `Jogador ${jogador.id} foi eliminado na rodada ${rodada.id}.`,
+        );
+      } else {
+        console.log(
+          `Jogador ${jogador.id} acertou a rodada ${rodada.id}.`,
         );
       }
 
       /*
-       * Enviar resultado somente
-       * para o jogador que respondeu.
+       * Resultado somente para
+       * quem respondeu.
        */
 
       socket.emit(
@@ -820,16 +759,8 @@ export class PartidaGateway {
         },
       );
 
-      console.log(
-        `Jogador ${jogador.id} respondeu a rodada ${rodada.id}: ${correta
-          ? 'CORRETA (+100)'
-          : 'INCORRETA (+0)'
-        }`,
-      );
-
       /*
-       * Verificar se todos os jogadores
-       * já responderam.
+       * Verificar se a rodada acabou.
        */
 
       await this.verificarFimRodada(
@@ -852,7 +783,7 @@ export class PartidaGateway {
 
   /*
    * =========================================================
-   * VERIFICAR SE TODOS RESPONDERAM
+   * VERIFICAR FIM DA RODADA
    * =========================================================
    */
 
@@ -868,24 +799,19 @@ export class PartidaGateway {
       return;
     }
 
-    /*
-     * Se já está encerrando,
-     * não faz novamente.
-     */
-
     if (estado.encerrando) {
       return;
     }
 
     /*
-     * Buscar todos os jogadores
-     * da sala.
+     * Somente jogadores ativos contam.
      */
 
     const jogadores =
       await this.prisma.jogador.findMany({
         where: {
           salaId,
+          eliminado: false,
         },
 
         select: {
@@ -893,14 +819,22 @@ export class PartidaGateway {
         },
       });
 
-    if (
-      jogadores.length === 0
-    ) {
+    /*
+     * Se ninguém está mais ativo,
+     * encerra a partida.
+     */
+
+    if (jogadores.length === 0) {
+      await this.encerrarRodada(
+        codigo,
+      );
+
       return;
     }
 
     /*
      * Buscar respostas da rodada
+     * somente dos jogadores ativos.
      */
 
     const respostas =
@@ -929,10 +863,6 @@ export class PartidaGateway {
         },
       });
 
-    /*
-     * Jogadores únicos que responderam
-     */
-
     const jogadoresQueResponderam =
       new Set(
         respostas.map(
@@ -942,12 +872,11 @@ export class PartidaGateway {
       );
 
     console.log(
-      `Rodada ${rodadaId}: ${jogadoresQueResponderam.size}/${jogadores.length} jogadores responderam.`,
+      `Rodada ${rodadaId}: ${jogadoresQueResponderam.size}/${jogadores.length} jogadores ativos responderam.`,
     );
 
     /*
-     * Se todos responderam,
-     * encerra imediatamente.
+     * Todos os jogadores ativos responderam.
      */
 
     if (
@@ -958,6 +887,309 @@ export class PartidaGateway {
         codigo,
       );
     }
+  }
+
+  /*
+   * =========================================================
+   * CALCULAR PONTOS DA COLOCAÇÃO
+   * =========================================================
+   */
+
+  private calcularPontosPosicao(
+    posicao: number,
+  ): number {
+    const pontos: Record<
+      number,
+      number
+    > = {
+      1: 100,
+      2: 75,
+      3: 50,
+      4: 35,
+      5: 25,
+      6: 20,
+      7: 15,
+      8: 10,
+      9: 5,
+    };
+
+    return pontos[posicao] ?? 2;
+  }
+
+  /*
+   * =========================================================
+   * FINALIZAR PARTIDA
+   * =========================================================
+   */
+
+  private async finalizarPartida(
+    codigo: string,
+    salaId: number,
+  ) {
+    /*
+     * Buscar jogadores.
+     */
+
+    const jogadores =
+      await this.prisma.jogador.findMany({
+        where: {
+          salaId,
+        },
+
+        include: {
+          usuario: {
+            select: {
+              id: true,
+              nome: true,
+              pontuacao: true,
+            },
+          },
+        },
+      });
+
+    /*
+     * Jogadores que ainda estão ativos
+     * ficam nas primeiras posições.
+     *
+     * Entre os eliminados, usamos a ordem
+     * em que foram eliminados através
+     * de posicaoFinal.
+     */
+
+    const jogadoresOrdenados =
+      [...jogadores].sort(
+        (a, b) => {
+          /*
+           * Ativo vem antes de eliminado.
+           */
+
+          if (
+            a.eliminado !==
+            b.eliminado
+          ) {
+            return a.eliminado
+              ? 1
+              : -1;
+          }
+
+          /*
+           * Se ambos possuem posição final,
+           * menor número = melhor colocação.
+           */
+
+          if (
+            a.posicaoFinal != null &&
+            b.posicaoFinal != null
+          ) {
+            return (
+              a.posicaoFinal -
+              b.posicaoFinal
+            );
+          }
+
+          /*
+           * Desempate pelo ID.
+           */
+
+          return a.id - b.id;
+        },
+      );
+
+    /*
+     * Se ainda não houver posição final
+     * definida, atribuir pela ordem atual.
+     */
+
+    for (
+      let index = 0;
+      index <
+      jogadoresOrdenados.length;
+      index++
+    ) {
+      const jogador =
+        jogadoresOrdenados[index];
+
+      const posicao =
+        index + 1;
+
+      if (
+        jogador.posicaoFinal !==
+        posicao
+      ) {
+        await this.prisma.jogador.update({
+          where: {
+            id: jogador.id,
+          },
+
+          data: {
+            posicaoFinal:
+              posicao,
+          },
+        });
+
+        jogador.posicaoFinal =
+          posicao;
+      }
+    }
+
+    /*
+     * Ordenar definitivamente
+     * pela posição.
+     */
+
+    jogadoresOrdenados.sort(
+      (a, b) =>
+        (a.posicaoFinal ?? 999999) -
+        (b.posicaoFinal ?? 999999),
+    );
+
+    /*
+     * =====================================================
+     * DISTRIBUIR PONTOS
+     * =====================================================
+     */
+
+    const ranking = [];
+
+    for (
+      let index = 0;
+      index <
+      jogadoresOrdenados.length;
+      index++
+    ) {
+      const jogador =
+        jogadoresOrdenados[index];
+
+      const posicao =
+        index + 1;
+
+      const pontosGanhos =
+        this.calcularPontosPosicao(
+          posicao,
+        );
+
+      /*
+       * Adicionar os pontos da colocação
+       * ao ranking permanente.
+       */
+
+      const usuarioAtualizado =
+        await this.prisma.usuario.update({
+          where: {
+            id: jogador.usuario.id,
+          },
+
+          data: {
+            pontuacao: {
+              increment:
+                pontosGanhos,
+            },
+          },
+
+          select: {
+            id: true,
+            nome: true,
+            pontuacao: true,
+            patenteId: true,
+          },
+        });
+
+      /*
+       * Recalcular patente.
+       */
+
+      const novaPatente =
+        await this.prisma.patente.findFirst({
+          where: {
+            pontos: {
+              lte:
+                usuarioAtualizado.pontuacao,
+            },
+          },
+
+          orderBy: {
+            pontos: 'desc',
+          },
+        });
+
+      if (
+        novaPatente &&
+        novaPatente.id !==
+          usuarioAtualizado.patenteId
+      ) {
+        await this.prisma.usuario.update({
+          where: {
+            id: usuarioAtualizado.id,
+          },
+
+          data: {
+            patenteId:
+              novaPatente.id,
+          },
+        });
+
+        console.log(
+          `Usuário ${usuarioAtualizado.nome} subiu para a patente ${novaPatente.nome}!`,
+        );
+      }
+
+      ranking.push({
+        posicao,
+        jogadorId: jogador.id,
+        usuarioId: jogador.usuario.id,
+        nome: jogador.usuario.nome,
+        pontosGanhos,
+        pontuacao:
+          usuarioAtualizado.pontuacao,
+        eliminado:
+          jogador.eliminado,
+      });
+    }
+
+    /*
+     * Exibir ranking no servidor.
+     */
+
+    console.log(
+      `Ranking final da partida ${codigo}:`,
+      ranking,
+    );
+
+    /*
+     * Atualizar sala.
+     */
+
+    await this.prisma.sala.update({
+      where: {
+        id: salaId,
+      },
+
+      data: {
+        status: 'FINALIZADA',
+      },
+    });
+
+    /*
+     * Enviar ranking para todos.
+     */
+
+    this.server
+      .to(`partida:${codigo}`)
+      .emit(
+        'partida_finalizada',
+        {
+          codigo,
+          ranking,
+        },
+      );
+
+    /*
+     * Limpar partida.
+     */
+
+    this.partidas.delete(
+      codigo,
+    );
   }
 
   /*
@@ -978,8 +1210,7 @@ export class PartidaGateway {
     }
 
     /*
-     * Impede duas execuções
-     * simultâneas.
+     * Impedir duas execuções simultâneas.
      */
 
     if (estado.encerrando) {
@@ -989,7 +1220,7 @@ export class PartidaGateway {
     estado.encerrando = true;
 
     /*
-     * Limpar timer
+     * Limpar timer.
      */
 
     if (estado.timer) {
@@ -1001,7 +1232,7 @@ export class PartidaGateway {
     }
 
     /*
-     * Buscar sala novamente
+     * Buscar sala novamente.
      */
 
     const sala =
@@ -1043,16 +1274,10 @@ export class PartidaGateway {
       return;
     }
 
-    /*
-     * Usar rodadas atualizadas do banco.
-     */
-
     const rodadas =
       sala.rodadas;
 
-    if (
-      rodadas.length === 0
-    ) {
+    if (rodadas.length === 0) {
       this.partidas.delete(
         codigo,
       );
@@ -1061,7 +1286,9 @@ export class PartidaGateway {
     }
 
     /*
-     * Se acabou a última rodada.
+     * =====================================================
+     * ÚLTIMA RODADA
+     * =====================================================
      */
 
     if (
@@ -1072,104 +1299,82 @@ export class PartidaGateway {
         `Partida ${codigo} finalizada.`,
       );
 
-      /*
-       * Atualizar status da sala.
-       */
-
-      await this.prisma.sala.update({
-        where: {
-          id: sala.id,
-        },
-
-        data: {
-          status: 'FINALIZADA',
-        },
-      });
-
-      /*
-       * Buscar ranking final.
-       */
-
-      const jogadores =
-        await this.prisma.jogador.findMany({
-          where: {
-            salaId: sala.id,
-          },
-
-          include: {
-            usuario: {
-              select: {
-                id: true,
-                nome: true,
-                pontuacao: true,
-              },
-            },
-          },
-        });
-
-      const ranking =
-        jogadores
-          .sort(
-            (a, b) =>
-              (b.usuario.pontuacao ??
-                0) -
-              (a.usuario.pontuacao ??
-                0),
-          )
-          .map(
-            (
-              jogador,
-              index,
-            ) => ({
-              posicao:
-                index + 1,
-
-              jogadorId:
-                jogador.id,
-
-              usuarioId:
-                jogador.usuario.id,
-
-              nome:
-                jogador.usuario
-                  .nome,
-
-              pontuacao:
-                jogador.usuario
-                  .pontuacao ??
-                0,
-            }),
-          );
-
-      /*
-       * Avisar todos os jogadores.
-       */
-
-      this.server
-        .to(`partida:${codigo}`)
-        .emit(
-          'partida_finalizada',
-          {
-            codigo,
-            ranking,
-          },
-        );
-
-      /*
-       * Limpar estado da partida.
-       */
-
-      this.partidas.delete(
+      await this.finalizarPartida(
         codigo,
+        sala.id,
       );
 
       return;
     }
 
     /*
-     * =======================================================
+     * =====================================================
+     * VERIFICAR SE SOBROU APENAS UM
+     * =====================================================
+     */
+
+    const jogadoresAtivos =
+      await this.prisma.jogador.findMany({
+        where: {
+          salaId: sala.id,
+          eliminado: false,
+        },
+
+        select: {
+          id: true,
+        },
+      });
+
+    /*
+     * Se sobrou apenas um jogador,
+     * ele é o campeão.
+     *
+     * Como ainda existem rodadas,
+     * precisamos finalizar imediatamente.
+     */
+
+    if (
+      jogadoresAtivos.length === 1
+    ) {
+      console.log(
+        `Jogador ${jogadoresAtivos[0].id} venceu a partida ${codigo}.`,
+      );
+
+      /*
+       * O único jogador ativo recebe
+       * a posição 1.
+       */
+
+      await this.prisma.jogador.update({
+        where: {
+          id: jogadoresAtivos[0].id,
+        },
+
+        data: {
+          posicaoFinal: 1,
+        },
+      });
+
+      /*
+       * Os jogadores eliminados ainda não
+       * possuem posição definida.
+       *
+       * Eles receberão suas posições na
+       * finalização.
+       */
+
+      await this.finalizarPartida(
+        codigo,
+        sala.id,
+      );
+
+      return;
+    }
+
+    /*
+     * =====================================================
      * PRÓXIMA RODADA
-     * =======================================================
+     * =====================================================
      */
 
     estado.rodadaAtual++;
@@ -1178,19 +1383,26 @@ export class PartidaGateway {
 
     const proximaRodada =
       rodadas[
-      estado.rodadaAtual
+        estado.rodadaAtual
       ];
 
+    if (!proximaRodada) {
+      await this.finalizarPartida(
+        codigo,
+        sala.id,
+      );
+
+      return;
+    }
+
     console.log(
-      `Partida ${codigo} avançando para a rodada ${estado.rodadaAtual + 1
+      `Partida ${codigo} avançando para a rodada ${
+        estado.rodadaAtual + 1
       }`,
     );
 
     /*
-     * Pequeno intervalo antes
-     * da próxima pergunta.
-     *
-     * Isso dá tempo para o frontend
+     * Esperar 2 segundos para o frontend
      * mostrar o resultado.
      */
 
