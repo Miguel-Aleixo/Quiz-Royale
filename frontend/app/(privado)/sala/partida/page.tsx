@@ -10,6 +10,9 @@ import {
   Gamepad2,
   Loader2,
   XCircle,
+  Trophy,
+  Medal,
+  ArrowLeft,
 } from "lucide-react";
 
 import { useToken } from "@/app/hooks/usuario/useToken";
@@ -57,6 +60,19 @@ interface ErroSocket {
   mensagem: string;
 }
 
+interface RankingJogador {
+  posicao: number;
+  jogadorId: number;
+  usuarioId: number;
+  nome: string;
+  pontuacao: number;
+}
+
+interface PartidaFinalizada {
+  codigo: string;
+  ranking: RankingJogador[];
+}
+
 export default function PartidaPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -92,6 +108,16 @@ export default function PartidaPage() {
     resultadoResposta,
     setResultadoResposta,
   ] = useState<boolean | null>(null);
+
+  const [
+    partidaFinalizada,
+    setPartidaFinalizada,
+  ] = useState(false);
+
+  const [
+    ranking,
+    setRanking,
+  ] = useState<RankingJogador[]>([]);
 
   /*
    * =========================================================
@@ -188,10 +214,10 @@ export default function PartidaPage() {
     }
 
     /*
-     * O token é enviado no handshake do Socket.
+     * O JWT é enviado no handshake.
      *
-     * O backend vai validar esse token no
-     * handleConnection() do PartidaGateway.
+     * O backend usa esse token para
+     * descobrir o Usuario.id.
      */
 
     const socketInstance = io(API, {
@@ -219,9 +245,7 @@ export default function PartidaPage() {
         /*
          * Entrar na partida.
          *
-         * NÃO enviamos jogadorId.
-         *
-         * O backend descobre o Usuario pelo JWT.
+         * Não enviamos jogadorId.
          */
 
         socketInstance.emit(
@@ -243,17 +267,29 @@ export default function PartidaPage() {
       "pergunta",
       (data: PerguntaSocket) => {
         console.log(
-          "Pergunta recebida pelo Socket:",
+          "Pergunta recebida:",
           data
         );
+
+        /*
+         * Atualiza a rodada.
+         */
 
         setRodadaAtual(
           data.numeroRodada - 1
         );
 
+        /*
+         * Reinicia o cronômetro.
+         */
+
         setTempoRestante(
           data.rodada.tempoLimite
         );
+
+        /*
+         * Limpa a resposta anterior.
+         */
 
         setAlternativaSelecionada(
           null
@@ -282,6 +318,40 @@ export default function PartidaPage() {
         setResultadoResposta(
           data.correta
         );
+      }
+    );
+
+    /*
+     * =======================================================
+     * PARTIDA FINALIZADA
+     * =======================================================
+     */
+
+    socketInstance.on(
+      "partida_finalizada",
+      (data: PartidaFinalizada) => {
+        console.log(
+          "Partida finalizada:",
+          data
+        );
+
+        /*
+         * Mostra a tela de ranking.
+         */
+
+        setRanking(
+          data.ranking
+        );
+
+        setPartidaFinalizada(
+          true
+        );
+
+        /*
+         * Para o cronômetro.
+         */
+
+        setTempoRestante(0);
       }
     );
 
@@ -387,6 +457,15 @@ export default function PartidaPage() {
    */
 
   useEffect(() => {
+    /*
+     * Se a partida acabou,
+     * não inicia cronômetro.
+     */
+
+    if (partidaFinalizada) {
+      return;
+    }
+
     if (!rodada) {
       return;
     }
@@ -425,7 +504,10 @@ export default function PartidaPage() {
         intervalo
       );
     };
-  }, [rodada]);
+  }, [
+    rodada,
+    partidaFinalizada,
+  ]);
 
   /*
    * =========================================================
@@ -467,6 +549,7 @@ export default function PartidaPage() {
 
     /*
      * Precisa estar conectado.
+
      */
 
     if (!socket) {
@@ -498,8 +581,14 @@ export default function PartidaPage() {
     );
 
     /*
-     * Calcula quanto tempo
-     * o jogador levou para responder.
+     * Calcula o tempo utilizado.
+
+     * Exemplo:
+     *
+     * tempo limite = 30
+     * tempo restante = 24
+     *
+     * tempoResposta = 6
      */
 
     const tempoResposta =
@@ -511,10 +600,10 @@ export default function PartidaPage() {
      *
      * IMPORTANTE:
      *
-     * Não enviamos jogadorId.
+     * NÃO enviamos jogadorId.
      *
-     * O backend já sabe quem é o usuário
-     * através do JWT do Socket.
+     * O backend pega o Usuario pelo
+     * JWT e encontra o Jogador.
      */
 
     socket.emit(
@@ -586,6 +675,161 @@ export default function PartidaPage() {
           >
             Voltar
           </button>
+        </div>
+      </main>
+    );
+  }
+
+  /*
+   * =========================================================
+   * PARTIDA FINALIZADA
+   * =========================================================
+   */
+
+  if (partidaFinalizada) {
+    return (
+      <main className="min-h-screen bg-slate-950 text-white">
+        <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-5 py-8 md:px-8">
+
+          {/* HEADER */}
+
+          <header className="text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-yellow-400/20 bg-yellow-500/10">
+              <Trophy className="h-8 w-8 text-yellow-300" />
+            </div>
+
+            <h1 className="mt-5 text-3xl font-black md:text-4xl">
+              Partida finalizada!
+            </h1>
+
+            <p className="mt-2 text-sm text-white/40">
+              Confira a classificação final.
+            </p>
+          </header>
+
+          {/* RANKING */}
+
+          <section className="mt-10">
+            <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] shadow-2xl">
+
+              {/* TÍTULO */}
+
+              <div className="border-b border-white/10 px-6 py-5 md:px-8">
+                <div className="flex items-center gap-3">
+                  <Trophy className="h-5 w-5 text-yellow-300" />
+
+                  <h2 className="font-black">
+                    Ranking final
+                  </h2>
+                </div>
+              </div>
+
+              {/* JOGADORES */}
+
+              <div className="divide-y divide-white/5">
+                {ranking.map(
+                  (jogador) => {
+                    const souEu =
+                      Number(
+                        usuario?.sub
+                      ) ===
+                      jogador.usuarioId;
+
+                    return (
+                      <div
+                        key={
+                          jogador.jogadorId
+                        }
+                        className={`flex items-center gap-4 px-6 py-5 transition md:px-8 ${
+                          souEu
+                            ? "bg-purple-500/10"
+                            : "bg-transparent"
+                        }`}
+                      >
+
+                        {/* POSIÇÃO */}
+
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10">
+                          {jogador.posicao ===
+                          1 ? (
+                            <Trophy className="h-5 w-5 text-yellow-300" />
+                          ) : jogador.posicao <=
+                            3 ? (
+                            <Medal className="h-5 w-5 text-white/60" />
+                          ) : (
+                            <span className="text-sm font-black text-white/50">
+                              {
+                                jogador.posicao
+                              }
+                            </span>
+                          )}
+                        </div>
+
+                        {/* NOME */}
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate font-bold">
+                              {
+                                jogador.nome
+                              }
+                            </p>
+
+                            {souEu && (
+                              <span className="shrink-0 rounded-lg bg-purple-500/15 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-purple-300">
+                                Você
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="mt-1 text-xs text-white/30">
+                            {jogador.posicao}º lugar
+                          </p>
+                        </div>
+
+                        {/* PONTUAÇÃO */}
+
+                        <div className="text-right">
+                          <p className="text-lg font-black">
+                            {
+                              jogador.pontuacao
+                            }
+                          </p>
+
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-white/30">
+                            pontos
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+                )}
+
+                {ranking.length ===
+                  0 && (
+                  <div className="px-6 py-12 text-center">
+                    <p className="text-sm text-white/40">
+                      Nenhum jogador encontrado.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* VOLTAR */}
+
+          <div className="mt-8 flex justify-center">
+            <button
+              onClick={() =>
+                router.back()
+              }
+              className="flex items-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:bg-white/15"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </button>
+          </div>
         </div>
       </main>
     );
@@ -707,10 +951,14 @@ export default function PartidaPage() {
         <section className="mt-10">
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-7 shadow-2xl md:p-10">
 
+            {/* IDENTIFICAÇÃO */}
+
             <span className="text-xs font-bold uppercase tracking-[0.2em] text-purple-400">
               Pergunta{" "}
               {rodadaAtual + 1}
             </span>
+
+            {/* ENUNCIADO */}
 
             <h2 className="mt-5 text-2xl font-black leading-tight md:text-4xl">
               {
@@ -784,7 +1032,7 @@ export default function PartidaPage() {
                         }
                       </span>
 
-                      {/* SELECIONADA */}
+                      {/* ÍCONE */}
 
                       {selecionada && (
                         <CheckCircle2 className="h-5 w-5 shrink-0 text-purple-400" />
@@ -798,6 +1046,8 @@ export default function PartidaPage() {
             {/* RESULTADO */}
 
             <div className="mt-7 flex justify-center">
+
+              {/* TEMPO ESGOTADO */}
 
               {tempoRestante ===
               0 ? (
