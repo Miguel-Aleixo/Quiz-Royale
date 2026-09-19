@@ -822,7 +822,7 @@ export default function PartidaPage() {
           <div className="mt-8 flex justify-center">
             <button
               onClick={() =>
-                router.back()
+                router.push('/')
               }
               className="flex items-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:bg-white/15"
             >

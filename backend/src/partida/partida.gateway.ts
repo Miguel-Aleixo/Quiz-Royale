@@ -40,7 +40,7 @@ export class PartidaGateway {
 
   constructor(
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   /*
    * =========================================================
@@ -332,7 +332,7 @@ export class PartidaGateway {
 
       const rodadaAtual =
         sala.rodadas[
-          estado.rodadaAtual
+        estado.rodadaAtual
         ];
 
       if (!rodadaAtual) {
@@ -353,8 +353,7 @@ export class PartidaGateway {
       );
 
       console.log(
-        `Jogador ${jogador.id} entrou na partida ${codigo} na rodada ${
-          estado.rodadaAtual + 1
+        `Jogador ${jogador.id} entrou na partida ${codigo} na rodada ${estado.rodadaAtual + 1
         }`,
       );
     } catch (error) {
@@ -389,7 +388,7 @@ export class PartidaGateway {
 
     const rodada =
       rodadas[
-        estado.rodadaAtual
+      estado.rodadaAtual
       ];
 
     if (!rodada) {
@@ -427,8 +426,7 @@ export class PartidaGateway {
       );
 
     console.log(
-      `Partida ${codigo} iniciou a rodada ${
-        estado.rodadaAtual + 1
+      `Partida ${codigo} iniciou a rodada ${estado.rodadaAtual + 1
       }`,
     );
 
@@ -452,7 +450,7 @@ export class PartidaGateway {
           }
         },
         rodada.tempoLimite *
-          1000,
+        1000,
       );
   }
 
@@ -636,7 +634,7 @@ export class PartidaGateway {
       if (
         !rodadaAtual ||
         rodadaAtual.id !==
-          rodada.id
+        rodada.id
       ) {
         throw new BadRequestException(
           'Essa não é a rodada atual.',
@@ -742,17 +740,26 @@ export class PartidaGateway {
        */
 
       if (correta) {
-        await this.prisma.usuario.update({
-          where: {
-            id: usuarioId,
-          },
-
-          data: {
-            pontuacao: {
-              increment: 100,
+        const usuarioAtualizado =
+          await this.prisma.usuario.update({
+            where: {
+              id: usuarioId,
             },
-          },
-        });
+            data: {
+              pontuacao: {
+                increment: 100,
+              },
+            },
+            select: {
+              id: true,
+              nome: true,
+              pontuacao: true,
+            },
+          });
+
+        console.log(
+          `Pontuação de ${usuarioAtualizado.nome}: ${usuarioAtualizado.pontuacao}`,
+        );
       }
 
       /*
@@ -772,10 +779,9 @@ export class PartidaGateway {
       );
 
       console.log(
-        `Jogador ${jogador.id} respondeu a rodada ${rodada.id}: ${
-          correta
-            ? 'CORRETA (+100)'
-            : 'INCORRETA (+0)'
+        `Jogador ${jogador.id} respondeu a rodada ${rodada.id}: ${correta
+          ? 'CORRETA (+100)'
+          : 'INCORRETA (+0)'
         }`,
       );
 
@@ -1130,12 +1136,11 @@ export class PartidaGateway {
 
     const proximaRodada =
       rodadas[
-        estado.rodadaAtual
+      estado.rodadaAtual
       ];
 
     console.log(
-      `Partida ${codigo} avançando para a rodada ${
-        estado.rodadaAtual + 1
+      `Partida ${codigo} avançando para a rodada ${estado.rodadaAtual + 1
       }`,
     );
 
