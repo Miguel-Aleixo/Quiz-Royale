@@ -405,7 +405,9 @@ export default function CriarSalaPage() {
       setSucesso("Sala criada com sucesso!");
 
       setTimeout(() => {
-        router.push(`/sala/entrar?codigo=${codigo}`);
+        router.push(
+          `/sala/entrar?codigo=${encodeURIComponent(sala.codigo)}`
+        );
       }, 1000);
     } catch (error) {
       console.error("Erro ao criar sala:", error);
@@ -759,8 +761,8 @@ export default function CriarSalaPage() {
                             <div
                               key={alternativaIndex}
                               className={`flex items-center gap-3 rounded-xl border p-2 transition ${alternativa.correta
-                                  ? "border-emerald-400/30 bg-emerald-500/[0.06]"
-                                  : "border-white/10 bg-white/[0.02]"
+                                ? "border-emerald-400/30 bg-emerald-500/[0.06]"
+                                : "border-white/10 bg-white/[0.02]"
                                 }`}
                             >
                               <button
@@ -772,8 +774,8 @@ export default function CriarSalaPage() {
                                   )
                                 }
                                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs font-black transition ${alternativa.correta
-                                    ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-300"
-                                    : "border-white/10 bg-white/[0.03] text-white/30 hover:border-violet-400/30 hover:text-violet-300"
+                                  ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-300"
+                                  : "border-white/10 bg-white/[0.03] text-white/30 hover:border-violet-400/30 hover:text-violet-300"
                                   }`}
                               >
                                 {alternativa.correta ? (
