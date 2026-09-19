@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Cookies from "js-cookie";
+import { io, Socket } from "socket.io-client";
 import {
   Clock3,
   CheckCircle2,
@@ -37,6 +38,12 @@ interface Sala {
   rodadas: Rodada[];
 }
 
+interface PerguntaSocket {
+  rodada: Rodada;
+  numeroRodada: number;
+  totalRodadas: number;
+}
+
 export default function PartidaPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -46,13 +53,19 @@ export default function PartidaPage() {
   const API = process.env.NEXT_PUBLIC_API;
 
   const [sala, setSala] = useState<Sala | null>(null);
+
   const [carregando, setCarregando] = useState(true);
+
   const [erro, setErro] = useState("");
 
   const [rodadaAtual, setRodadaAtual] = useState(0);
+
   const [tempoRestante, setTempoRestante] = useState(0);
+
   const [alternativaSelecionada, setAlternativaSelecionada] =
     useState<number | null>(null);
+
+  const [socket, setSocket] = useState<Socket | null>(null);
 
   /*
    * Busca a sala e suas rodadas
@@ -111,31 +124,112 @@ export default function PartidaPage() {
   }, [API, codigo, router]);
 
   /*
+   * Conexão com o PartidaGateway
+   */
+  useEffect(() => {
+    if (!codigo || !API) return;
+
+    const socketInstance = io(API);
+
+    setSocket(socketInstance);
+
+    socketInstance.on("connect", () => {
+      console.log(
+        "Conectado ao PartidaGateway:",
+        socketInstance.id
+      );
+
+      socketInstance.emit("entrar_partida", {
+        codigo,
+      });
+    });
+
+    /*
+     * Recebe a pergunta da partida
+     */
+    socketInstance.on(
+      "pergunta",
+      (data: PerguntaSocket) => {
+        console.log(
+          "Pergunta recebida pelo Socket:",
+          data
+        );
+
+        setRodadaAtual(data.numeroRodada - 1);
+
+        setTempoRestante(
+          data.rodada.tempoLimite
+        );
+
+        setAlternativaSelecionada(null);
+      }
+    );
+
+    /*
+     * Erro enviado pelo Gateway
+     */
+    socketInstance.on(
+      "erro_partida",
+      (data: { mensagem: string }) => {
+        console.error(
+          "Erro da partida:",
+          data.mensagem
+        );
+
+        setErro(data.mensagem);
+      }
+    );
+
+    /*
+     * Desconectado
+     */
+    socketInstance.on("disconnect", () => {
+      console.log(
+        "Desconectado do PartidaGateway"
+      );
+    });
+
+    return () => {
+      socketInstance.disconnect();
+    };
+  }, [codigo, API]);
+
+  /*
    * Rodada atual
    */
   const rodada = useMemo(() => {
-    if (!sala?.rodadas?.length) return null;
+    if (!sala?.rodadas?.length) {
+      return null;
+    }
 
     const ordenadas = [...sala.rodadas].sort(
-      (a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)
+      (a, b) =>
+        (a.ordem ?? 0) -
+        (b.ordem ?? 0)
     );
 
-    return ordenadas[rodadaAtual] ?? null;
+    return (
+      ordenadas[rodadaAtual] ?? null
+    );
   }, [sala, rodadaAtual]);
 
   /*
-   * Inicia o cronômetro quando a rodada muda
+   * Cronômetro
    */
   useEffect(() => {
     if (!rodada) return;
 
-    setTempoRestante(rodada.tempoLimite);
+    setTempoRestante(
+      rodada.tempoLimite
+    );
+
     setAlternativaSelecionada(null);
 
     const intervalo = setInterval(() => {
       setTempoRestante((tempo) => {
         if (tempo <= 1) {
           clearInterval(intervalo);
+
           return 0;
         }
 
@@ -143,14 +237,24 @@ export default function PartidaPage() {
       });
     }, 1000);
 
-    return () => clearInterval(intervalo);
+    return () => {
+      clearInterval(intervalo);
+    };
   }, [rodada]);
 
   /*
    * Escolher alternativa
    */
-  function selecionarAlternativa(id: number) {
-    if (tempoRestante <= 0) return;
+  function selecionarAlternativa(
+    id: number
+  ) {
+    if (tempoRestante <= 0) {
+      return;
+    }
+
+    if (alternativaSelecionada !== null) {
+      return;
+    }
 
     setAlternativaSelecionada(id);
   }
@@ -219,10 +323,13 @@ export default function PartidaPage() {
     );
   }
 
-  const totalRodadas = sala.rodadas.length;
+  const totalRodadas =
+    sala.rodadas.length;
 
   const progresso =
-    ((rodadaAtual + 1) / totalRodadas) * 100;
+    ((rodadaAtual + 1) /
+      totalRodadas) *
+    100;
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -240,7 +347,8 @@ export default function PartidaPage() {
             </div>
 
             <p className="mt-1 text-xs text-white/40">
-              {sala.nome} • Sala {sala.codigo}
+              {sala.nome} • Sala{" "}
+              {sala.codigo}
             </p>
           </div>
 
@@ -264,11 +372,16 @@ export default function PartidaPage() {
         <div className="mt-8">
           <div className="mb-2 flex items-center justify-between text-xs">
             <span className="font-semibold text-white/50">
-              Rodada {rodadaAtual + 1} de {totalRodadas}
+              Rodada{" "}
+              {rodadaAtual + 1} de{" "}
+              {totalRodadas}
             </span>
 
             <span className="text-white/30">
-              {Math.round(progresso)}%
+              {Math.round(
+                progresso
+              )}
+              %
             </span>
           </div>
 
@@ -287,7 +400,8 @@ export default function PartidaPage() {
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-7 shadow-2xl md:p-10">
 
             <span className="text-xs font-bold uppercase tracking-[0.2em] text-purple-400">
-              Pergunta {rodadaAtual + 1}
+              Pergunta{" "}
+              {rodadaAtual + 1}
             </span>
 
             <h2 className="mt-5 text-2xl font-black leading-tight md:text-4xl">
@@ -297,23 +411,37 @@ export default function PartidaPage() {
             {/* ALTERNATIVAS */}
             <div className="mt-8 grid gap-4 md:grid-cols-2">
               {rodada.pergunta.alternativas.map(
-                (alternativa, index) => {
+                (
+                  alternativa,
+                  index
+                ) => {
                   const selecionada =
-                    alternativaSelecionada === alternativa.id;
+                    alternativaSelecionada ===
+                    alternativa.id;
 
                   return (
                     <button
-                      key={alternativa.id}
-                      onClick={() =>
-                        selecionarAlternativa(alternativa.id)
+                      key={
+                        alternativa.id
                       }
-                      disabled={tempoRestante <= 0}
+                      onClick={() =>
+                        selecionarAlternativa(
+                          alternativa.id
+                        )
+                      }
+                      disabled={
+                        tempoRestante <= 0 ||
+                        alternativaSelecionada !==
+                          null
+                      }
                       className={`group flex min-h-[90px] items-center gap-4 rounded-2xl border p-5 text-left transition-all duration-200 ${
                         selecionada
                           ? "border-purple-400 bg-purple-500/15 shadow-lg shadow-purple-500/10"
                           : "border-white/10 bg-white/[0.025] hover:border-purple-400/40 hover:bg-white/[0.06]"
                       } ${
-                        tempoRestante <= 0
+                        tempoRestante <= 0 ||
+                        alternativaSelecionada !==
+                          null
                           ? "cursor-not-allowed opacity-50"
                           : "cursor-pointer"
                       }`}
@@ -326,12 +454,16 @@ export default function PartidaPage() {
                             : "bg-white/10 text-white/60 group-hover:bg-purple-500/20 group-hover:text-purple-300"
                         }`}
                       >
-                        {String.fromCharCode(65 + index)}
+                        {String.fromCharCode(
+                          65 + index
+                        )}
                       </span>
 
                       {/* TEXTO */}
                       <span className="flex-1 font-semibold text-white/90">
-                        {alternativa.texto}
+                        {
+                          alternativa.texto
+                        }
                       </span>
 
                       {selecionada && (
@@ -343,19 +475,22 @@ export default function PartidaPage() {
               )}
             </div>
 
-            {/* STATUS DO TEMPO */}
+            {/* STATUS */}
             <div className="mt-7 flex justify-center">
-              {tempoRestante === 0 ? (
+              {tempoRestante ===
+              0 ? (
                 <span className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-300">
                   Tempo encerrado
                 </span>
-              ) : alternativaSelecionada ? (
+              ) : alternativaSelecionada !==
+                null ? (
                 <span className="rounded-xl border border-purple-400/20 bg-purple-500/10 px-4 py-2 text-xs font-bold text-purple-300">
                   Alternativa selecionada
                 </span>
               ) : (
                 <span className="text-xs text-white/30">
-                  Selecione uma alternativa
+                  Selecione uma
+                  alternativa
                 </span>
               )}
             </div>
