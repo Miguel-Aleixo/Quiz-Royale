@@ -230,15 +230,7 @@ export default function PerfilPage() {
 
           </div>
 
-          <button
-            className="flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 text-xs font-bold text-white/50 transition hover:bg-white/[0.06] hover:text-white"
-          >
-            <Settings size={16} />
-
-            <span className="hidden sm:inline">
-              Configurações
-            </span>
-          </button>
+          
 
         </div>
       </header>

@@ -110,22 +110,26 @@ export function middleware(request: NextRequest) {
   }
 
   // ==========================================
-  // PÁGINAS DO JOGADOR
+  // PERFIL
+  // ADMIN E JOGADOR PODEM ACESSAR
   // ==========================================
 
-  const rotasJogador = [
-    "/perfil",
-    "/partida",
-  ];
+  if (
+    pathname === "/perfil" ||
+    pathname.startsWith("/perfil/")
+  ) {
+    return NextResponse.next();
+  }
 
-  const isRotaJogador = rotasJogador.some(
-    (rota) =>
-      pathname === rota ||
-      pathname.startsWith(`${rota}/`)
-  );
+  // ==========================================
+  // PARTIDA
+  // SOMENTE JOGADOR
+  // ==========================================
 
-  if (isRotaJogador) {
-    // ADMIN não precisa acessar área de jogador
+  if (
+    pathname === "/partida" ||
+    pathname.startsWith("/partida/")
+  ) {
     if (payload.role === "ADMIN") {
       return NextResponse.redirect(
         new URL("/dashboard", request.url)
