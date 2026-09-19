@@ -5,9 +5,10 @@ import { PartidaService } from './partida.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PartidaGateway } from './partida.gateway';
 import { SalaModule } from '../sala/sala.module';
+import { UsuarioModule } from '../usuario/usuario.module';
 
 @Module({
-  imports: [PrismaModule, SalaModule],
+  imports: [PrismaModule, SalaModule, UsuarioModule],
   controllers: [PartidaController],
   providers: [PartidaService, PartidaGateway],
 })

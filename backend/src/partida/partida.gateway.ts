@@ -16,6 +16,7 @@ import { Server, Socket } from 'socket.io';
 import * as jwt from 'jsonwebtoken';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { UsuarioService } from '../usuario/usuario.service';
 
 interface RodadaState {
   rodadaAtual: number;
@@ -40,6 +41,7 @@ export class PartidaGateway {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly usuarioService: UsuarioService
   ) { }
 
   /*
@@ -754,8 +756,48 @@ export class PartidaGateway {
               id: true,
               nome: true,
               pontuacao: true,
+              patenteId: true,
             },
           });
+
+        /*
+         * Buscar a maior patente que o jogador
+         * já alcançou com a pontuação atual.
+         */
+        const novaPatente =
+          await this.prisma.patente.findFirst({
+            where: {
+              pontos: {
+                lte: usuarioAtualizado.pontuacao,
+              },
+            },
+            orderBy: {
+              pontos: 'desc',
+            },
+          });
+
+        /*
+         * Atualizar a patente somente se
+         * existir uma patente compatível e
+         * ela for diferente da atual.
+         */
+        if (
+          novaPatente &&
+          novaPatente.id !== usuarioAtualizado.patenteId
+        ) {
+          await this.prisma.usuario.update({
+            where: {
+              id: usuarioId,
+            },
+            data: {
+              patenteId: novaPatente.id,
+            },
+          });
+
+          console.log(
+            `Usuário ${usuarioAtualizado.nome} subiu para a patente ${novaPatente.nome}!`,
+          );
+        }
 
         console.log(
           `Pontuação de ${usuarioAtualizado.nome}: ${usuarioAtualizado.pontuacao}`,

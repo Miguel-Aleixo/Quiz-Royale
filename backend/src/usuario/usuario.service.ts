@@ -1,5 +1,5 @@
 import * as bcrypt from 'bcrypt';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -60,6 +60,55 @@ export class UsuarioService {
       data: updateUsuarioDto
     })
   };
+
+  async atualizarPatente(usuarioId: number) {
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: {
+        id: true,
+        pontuacao: true,
+        patenteId: true,
+      },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    const patente = await this.prisma.patente.findFirst({
+      where: {
+        pontos: {
+          lte: usuario.pontuacao,
+        },
+      },
+      orderBy: {
+        pontos: 'desc',
+      },
+    });
+
+    if (!patente) {
+      return null;
+    }
+
+    if (usuario.patenteId !== patente.id) {
+      return await this.prisma.usuario.update({
+        where: { id: usuarioId },
+        data: {
+          patenteId: patente.id,
+        },
+        include: {
+          patente: true,
+        },
+      });
+    }
+
+    return await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      include: {
+        patente: true,
+      },
+    });
+  }
 
   async remove(id: number) {
     return await this.prisma.usuario.delete({
