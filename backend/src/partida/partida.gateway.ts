@@ -5,8 +5,15 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { BadRequestException } from '@nestjs/common';
+
+import {
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
+
 import { Server, Socket } from 'socket.io';
+
+import * as jwt from 'jsonwebtoken';
 
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -23,110 +30,137 @@ export class PartidaGateway {
     private readonly prisma: PrismaService,
   ) {}
 
-  /*
-   * Jogador entra na partida
-   */
+  // =========================================================
+  // AUTENTICAÇÃO DO SOCKET
+  // =========================================================
+
+  handleConnection(socket: Socket) {
+    try {
+      const token = socket.handshake.auth?.token;
+
+      if (!token) {
+        socket.emit('erro_partida', {
+          mensagem: 'Token não informado.',
+        });
+
+        socket.disconnect();
+
+        return;
+      }
+
+      const tokenLimpo = token.replace(
+        'Bearer ',
+        '',
+      );
+
+      const secret = process.env.JWT_SECRET;
+
+      if (!secret) {
+        throw new UnauthorizedException(
+          'JWT_SECRET não configurado.',
+        );
+      }
+
+      const decoded = jwt.verify(
+        tokenLimpo,
+        secret,
+      );
+
+      // jwt.verify() pode retornar string
+      if (
+        typeof decoded === 'string' ||
+        !decoded.sub
+      ) {
+        throw new UnauthorizedException(
+          'Token inválido.',
+        );
+      }
+
+      // O sub do JWT representa o ID do Usuario
+      socket.data.usuarioId = Number(decoded.sub);
+
+      console.log(
+        `Socket autenticado - Usuario: ${socket.data.usuarioId}`,
+      );
+    } catch (error) {
+      console.error(
+        'Erro na autenticação do Socket:',
+        error,
+      );
+
+      socket.emit('erro_partida', {
+        mensagem: 'Sessão inválida ou expirada.',
+      });
+
+      socket.disconnect();
+    }
+  }
+
+  // =========================================================
+  // ENTRAR NA PARTIDA
+  // =========================================================
+
   @SubscribeMessage('entrar_partida')
   async entrarPartida(
-    @MessageBody() data: { codigo: string },
-    @ConnectedSocket() socket: Socket,
-  ) {
-    const codigo = data.codigo.toUpperCase();
+    @MessageBody()
+    data: {
+      codigo: string;
+    },
 
-    const sala = await this.prisma.sala.findUnique({
-      where: {
-        codigo,
-      },
-      include: {
-        rodadas: {
-          orderBy: {
-            ordem: 'asc',
+    @ConnectedSocket()
+    socket: Socket,
+  ) {
+    try {
+      const usuarioId = socket.data.usuarioId;
+
+      if (!usuarioId) {
+        throw new UnauthorizedException(
+          'Usuário não autenticado.',
+        );
+      }
+
+      if (!data?.codigo) {
+        throw new BadRequestException(
+          'Código da sala não informado.',
+        );
+      }
+
+      const codigo = data.codigo.toUpperCase();
+
+      // -------------------------------------------------------
+      // BUSCAR SALA
+      // -------------------------------------------------------
+
+      const sala =
+        await this.prisma.sala.findUnique({
+          where: {
+            codigo,
           },
+
           include: {
-            pergunta: {
-              select: {
-                id: true,
-                enunciado: true,
-                alternativas: {
+            rodadas: {
+              orderBy: {
+                ordem: 'asc',
+              },
+
+              include: {
+                pergunta: {
                   select: {
                     id: true,
-                    texto: true,
+                    enunciado: true,
+
+                    alternativas: {
+                      select: {
+                        id: true,
+                        texto: true,
+                      },
+                    },
                   },
                 },
               },
             },
           },
-        },
-      },
-    });
-
-    if (!sala) {
-      socket.emit('erro_partida', {
-        mensagem: 'Sala não encontrada.',
-      });
-
-      return;
-    }
-
-    if (sala.status !== 'ANDAMENTO') {
-      socket.emit('erro_partida', {
-        mensagem: 'A partida ainda não foi iniciada.',
-      });
-
-      return;
-    }
-
-    if (sala.rodadas.length === 0) {
-      socket.emit('erro_partida', {
-        mensagem: 'Essa partida não possui rodadas.',
-      });
-
-      return;
-    }
-
-    /*
-     * Coloca o jogador na sala do Socket
-     */
-    socket.join(`partida:${codigo}`);
-
-    /*
-     * Envia a primeira pergunta
-     */
-    const primeiraRodada = sala.rodadas[0];
-
-    socket.emit('pergunta', {
-      rodada: primeiraRodada,
-      numeroRodada: 1,
-      totalRodadas: sala.rodadas.length,
-    });
-  }
-
-  /*
-   * Jogador responde uma pergunta
-   */
-  @SubscribeMessage('responder')
-  async responder(
-    @MessageBody()
-    data: {
-      codigo: string;
-      jogadorId: number;
-      alternativaId: number;
-      rodadaId: number;
-      tempoResposta: number;
-    },
-    @ConnectedSocket() socket: Socket,
-  ) {
-    try {
-      const codigo = data.codigo.toUpperCase();
-
-      /*
-       * Verifica a sala
-       */
-      const sala = await this.prisma.sala.findUnique({
-        where: {
-          codigo,
-        },
-      });
+        });
 
       if (!sala) {
         throw new BadRequestException(
@@ -134,49 +168,191 @@ export class PartidaGateway {
         );
       }
 
-      /*
-       * Verifica o jogador
-       */
-      const jogador = await this.prisma.jogador.findUnique({
-        where: {
-          id: data.jogadorId,
-        },
-      });
+      // -------------------------------------------------------
+      // VERIFICAR STATUS
+      // -------------------------------------------------------
 
-      if (!jogador) {
+      if (sala.status !== 'ANDAMENTO') {
         throw new BadRequestException(
-          'Jogador não encontrado.',
+          'A partida ainda não foi iniciada.',
         );
       }
 
-      /*
-       * Confirma que o jogador pertence à sala
-       */
-      if (jogador.salaId !== sala.id) {
+      // -------------------------------------------------------
+      // VERIFICAR RODADAS
+      // -------------------------------------------------------
+
+      if (sala.rodadas.length === 0) {
         throw new BadRequestException(
-          'Esse jogador não pertence à sala.',
+          'Essa partida não possui rodadas.',
         );
       }
 
-      /*
-       * Verifica a alternativa
-       */
-      const alternativa =
-        await this.prisma.alternativa.findUnique({
+      // -------------------------------------------------------
+      // BUSCAR JOGADOR
+      // -------------------------------------------------------
+      //
+      // JWT -> Usuario.id
+      //
+      // Mas Resposta usa Jogador.id.
+      //
+      // Então procuramos o Jogador através de:
+      //
+      // usuarioId + salaId
+      //
+      // -------------------------------------------------------
+
+      const jogador =
+        await this.prisma.jogador.findFirst({
           where: {
-            id: data.alternativaId,
+            usuarioId,
+            salaId: sala.id,
           },
         });
 
-      if (!alternativa) {
+      if (!jogador) {
         throw new BadRequestException(
-          'Alternativa não encontrada.',
+          'Você não está participando dessa sala.',
         );
       }
 
-      /*
-       * Verifica a rodada
-       */
+      // -------------------------------------------------------
+      // COLOCAR SOCKET NA SALA
+      // -------------------------------------------------------
+
+      socket.join(`partida:${codigo}`);
+
+      // -------------------------------------------------------
+      // PRIMEIRA RODADA
+      // -------------------------------------------------------
+
+      const primeiraRodada =
+        sala.rodadas[0];
+
+      socket.emit('pergunta', {
+        rodada: primeiraRodada,
+
+        numeroRodada: 1,
+
+        totalRodadas:
+          sala.rodadas.length,
+      });
+
+      console.log(
+        `Jogador ${jogador.id} entrou na partida ${codigo}`,
+      );
+    } catch (error) {
+      socket.emit('erro_partida', {
+        mensagem:
+          error instanceof Error
+            ? error.message
+            : 'Erro ao entrar na partida.',
+      });
+    }
+  }
+
+  // =========================================================
+  // RESPONDER PERGUNTA
+  // =========================================================
+
+  @SubscribeMessage('responder')
+  async responder(
+    @MessageBody()
+    data: {
+      codigo: string;
+      alternativaId: number;
+      rodadaId: number;
+      tempoResposta: number;
+    },
+
+    @ConnectedSocket()
+    socket: Socket,
+  ) {
+    try {
+      // -------------------------------------------------------
+      // PEGAR USUARIO DO JWT
+      // -------------------------------------------------------
+
+      const usuarioId = socket.data.usuarioId;
+
+      if (!usuarioId) {
+        throw new UnauthorizedException(
+          'Usuário não autenticado.',
+        );
+      }
+
+      // -------------------------------------------------------
+      // VALIDAR DADOS
+      // -------------------------------------------------------
+
+      if (!data?.codigo) {
+        throw new BadRequestException(
+          'Código da sala não informado.',
+        );
+      }
+
+      if (!data.alternativaId) {
+        throw new BadRequestException(
+          'Alternativa não informada.',
+        );
+      }
+
+      if (!data.rodadaId) {
+        throw new BadRequestException(
+          'Rodada não informada.',
+        );
+      }
+
+      const codigo =
+        data.codigo.toUpperCase();
+
+      // -------------------------------------------------------
+      // BUSCAR SALA
+      // -------------------------------------------------------
+
+      const sala =
+        await this.prisma.sala.findUnique({
+          where: {
+            codigo,
+          },
+        });
+
+      if (!sala) {
+        throw new BadRequestException(
+          'Sala não encontrada.',
+        );
+      }
+
+      // -------------------------------------------------------
+      // BUSCAR JOGADOR
+      // -------------------------------------------------------
+      //
+      // IMPORTANTE:
+      //
+      // usuarioId vem do JWT.
+      //
+      // jogadorId é o ID da tabela Jogador.
+      //
+      // -------------------------------------------------------
+
+      const jogador =
+        await this.prisma.jogador.findFirst({
+          where: {
+            usuarioId,
+            salaId: sala.id,
+          },
+        });
+
+      if (!jogador) {
+        throw new BadRequestException(
+          'Você não está participando dessa sala.',
+        );
+      }
+
+      // -------------------------------------------------------
+      // BUSCAR RODADA
+      // -------------------------------------------------------
+
       const rodada =
         await this.prisma.rodada.findUnique({
           where: {
@@ -190,10 +366,37 @@ export class PartidaGateway {
         );
       }
 
-      /*
-       * Confirma que a alternativa pertence
-       * à pergunta da rodada
-       */
+      // -------------------------------------------------------
+      // VERIFICAR SE A RODADA PERTENCE À SALA
+      // -------------------------------------------------------
+
+      if (rodada.salaId !== sala.id) {
+        throw new BadRequestException(
+          'Essa rodada não pertence a essa sala.',
+        );
+      }
+
+      // -------------------------------------------------------
+      // BUSCAR ALTERNATIVA
+      // -------------------------------------------------------
+
+      const alternativa =
+        await this.prisma.alternativa.findUnique({
+          where: {
+            id: data.alternativaId,
+          },
+        });
+
+      if (!alternativa) {
+        throw new BadRequestException(
+          'Alternativa não encontrada.',
+        );
+      }
+
+      // -------------------------------------------------------
+      // VERIFICAR SE ALTERNATIVA PERTENCE À PERGUNTA
+      // -------------------------------------------------------
+
       if (
         alternativa.perguntaId !==
         rodada.perguntaId
@@ -203,15 +406,18 @@ export class PartidaGateway {
         );
       }
 
-      /*
-       * Impede resposta duplicada
-       */
+      // -------------------------------------------------------
+      // VERIFICAR SE JÁ RESPONDEU
+      // -------------------------------------------------------
+
       const respostaExistente =
         await this.prisma.resposta.findFirst({
           where: {
-            jogadorId: data.jogadorId,
+            jogadorId: jogador.id,
+
             alternativa: {
-              perguntaId: rodada.perguntaId,
+              perguntaId:
+                rodada.perguntaId,
             },
           },
         });
@@ -222,16 +428,22 @@ export class PartidaGateway {
         );
       }
 
-      /*
-       * Salva a resposta
-       */
+      // -------------------------------------------------------
+      // CRIAR RESPOSTA
+      // -------------------------------------------------------
+
       const resposta =
         await this.prisma.resposta.create({
           data: {
-            jogadorId: data.jogadorId,
-            alternativaId: data.alternativaId,
-            tempoResposta: data.tempoResposta,
+            jogadorId: jogador.id,
+
+            alternativaId:
+              data.alternativaId,
+
+            tempoResposta:
+              data.tempoResposta,
           },
+
           include: {
             alternativa: {
               select: {
@@ -242,25 +454,47 @@ export class PartidaGateway {
           },
         });
 
-      /*
-       * Resultado da resposta
-       */
+      // -------------------------------------------------------
+      // VERIFICAR RESULTADO
+      // -------------------------------------------------------
+
       const correta =
         resposta.alternativa.correta;
 
-      socket.emit('resultado_resposta', {
-        correta,
-        alternativaId: data.alternativaId,
-        rodadaId: data.rodadaId,
-      });
+      // -------------------------------------------------------
+      // ENVIAR RESULTADO PARA O JOGADOR
+      // -------------------------------------------------------
 
+      socket.emit(
+        'resultado_resposta',
+        {
+          correta,
+
+          alternativaId:
+            data.alternativaId,
+
+          rodadaId:
+            data.rodadaId,
+        },
+      );
+
+      console.log(
+        `Jogador ${jogador.id} respondeu a rodada ${rodada.id}: ${
+          correta
+            ? 'CORRETA'
+            : 'INCORRETA'
+        }`,
+      );
     } catch (error) {
-      socket.emit('erro_resposta', {
-        mensagem:
-          error instanceof Error
-            ? error.message
-            : 'Erro ao registrar resposta.',
-      });
+      socket.emit(
+        'erro_resposta',
+        {
+          mensagem:
+            error instanceof Error
+              ? error.message
+              : 'Erro ao registrar resposta.',
+        },
+      );
     }
   }
 }

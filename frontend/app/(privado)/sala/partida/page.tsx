@@ -9,7 +9,10 @@ import {
   CheckCircle2,
   Gamepad2,
   Loader2,
+  XCircle,
 } from "lucide-react";
+
+import { useToken } from "@/app/hooks/usuario/useToken";
 
 interface Alternativa {
   id: number;
@@ -44,6 +47,16 @@ interface PerguntaSocket {
   totalRodadas: number;
 }
 
+interface ResultadoResposta {
+  correta: boolean;
+  alternativaId: number;
+  rodadaId: number;
+}
+
+interface ErroSocket {
+  mensagem: string;
+}
+
 export default function PartidaPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -52,29 +65,49 @@ export default function PartidaPage() {
 
   const API = process.env.NEXT_PUBLIC_API;
 
+  const usuario = useToken();
+
   const [sala, setSala] = useState<Sala | null>(null);
 
-  const [carregando, setCarregando] = useState(true);
+  const [carregando, setCarregando] =
+    useState(true);
 
   const [erro, setErro] = useState("");
 
-  const [rodadaAtual, setRodadaAtual] = useState(0);
+  const [rodadaAtual, setRodadaAtual] =
+    useState(0);
 
-  const [tempoRestante, setTempoRestante] = useState(0);
+  const [tempoRestante, setTempoRestante] =
+    useState(0);
 
-  const [alternativaSelecionada, setAlternativaSelecionada] =
-    useState<number | null>(null);
+  const [
+    alternativaSelecionada,
+    setAlternativaSelecionada,
+  ] = useState<number | null>(null);
 
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [socket, setSocket] =
+    useState<Socket | null>(null);
+
+  const [
+    resultadoResposta,
+    setResultadoResposta,
+  ] = useState<boolean | null>(null);
 
   /*
-   * Busca a sala e suas rodadas
+   * =========================================================
+   * BUSCAR SALA
+   * =========================================================
    */
+
   useEffect(() => {
     async function buscarPartida() {
       if (!codigo) {
-        setErro("Código da sala não informado.");
+        setErro(
+          "Código da sala não informado."
+        );
+
         setCarregando(false);
+
         return;
       }
 
@@ -82,6 +115,17 @@ export default function PartidaPage() {
 
       if (!token) {
         router.push("/login");
+
+        return;
+      }
+
+      if (!API) {
+        setErro(
+          "API não configurada."
+        );
+
+        setCarregando(false);
+
         return;
       }
 
@@ -104,7 +148,8 @@ export default function PartidaPage() {
           throw new Error(
             Array.isArray(data.message)
               ? data.message.join(", ")
-              : data.message || "Erro ao buscar partida."
+              : data.message ||
+                  "Erro ao buscar partida."
           );
         }
 
@@ -124,29 +169,76 @@ export default function PartidaPage() {
   }, [API, codigo, router]);
 
   /*
-   * Conexão com o PartidaGateway
+   * =========================================================
+   * CONEXÃO COM O PARTIDA GATEWAY
+   * =========================================================
    */
-  useEffect(() => {
-    if (!codigo || !API) return;
 
-    const socketInstance = io(API);
+  useEffect(() => {
+    if (!codigo || !API) {
+      return;
+    }
+
+    const token = Cookies.get("token");
+
+    if (!token) {
+      router.push("/login");
+
+      return;
+    }
+
+    /*
+     * O token é enviado no handshake do Socket.
+     *
+     * O backend vai validar esse token no
+     * handleConnection() do PartidaGateway.
+     */
+
+    const socketInstance = io(API, {
+      auth: {
+        token,
+      },
+    });
 
     setSocket(socketInstance);
 
-    socketInstance.on("connect", () => {
-      console.log(
-        "Conectado ao PartidaGateway:",
-        socketInstance.id
-      );
+    /*
+     * =======================================================
+     * CONECTOU
+     * =======================================================
+     */
 
-      socketInstance.emit("entrar_partida", {
-        codigo,
-      });
-    });
+    socketInstance.on(
+      "connect",
+      () => {
+        console.log(
+          "Conectado ao PartidaGateway:",
+          socketInstance.id
+        );
+
+        /*
+         * Entrar na partida.
+         *
+         * NÃO enviamos jogadorId.
+         *
+         * O backend descobre o Usuario pelo JWT.
+         */
+
+        socketInstance.emit(
+          "entrar_partida",
+          {
+            codigo,
+          }
+        );
+      }
+    );
 
     /*
-     * Recebe a pergunta da partida
+     * =======================================================
+     * RECEBER PERGUNTA
+     * =======================================================
      */
+
     socketInstance.on(
       "pergunta",
       (data: PerguntaSocket) => {
@@ -155,116 +247,306 @@ export default function PartidaPage() {
           data
         );
 
-        setRodadaAtual(data.numeroRodada - 1);
+        setRodadaAtual(
+          data.numeroRodada - 1
+        );
 
         setTempoRestante(
           data.rodada.tempoLimite
         );
 
-        setAlternativaSelecionada(null);
+        setAlternativaSelecionada(
+          null
+        );
+
+        setResultadoResposta(
+          null
+        );
       }
     );
 
     /*
-     * Erro enviado pelo Gateway
+     * =======================================================
+     * RESULTADO DA RESPOSTA
+     * =======================================================
      */
+
+    socketInstance.on(
+      "resultado_resposta",
+      (data: ResultadoResposta) => {
+        console.log(
+          "Resultado da resposta:",
+          data
+        );
+
+        setResultadoResposta(
+          data.correta
+        );
+      }
+    );
+
+    /*
+     * =======================================================
+     * ERRO AO RESPONDER
+     * =======================================================
+     */
+
+    socketInstance.on(
+      "erro_resposta",
+      (data: ErroSocket) => {
+        console.error(
+          "Erro ao responder:",
+          data.mensagem
+        );
+
+        setErro(
+          data.mensagem
+        );
+      }
+    );
+
+    /*
+     * =======================================================
+     * ERRO DA PARTIDA
+     * =======================================================
+     */
+
     socketInstance.on(
       "erro_partida",
-      (data: { mensagem: string }) => {
+      (data: ErroSocket) => {
         console.error(
           "Erro da partida:",
           data.mensagem
         );
 
-        setErro(data.mensagem);
+        setErro(
+          data.mensagem
+        );
       }
     );
 
     /*
-     * Desconectado
+     * =======================================================
+     * DESCONECTADO
+     * =======================================================
      */
-    socketInstance.on("disconnect", () => {
-      console.log(
-        "Desconectado do PartidaGateway"
-      );
-    });
+
+    socketInstance.on(
+      "disconnect",
+      (reason) => {
+        console.log(
+          "Desconectado do PartidaGateway:",
+          reason
+        );
+      }
+    );
+
+    /*
+     * =======================================================
+     * LIMPEZA
+     * =======================================================
+     */
 
     return () => {
       socketInstance.disconnect();
     };
-  }, [codigo, API]);
+  }, [codigo, API, router]);
 
   /*
-   * Rodada atual
+   * =========================================================
+   * RODADA ATUAL
+   * =========================================================
    */
+
   const rodada = useMemo(() => {
     if (!sala?.rodadas?.length) {
       return null;
     }
 
-    const ordenadas = [...sala.rodadas].sort(
+    const ordenadas = [
+      ...sala.rodadas,
+    ].sort(
       (a, b) =>
         (a.ordem ?? 0) -
         (b.ordem ?? 0)
     );
 
     return (
-      ordenadas[rodadaAtual] ?? null
+      ordenadas[rodadaAtual] ??
+      null
     );
-  }, [sala, rodadaAtual]);
+  }, [
+    sala,
+    rodadaAtual,
+  ]);
 
   /*
-   * Cronômetro
+   * =========================================================
+   * CRONÔMETRO
+   * =========================================================
    */
+
   useEffect(() => {
-    if (!rodada) return;
+    if (!rodada) {
+      return;
+    }
 
     setTempoRestante(
       rodada.tempoLimite
     );
 
-    setAlternativaSelecionada(null);
+    setAlternativaSelecionada(
+      null
+    );
 
-    const intervalo = setInterval(() => {
-      setTempoRestante((tempo) => {
-        if (tempo <= 1) {
-          clearInterval(intervalo);
+    setResultadoResposta(
+      null
+    );
 
-          return 0;
-        }
+    const intervalo =
+      setInterval(() => {
+        setTempoRestante(
+          (tempo) => {
+            if (tempo <= 1) {
+              clearInterval(
+                intervalo
+              );
 
-        return tempo - 1;
-      });
-    }, 1000);
+              return 0;
+            }
+
+            return tempo - 1;
+          }
+        );
+      }, 1000);
 
     return () => {
-      clearInterval(intervalo);
+      clearInterval(
+        intervalo
+      );
     };
   }, [rodada]);
 
   /*
-   * Escolher alternativa
+   * =========================================================
+   * SELECIONAR ALTERNATIVA
+   * =========================================================
    */
+
   function selecionarAlternativa(
     id: number
   ) {
+    /*
+     * Não permite responder
+     * depois do tempo.
+     */
+
     if (tempoRestante <= 0) {
       return;
     }
 
-    if (alternativaSelecionada !== null) {
+    /*
+     * Não permite responder
+     * duas vezes.
+     */
+
+    if (
+      alternativaSelecionada !==
+      null
+    ) {
       return;
     }
 
-    setAlternativaSelecionada(id);
+    /*
+     * Precisa existir uma rodada.
+     */
+
+    if (!rodada) {
+      return;
+    }
+
+    /*
+     * Precisa estar conectado.
+     */
+
+    if (!socket) {
+      setErro(
+        "Não foi possível conectar ao servidor."
+      );
+
+      return;
+    }
+
+    /*
+     * Precisa ter usuário logado.
+     */
+
+    if (!usuario?.sub) {
+      setErro(
+        "Usuário não identificado."
+      );
+
+      return;
+    }
+
+    /*
+     * Seleciona visualmente.
+     */
+
+    setAlternativaSelecionada(
+      id
+    );
+
+    /*
+     * Calcula quanto tempo
+     * o jogador levou para responder.
+     */
+
+    const tempoResposta =
+      rodada.tempoLimite -
+      tempoRestante;
+
+    /*
+     * Envia a resposta.
+     *
+     * IMPORTANTE:
+     *
+     * Não enviamos jogadorId.
+     *
+     * O backend já sabe quem é o usuário
+     * através do JWT do Socket.
+     */
+
+    socket.emit(
+      "responder",
+      {
+        codigo,
+        alternativaId: id,
+        rodadaId: rodada.id,
+        tempoResposta,
+      }
+    );
+
+    console.log(
+      "Resposta enviada:",
+      {
+        codigo,
+        alternativaId: id,
+        rodadaId: rodada.id,
+        tempoResposta,
+      }
+    );
   }
 
   /*
-   * Carregando
+   * =========================================================
+   * CARREGANDO
+   * =========================================================
    */
+
   if (carregando) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-purple-400" />
 
@@ -277,13 +559,18 @@ export default function PartidaPage() {
   }
 
   /*
-   * Erro
+   * =========================================================
+   * ERRO
+   * =========================================================
    */
+
   if (erro) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-6">
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-white">
         <div className="w-full max-w-md rounded-3xl border border-red-400/20 bg-red-500/10 p-8 text-center">
-          <h1 className="text-xl font-bold">
+          <XCircle className="mx-auto h-12 w-12 text-red-400" />
+
+          <h1 className="mt-5 text-xl font-bold">
             Não foi possível carregar a partida
           </h1>
 
@@ -292,7 +579,9 @@ export default function PartidaPage() {
           </p>
 
           <button
-            onClick={() => router.back()}
+            onClick={() =>
+              router.back()
+            }
             className="mt-6 rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold transition hover:bg-white/15"
           >
             Voltar
@@ -303,11 +592,14 @@ export default function PartidaPage() {
   }
 
   /*
-   * Sala sem rodadas
+   * =========================================================
+   * SALA SEM RODADAS
+   * =========================================================
    */
+
   if (!sala || !rodada) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-6">
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-white">
         <div className="text-center">
           <Gamepad2 className="mx-auto h-12 w-12 text-purple-400" />
 
@@ -323,6 +615,12 @@ export default function PartidaPage() {
     );
   }
 
+  /*
+   * =========================================================
+   * PROGRESSO
+   * =========================================================
+   */
+
   const totalRodadas =
     sala.rodadas.length;
 
@@ -331,11 +629,18 @@ export default function PartidaPage() {
       totalRodadas) *
     100;
 
+  /*
+   * =========================================================
+   * TELA DA PARTIDA
+   * =========================================================
+   */
+
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-5 py-6 md:px-8">
 
         {/* HEADER */}
+
         <header className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -353,6 +658,7 @@ export default function PartidaPage() {
           </div>
 
           {/* CRONÔMETRO */}
+
           <div
             className={`flex items-center gap-2 rounded-2xl border px-4 py-3 ${
               tempoRestante <= 5
@@ -369,6 +675,7 @@ export default function PartidaPage() {
         </header>
 
         {/* PROGRESSO */}
+
         <div className="mt-8">
           <div className="mb-2 flex items-center justify-between text-xs">
             <span className="font-semibold text-white/50">
@@ -396,6 +703,7 @@ export default function PartidaPage() {
         </div>
 
         {/* PERGUNTA */}
+
         <section className="mt-10">
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-7 shadow-2xl md:p-10">
 
@@ -405,10 +713,14 @@ export default function PartidaPage() {
             </span>
 
             <h2 className="mt-5 text-2xl font-black leading-tight md:text-4xl">
-              {rodada.pergunta.enunciado}
+              {
+                rodada.pergunta
+                  .enunciado
+              }
             </h2>
 
             {/* ALTERNATIVAS */}
+
             <div className="mt-8 grid gap-4 md:grid-cols-2">
               {rodada.pergunta.alternativas.map(
                 (
@@ -430,7 +742,8 @@ export default function PartidaPage() {
                         )
                       }
                       disabled={
-                        tempoRestante <= 0 ||
+                        tempoRestante <=
+                          0 ||
                         alternativaSelecionada !==
                           null
                       }
@@ -439,14 +752,17 @@ export default function PartidaPage() {
                           ? "border-purple-400 bg-purple-500/15 shadow-lg shadow-purple-500/10"
                           : "border-white/10 bg-white/[0.025] hover:border-purple-400/40 hover:bg-white/[0.06]"
                       } ${
-                        tempoRestante <= 0 ||
+                        tempoRestante <=
+                          0 ||
                         alternativaSelecionada !==
                           null
                           ? "cursor-not-allowed opacity-50"
                           : "cursor-pointer"
                       }`}
                     >
+
                       {/* LETRA */}
+
                       <span
                         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-black ${
                           selecionada
@@ -455,16 +771,20 @@ export default function PartidaPage() {
                         }`}
                       >
                         {String.fromCharCode(
-                          65 + index
+                          65 +
+                            index
                         )}
                       </span>
 
                       {/* TEXTO */}
+
                       <span className="flex-1 font-semibold text-white/90">
                         {
                           alternativa.texto
                         }
                       </span>
+
+                      {/* SELECIONADA */}
 
                       {selecionada && (
                         <CheckCircle2 className="h-5 w-5 shrink-0 text-purple-400" />
@@ -475,22 +795,35 @@ export default function PartidaPage() {
               )}
             </div>
 
-            {/* STATUS */}
+            {/* RESULTADO */}
+
             <div className="mt-7 flex justify-center">
+
               {tempoRestante ===
               0 ? (
                 <span className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-300">
                   Tempo encerrado
                 </span>
+              ) : resultadoResposta ===
+                true ? (
+                <span className="flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-2 text-xs font-bold text-emerald-300">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Resposta correta!
+                </span>
+              ) : resultadoResposta ===
+                false ? (
+                <span className="flex items-center gap-2 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-300">
+                  <XCircle className="h-4 w-4" />
+                  Resposta incorreta!
+                </span>
               ) : alternativaSelecionada !==
                 null ? (
                 <span className="rounded-xl border border-purple-400/20 bg-purple-500/10 px-4 py-2 text-xs font-bold text-purple-300">
-                  Alternativa selecionada
+                  Resposta enviada
                 </span>
               ) : (
                 <span className="text-xs text-white/30">
-                  Selecione uma
-                  alternativa
+                  Selecione uma alternativa
                 </span>
               )}
             </div>
