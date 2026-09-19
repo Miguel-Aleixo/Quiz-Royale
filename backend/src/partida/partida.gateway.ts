@@ -42,7 +42,7 @@ export class PartidaGateway {
   constructor(
     private readonly prisma: PrismaService,
     private readonly usuarioService: UsuarioService,
-  ) {}
+  ) { }
 
   /*
    * =========================================================
@@ -268,7 +268,7 @@ export class PartidaGateway {
 
       const rodadaAtual =
         sala.rodadas[
-          estado.rodadaAtual
+        estado.rodadaAtual
         ];
 
       if (!rodadaAtual) {
@@ -289,8 +289,7 @@ export class PartidaGateway {
       );
 
       console.log(
-        `Jogador ${jogador.id} entrou na partida ${codigo} na rodada ${
-          estado.rodadaAtual + 1
+        `Jogador ${jogador.id} entrou na partida ${codigo} na rodada ${estado.rodadaAtual + 1
         }`,
       );
     } catch (error) {
@@ -322,7 +321,7 @@ export class PartidaGateway {
 
     const rodada =
       rodadas[
-        estado.rodadaAtual
+      estado.rodadaAtual
       ];
 
     if (!rodada) {
@@ -415,8 +414,7 @@ export class PartidaGateway {
     }
 
     console.log(
-      `Partida ${codigo} iniciou a rodada ${
-        estado.rodadaAtual + 1
+      `Partida ${codigo} iniciou a rodada ${estado.rodadaAtual + 1
       }`,
     );
 
@@ -609,7 +607,7 @@ export class PartidaGateway {
       if (
         !rodadaAtual ||
         rodadaAtual.id !==
-          rodada.id
+        rodada.id
       ) {
         throw new BadRequestException(
           'Essa não é a rodada atual.',
@@ -1115,7 +1113,7 @@ export class PartidaGateway {
       if (
         novaPatente &&
         novaPatente.id !==
-          usuarioAtualizado.patenteId
+        usuarioAtualizado.patenteId
       ) {
         await this.prisma.usuario.update({
           where: {
@@ -1140,7 +1138,7 @@ export class PartidaGateway {
         nome: jogador.usuario.nome,
         pontosGanhos,
         pontuacao:
-          usuarioAtualizado.pontuacao,
+          pontosGanhos,
         eliminado:
           jogador.eliminado,
       });
@@ -1383,7 +1381,7 @@ export class PartidaGateway {
 
     const proximaRodada =
       rodadas[
-        estado.rodadaAtual
+      estado.rodadaAtual
       ];
 
     if (!proximaRodada) {
@@ -1396,8 +1394,7 @@ export class PartidaGateway {
     }
 
     console.log(
-      `Partida ${codigo} avançando para a rodada ${
-        estado.rodadaAtual + 1
+      `Partida ${codigo} avançando para a rodada ${estado.rodadaAtual + 1
       }`,
     );
 
