@@ -373,31 +373,6 @@ export default function CriarSalaPage() {
             );
           }
         }
-
-        // ---------------------------------------------------
-        // 4. CRIAR RODADA
-        // ---------------------------------------------------
-
-        const rodadaRes = await fetch(`${API}/rodada`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            perguntaId: perguntaCriada.id,
-            salaId: sala.id,
-            tempoLimite: pergunta.tempoLimite,
-          }),
-        });
-
-        if (!rodadaRes.ok) {
-          const mensagem = await rodadaRes.text();
-
-          throw new Error(
-            mensagem || "Erro ao criar a rodada."
-          );
-        }
       }
 
       setSucesso("Sala criada com sucesso!");

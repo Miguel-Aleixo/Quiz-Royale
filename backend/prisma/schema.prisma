@@ -84,7 +84,7 @@ model Tema {
 
 model Pergunta {
   id           Int    @id @default(autoincrement())
-  enunciado    String @unique
+  enunciado    String 
   temaId       Int
 
   tema         Tema   @relation(fields: [temaId], references: [id])
