@@ -268,7 +268,7 @@ function SalaEntrarContent() {
         );
 
         router.push(
-          `/partida?codigo=${data.codigo}`
+          `/sala/partida?codigo=${data.codigo}`
         );
       }
     );
