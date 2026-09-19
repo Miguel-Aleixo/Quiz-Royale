@@ -93,7 +93,7 @@ export default function MenuLateral({
           <img
             src="/imagens/logo_dark.png"
             alt="Logo"
-            className="h-[250px] w-[200px] object-contain"
+            className="h-[175px] w-[175px] object-contain"
           />
         </div>
 

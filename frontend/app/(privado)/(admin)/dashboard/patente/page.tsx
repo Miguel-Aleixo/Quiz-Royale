@@ -14,6 +14,7 @@ import Cookies from "js-cookie";
 
 import Header from "@/app/components/dashboard/Header";
 import LoadingOverlay from "@/app/components/global/Loading";
+import { toast } from "sonner";
 
 type Patente = {
     id: number;
@@ -49,33 +50,55 @@ export default function PatentesPage() {
 
     const [loading, setLoading] = useState(false);
 
+    const [patenteParaExcluir, setPatenteParaExcluir] = useState<Patente | null>(null);
+    const [excluindo, setExcluindo] = useState(false);
+
     /*
-     * ============================
-     * BUSCAR PATENTES
-     * ============================
-     */
+ * ============================
+ * BUSCAR PATENTES
+ * ============================
+ */
 
     const buscarPatentes = async () => {
         try {
             setLoading(true);
 
+            const tokenAtual = Cookies.get("token");
+
+            if (!tokenAtual) {
+                toast.error("Sessão não encontrada. Faça login novamente.");
+                return;
+            }
+
+            if (!API) {
+                toast.error("API não configurada.");
+                return;
+            }
+
             const res = await fetch(`${API}/patente`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
+                    Authorization: `Bearer ${tokenAtual}`,
                 },
             });
 
-            if (!res.ok) {
-                throw new Error("Erro ao buscar patentes");
-            }
+            const data = await res.json();
 
-            const data: Patente[] = await res.json();
+            if (!res.ok) {
+                const mensagem = Array.isArray(data.message)
+                    ? data.message.join(", ")
+                    : data.message || "Erro ao buscar patentes.";
+
+                toast.error(mensagem);
+                return;
+            }
 
             setPatentes(data);
         } catch (error) {
             console.error("Erro ao buscar patentes:", error);
+
+            toast.error("Não foi possível conectar ao servidor.");
         } finally {
             setLoading(false);
         }
@@ -92,28 +115,42 @@ export default function PatentesPage() {
     }, []);
 
     /*
-     * ============================
-     * CRIAR PATENTE
-     * ============================
-     */
+  * ============================
+  * CRIAR PATENTE
+  * ============================
+  */
 
     const criarPatente = async () => {
         if (!form.nome.trim()) {
+            toast.error("Digite o nome da patente.");
             return;
         }
 
         if (form.pontos < 0) {
+            toast.error("A pontuação não pode ser negativa.");
             return;
         }
 
-        setLoading(true);
+        if (!API) {
+            toast.error("API não configurada.");
+            return;
+        }
+
+        const tokenAtual = Cookies.get("token");
+
+        if (!tokenAtual) {
+            toast.error("Sessão não encontrada. Faça login novamente.");
+            return;
+        }
 
         try {
+            setLoading(true);
+
             const res = await fetch(`${API}/patente`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
+                    Authorization: `Bearer ${tokenAtual}`,
                 },
                 body: JSON.stringify({
                     nome: form.nome.trim(),
@@ -124,52 +161,72 @@ export default function PatentesPage() {
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(
-                    Array.isArray(data.message)
-                        ? data.message.join(", ")
-                        : data.message || "Erro ao criar patente"
-                );
+                const mensagem = Array.isArray(data.message)
+                    ? data.message.join(", ")
+                    : data.message || "Erro ao criar patente.";
+
+                toast.error(mensagem);
+                return;
             }
 
             fecharModal();
 
+            toast.success("Patente criada com sucesso!");
+
             await buscarPatentes();
         } catch (error) {
             console.error("Erro ao criar patente:", error);
+
+            toast.error("Não foi possível conectar ao servidor.");
         } finally {
             setLoading(false);
         }
     };
 
     /*
-     * ============================
-     * EDITAR PATENTE
-     * ============================
-     */
+ * ============================
+ * EDITAR PATENTE
+ * ============================
+ */
 
     const editarPatente = async () => {
         if (!patenteEditando) {
+            toast.error("Nenhuma patente selecionada.");
             return;
         }
 
         if (!form.nome.trim()) {
+            toast.error("Digite o nome da patente.");
             return;
         }
 
         if (form.pontos < 0) {
+            toast.error("A pontuação não pode ser negativa.");
             return;
         }
 
-        setLoading(true);
+        if (!API) {
+            toast.error("API não configurada.");
+            return;
+        }
+
+        const tokenAtual = Cookies.get("token");
+
+        if (!tokenAtual) {
+            toast.error("Sessão não encontrada. Faça login novamente.");
+            return;
+        }
 
         try {
+            setLoading(true);
+
             const res = await fetch(
                 `${API}/patente/${patenteEditando.id}`,
                 {
                     method: "PATCH",
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
+                        Authorization: `Bearer ${tokenAtual}`,
                     },
                     body: JSON.stringify({
                         nome: form.nome.trim(),
@@ -181,48 +238,61 @@ export default function PatentesPage() {
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(
-                    Array.isArray(data.message)
-                        ? data.message.join(", ")
-                        : data.message || "Erro ao editar patente"
-                );
+                const mensagem = Array.isArray(data.message)
+                    ? data.message.join(", ")
+                    : data.message || "Erro ao editar patente.";
+
+                toast.error(mensagem);
+                return;
             }
 
             fecharModal();
 
+            toast.success("Patente atualizada com sucesso!");
+
             await buscarPatentes();
         } catch (error) {
             console.error("Erro ao editar patente:", error);
+
+            toast.error("Não foi possível conectar ao servidor.");
         } finally {
             setLoading(false);
         }
     };
 
     /*
-     * ============================
-     * EXCLUIR PATENTE
-     * ============================
-     */
+  * ============================
+  * EXCLUIR PATENTE
+  * ============================
+  */
 
-    const excluirPatente = async (patente: Patente) => {
-        const confirmou = window.confirm(
-            `Deseja realmente excluir a patente "${patente.nome}"?`
-        );
-
-        if (!confirmou) {
+    const excluirPatente = async () => {
+        if (!patenteParaExcluir) {
             return;
         }
 
-        setLoading(true);
+        if (!API) {
+            toast.error("API não configurada.");
+            return;
+        }
+
+        const tokenAtual = Cookies.get("token");
+
+        if (!tokenAtual) {
+            toast.error("Sessão não encontrada. Faça login novamente.");
+            return;
+        }
 
         try {
+            setExcluindo(true);
+
             const res = await fetch(
-                `${API}/patente/${patente.id}`,
+                `${API}/patente/${patenteParaExcluir.id}`,
                 {
                     method: "DELETE",
                     headers: {
                         "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
+                        Authorization: `Bearer ${tokenAtual}`,
                     },
                 }
             );
@@ -230,23 +300,27 @@ export default function PatentesPage() {
             const data = await res.json().catch(() => null);
 
             if (!res.ok) {
-                throw new Error(
-                    Array.isArray(data?.message)
-                        ? data.message.join(", ")
-                        : data?.message || "Erro ao excluir patente"
-                );
+                const mensagem = Array.isArray(data?.message)
+                    ? data.message.join(", ")
+                    : data?.message || "Erro ao excluir patente.";
+
+                toast.error(mensagem);
+                return;
             }
 
             setMenuAberto(null);
+            setPatenteParaExcluir(null);
+
+            toast.success("Patente excluída com sucesso!");
 
             await buscarPatentes();
         } catch (error) {
             console.error("Erro ao excluir patente:", error);
+            toast.error("Não foi possível conectar ao servidor.");
         } finally {
-            setLoading(false);
+            setExcluindo(false);
         }
     };
-
     /*
      * ============================
      * FILTRAR PATENTES
@@ -353,10 +427,10 @@ export default function PatentesPage() {
     }
 
     /*
-     * ============================
-     * SALVAR PATENTE
-     * ============================
-     */
+  * ============================
+  * SALVAR PATENTE
+  * ============================
+  */
 
     async function salvarPatente(
         event: React.FormEvent<HTMLFormElement>
@@ -364,10 +438,12 @@ export default function PatentesPage() {
         event.preventDefault();
 
         if (!form.nome.trim()) {
+            toast.error("Digite o nome da patente.");
             return;
         }
 
         if (form.pontos < 0) {
+            toast.error("A pontuação não pode ser negativa.");
             return;
         }
 
@@ -415,6 +491,53 @@ export default function PatentesPage() {
                 message="Processando..."
             />
 
+            {patenteParaExcluir && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+                    <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0d0d18] p-6 shadow-2xl">
+
+                        <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/10">
+                            <Trash2 className="h-6 w-6 text-red-400" />
+                        </div>
+
+                        <h2 className="text-lg font-bold text-white">
+                            Excluir patente?
+                        </h2>
+
+                        <p className="mt-2 text-sm leading-6 text-white/50">
+                            Tem certeza que deseja excluir a patente{" "}
+                            <span className="font-semibold text-white/80">
+                                "{patenteParaExcluir.nome}"
+                            </span>
+                            ?
+                        </p>
+
+                        <p className="mt-3 text-xs text-red-400/80">
+                            Essa ação não poderá ser desfeita.
+                        </p>
+
+                        <div className="mt-7 flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setPatenteParaExcluir(null)}
+                                disabled={excluindo}
+                                className="cursor-pointer flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-white/70 transition hover:bg-white/[0.07] disabled:opacity-50"
+                            >
+                                Cancelar
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={excluirPatente}
+                                disabled={excluindo}
+                                className="cursor-pointer flex-1 rounded-xl bg-red-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {excluindo ? "Excluindo..." : "Excluir"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* =========================
                 HEADER
             ========================= */}
@@ -460,7 +583,7 @@ export default function PatentesPage() {
                     <button
                         type="button"
                         onClick={abrirModalCriacao}
-                        className="flex items-center justify-center gap-2 rounded-xl bg-purple-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-purple-500/20 transition hover:bg-purple-400"
+                        className="cursor-pointer flex items-center justify-center gap-2 rounded-xl bg-purple-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-purple-500/20 transition hover:bg-purple-400"
                     >
                         <Plus size={18} />
                         Nova patente
@@ -631,7 +754,7 @@ export default function PatentesPage() {
                                                 onClick={() =>
                                                     alternarMenu(patente.id)
                                                 }
-                                                className="flex h-9 w-9 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/5 hover:text-white"
+                                                className="cursor-pointer flex h-9 w-9 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/5 hover:text-white"
                                             >
                                                 <MoreHorizontal size={18} />
                                             </button>
@@ -647,7 +770,7 @@ export default function PatentesPage() {
                                                         onClick={() =>
                                                             abrirModalEdicao(patente)
                                                         }
-                                                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/60 transition hover:bg-white/5 hover:text-white"
+                                                        className="cursor-pointer flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/60 transition hover:bg-white/5 hover:text-white"
                                                     >
                                                         <Edit3 size={15} />
                                                         Editar
@@ -657,10 +780,11 @@ export default function PatentesPage() {
 
                                                     <button
                                                         type="button"
-                                                        onClick={() =>
-                                                            excluirPatente(patente)
-                                                        }
-                                                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/5"
+                                                        onClick={() => {
+                                                            setPatenteParaExcluir(patente);
+                                                            setMenuAberto(null);
+                                                        }}
+                                                        className="cursor-pointer flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/5"
                                                     >
                                                         <Trash2 size={15} />
                                                         Excluir
@@ -728,7 +852,7 @@ export default function PatentesPage() {
                             <button
                                 type="button"
                                 onClick={fecharModal}
-                                className="flex h-9 w-9 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/5 hover:text-white"
+                                className="cursor-pointer flex h-9 w-9 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/5 hover:text-white"
                             >
                                 <X size={18} />
                             </button>
@@ -839,7 +963,7 @@ export default function PatentesPage() {
                                 <button
                                     type="button"
                                     onClick={fecharModal}
-                                    className="h-11 rounded-xl border border-white/10 px-5 text-sm font-semibold text-white/50 transition hover:bg-white/5 hover:text-white"
+                                    className="cursor-pointer h-11 rounded-xl border border-white/10 px-5 text-sm font-semibold text-white/50 transition hover:bg-white/5 hover:text-white"
                                 >
                                     Cancelar
                                 </button>
@@ -850,7 +974,7 @@ export default function PatentesPage() {
                                         !form.nome.trim() ||
                                         form.pontos < 0
                                     }
-                                    className="h-11 rounded-xl bg-purple-500 px-5 text-sm font-bold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="cursor-pointer h-11 rounded-xl bg-purple-500 px-5 text-sm font-bold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                     {patenteEditando
                                         ? "Salvar alterações"
@@ -908,3 +1032,4 @@ function StatCard({
         </div>
     );
 }
+

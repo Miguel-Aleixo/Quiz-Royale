@@ -17,7 +17,7 @@ export class SalaGateway {
   @WebSocketServer()
   server!: Server;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   @SubscribeMessage('entrar_sala')
   async entrarSala(
@@ -105,6 +105,21 @@ export class SalaGateway {
       .to(`sala:${codigoNormalizado}`)
       .emit('partida_iniciada', {
         codigo: codigoNormalizado,
+      });
+  }
+
+  avisarSalaFechada(codigo: string) {
+    const codigoNormalizado = codigo.toUpperCase();
+
+    console.log(
+      `Sala ${codigoNormalizado} foi fechada pelo criador`,
+    );
+
+    this.server
+      .to(`sala:${codigoNormalizado}`)
+      .emit('sala_fechada', {
+        codigo: codigoNormalizado,
+        mensagem: 'O criador saiu. A sala foi fechada.',
       });
   }
 }

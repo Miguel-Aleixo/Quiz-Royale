@@ -6,10 +6,14 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { SalaGateway } from './sala.gateway';
 
 @Injectable()
 export class SalaService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly salaGateway: SalaGateway
+  ) { }
 
   async entrar(codigo: string, usuarioId: number) {
     const sala = await this.prisma.sala.findUnique({
@@ -216,6 +220,33 @@ export class SalaService {
       throw new NotFoundException('Você não está nessa sala');
     }
 
+    // Se o criador sair, fecha a sala
+    if (sala.criadorId === usuarioId) {
+      await this.prisma.$transaction([
+        this.prisma.jogador.deleteMany({
+          where: {
+            salaId: sala.id,
+          },
+        }),
+
+        this.prisma.sala.update({
+          where: {
+            id: sala.id,
+          },
+          data: {
+            status: 'FECHADA',
+            criadorId: null,
+          },
+        }),
+      ]);
+
+      return {
+        mensagem: 'Você saiu e a sala foi fechada',
+        salaFechada: true,
+      };
+    }
+
+    // Jogador normal apenas sai
     await this.prisma.jogador.delete({
       where: {
         id: jogador.id,
@@ -224,6 +255,7 @@ export class SalaService {
 
     return {
       mensagem: 'Você saiu da sala',
+      salaFechada: false,
     };
   }
 

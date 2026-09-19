@@ -5,9 +5,9 @@ import { useState } from "react";
 import { ArrowLeft, ArrowUpRight, Check, Crown, Eye, EyeOff, Lock, Mail, Sparkles, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { useToken } from "@/app/hooks/usuario/useToken";
 import LoadingOverlay from "@/app/components/global/Loading";
 import Image from "next/image";
+import { toast } from "sonner";
 
 export default function CadastroPage() {
   const API = process.env.NEXT_PUBLIC_API;
@@ -21,67 +21,113 @@ export default function CadastroPage() {
   const handleCadastro = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    setLoading(true);
-
     if (form.senha !== confirmarSenha) {
-      alert("As senhas não coincidem.");
+      toast.error("As senhas não coincidem.");
       return;
     }
 
     try {
+      setLoading(true);
 
       const res = await fetch(`${API}/usuario`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: form.nome.trim(), email: form.email.trim(), senha: form.senha }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nome: form.nome.trim(),
+          email: form.email.trim(),
+          senha: form.senha,
+        }),
       });
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(Array.isArray(data.message) ? data.message.join(", ") : data.message || "Falha no cadastro");
+      if (!res.ok) {
+        const mensagem = Array.isArray(data.message)
+          ? data.message.join(", ")
+          : data.message || "Falha no cadastro.";
 
-      login()
+        toast.error(mensagem);
+        return;
+      }
 
+      toast.success("Conta criada com sucesso!");
+
+      await login();
     } catch (err) {
-      alert("Erro ao cadastrar usuário.");
-      console.error(err);
+      console.error("Erro ao cadastrar:", err);
+
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Erro ao cadastrar usuário."
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   };
 
   const login = async () => {
-    setLoading(true);
-
     try {
+      setLoading(true);
+
       const res = await fetch(`${API}/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.email.trim(), senha: form.senha }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: form.email.trim(),
+          senha: form.senha,
+        }),
       });
+
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(Array.isArray(data.message) ? data.message.join(", ") : data.message || "Falha no login");
+        const mensagem = Array.isArray(data.message)
+          ? data.message.join(", ")
+          : data.message || "Falha no login.";
+
+        toast.error(mensagem);
+        return;
       }
 
-      Cookies.set("token", data.token, { expires: 1 });
+      Cookies.set("token", data.token, {
+        expires: 1,
+      });
 
-      const token = useToken();
+      toast.success("Login realizado com sucesso!");
 
-      if (token?.role == 'ADMIN') {
-        router.push('dashboard')
-      } else {
-        router.push('/')
-      }
+      setTimeout(() => {
+        try {
+          const payload = JSON.parse(
+            atob(data.token.split(".")[1])
+          );
 
+          if (payload.role === "ADMIN") {
+            router.push("/dashboard");
+          } else {
+            router.push("/");
+          }
+        } catch (error) {
+          console.error("Erro ao ler token:", error);
+          router.push("/");
+        }
+      }, 300);
     } catch (err) {
-      alert("Erro ao logar usuário.");
-      console.error(err);
+      console.error("Erro ao logar:", err);
+
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Erro ao logar usuário."
+      );
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#080812] text-white selection:bg-purple-400 selection:text-white">

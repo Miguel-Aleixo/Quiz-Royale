@@ -10,6 +10,7 @@ import {
 import Cookies from "js-cookie";
 import Header from "@/app/components/dashboard/Header";
 import LoadingOverlay from "@/app/components/global/Loading";
+import { toast } from "sonner";
 
 type Usuario = {
   id: number;
@@ -44,23 +45,41 @@ export default function UsuariosPage() {
     try {
       setLoading(true);
 
+      const tokenAtual = Cookies.get("token");
+
+      if (!tokenAtual) {
+        toast.error("Sessão não encontrada. Faça login novamente.");
+        return;
+      }
+
+      if (!API) {
+        toast.error("API não configurada.");
+        return;
+      }
+
       const res = await fetch(`${API}/usuario`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${tokenAtual}`,
         },
       });
 
-      if (!res.ok) {
-        throw new Error("Erro ao buscar usuários");
-      }
+      const data = await res.json().catch(() => null);
 
-      const data: Usuario[] = await res.json();
+      if (!res.ok) {
+        const mensagem = Array.isArray(data?.message)
+          ? data.message.join(", ")
+          : data?.message || "Erro ao buscar usuários.";
+
+        toast.error(mensagem);
+        return;
+      }
 
       setUsuarios(data);
     } catch (error) {
       console.error("Erro ao buscar usuários:", error);
+      toast.error("Não foi possível conectar ao servidor.");
     } finally {
       setLoading(false);
     }
@@ -341,8 +360,8 @@ export default function UsuariosPage() {
 
                     <div
                       className={`rounded-lg border px-3 py-2 ${usuario.role === "ADMIN"
-                          ? "border-purple-400/20 bg-purple-500/10"
-                          : "border-white/5 bg-white/[0.02]"
+                        ? "border-purple-400/20 bg-purple-500/10"
+                        : "border-white/5 bg-white/[0.02]"
                         }`}
                     >
                       <p className="text-[9px] font-bold uppercase tracking-widest text-white/20">
@@ -351,8 +370,8 @@ export default function UsuariosPage() {
 
                       <p
                         className={`mt-0.5 text-xs font-bold ${usuario.role === "ADMIN"
-                            ? "text-purple-400"
-                            : "text-white/50"
+                          ? "text-purple-400"
+                          : "text-white/50"
                           }`}
                       >
                         {usuario.role}

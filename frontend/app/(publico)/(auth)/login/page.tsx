@@ -6,8 +6,8 @@ import { ArrowLeft, ArrowUpRight, Check, Crown, Eye, EyeOff, Lock, Mail, Sparkle
 import Cookies from "js-cookie";
 import LoadingOverlay from "@/app/components/global/Loading";
 import { useRouter } from "next/navigation";
-import { useToken } from "@/app/hooks/usuario/useToken";
 import Image from "next/image";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const API = process.env.NEXT_PUBLIC_API;
@@ -21,33 +21,51 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    setLoading(true);
-
     try {
+      setLoading(true);
+
       const res = await fetch(`${API}/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.email.trim(), senha: form.senha }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: form.email.trim(),
+          senha: form.senha,
+        }),
       });
+
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(Array.isArray(data.message) ? data.message.join(", ") : data.message || "Falha no login");
+        const mensagem = Array.isArray(data.message)
+          ? data.message.join(", ")
+          : data.message || "Falha no login.";
+
+        toast.error(mensagem);
+        return;
       }
 
-      Cookies.set("token", data.token, { expires: 1 });
+      Cookies.set("token", data.token, {
+        expires: 1,
+      });
 
-      const token = useToken();
+      toast.success("Login realizado com sucesso!");
 
-      if (token?.role == 'ADMIN') {
-        router.push('dashboard')
+      const payload = JSON.parse(
+        atob(data.token.split(".")[1])
+      );
+
+      if (payload.role === "ADMIN") {
+        router.push("/dashboard");
       } else {
-        router.push('/')
+        router.push("/");
       }
 
     } catch (err) {
-      alert("Erro ao logar usuário.");
-      console.error(err);
+      console.error("Erro ao logar:", err);
+
+      toast.error("Não foi possível conectar ao servidor.");
     } finally {
       setLoading(false);
     }

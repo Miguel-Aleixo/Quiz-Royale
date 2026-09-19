@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
+import LoadingOverlay from "@/app/components/global/Loading";
 
 interface Patente {
   id: number;
@@ -197,6 +198,8 @@ export default function PerfilPage() {
 
   return (
     <main className="min-h-screen bg-[#080812] text-white">
+
+      <LoadingOverlay show={loading} />
 
       {/* BACKGROUND */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">

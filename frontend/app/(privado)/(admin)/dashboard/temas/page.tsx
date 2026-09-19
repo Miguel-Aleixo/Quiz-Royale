@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
   Edit3,
   MoreHorizontal,
   Plus,
@@ -12,6 +11,8 @@ import {
   Tags,
 } from "lucide-react";
 import Cookies from "js-cookie";
+import { toast } from "sonner";
+
 import Header from "@/app/components/dashboard/Header";
 import LoadingOverlay from "@/app/components/global/Loading";
 
@@ -31,22 +32,22 @@ const temaInicial: FormTema = {
 export default function TemasPage() {
   const API = process.env.NEXT_PUBLIC_API;
 
-  const token = Cookies.get("token");
-
   const [temas, setTemas] = useState<Tema[]>([]);
-
   const [busca, setBusca] = useState("");
 
   const [modalAberto, setModalAberto] = useState(false);
-
   const [menuAberto, setMenuAberto] = useState<number | null>(null);
 
   const [temaEditando, setTemaEditando] =
     useState<Tema | null>(null);
 
+  const [temaParaExcluir, setTemaParaExcluir] =
+    useState<Tema | null>(null);
+
   const [form, setForm] = useState<FormTema>(temaInicial);
 
   const [loading, setLoading] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
 
   /*
    * ============================
@@ -58,23 +59,41 @@ export default function TemasPage() {
     try {
       setLoading(true);
 
+      const tokenAtual = Cookies.get("token");
+
+      if (!tokenAtual) {
+        toast.error("Sessão não encontrada. Faça login novamente.");
+        return;
+      }
+
+      if (!API) {
+        toast.error("API não configurada.");
+        return;
+      }
+
       const res = await fetch(`${API}/tema`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${tokenAtual}`,
         },
       });
 
-      if (!res.ok) {
-        throw new Error("Erro ao buscar temas");
-      }
+      const data = await res.json().catch(() => null);
 
-      const data: Tema[] = await res.json();
+      if (!res.ok) {
+        const mensagem = Array.isArray(data?.message)
+          ? data.message.join(", ")
+          : data?.message || "Erro ao buscar temas.";
+
+        toast.error(mensagem);
+        return;
+      }
 
       setTemas(data);
     } catch (error) {
       console.error("Erro ao buscar temas:", error);
+      toast.error("Não foi possível conectar ao servidor.");
     } finally {
       setLoading(false);
     }
@@ -95,29 +114,56 @@ export default function TemasPage() {
    */
 
   const criarTema = async () => {
-    setLoading(true);
+    if (!form.nome.trim()) {
+      toast.error("Digite o nome do tema.");
+      return;
+    }
+
+    if (!API) {
+      toast.error("API não configurada.");
+      return;
+    }
+
+    const tokenAtual = Cookies.get("token");
+
+    if (!tokenAtual) {
+      toast.error("Sessão não encontrada. Faça login novamente.");
+      return;
+    }
 
     try {
+      setLoading(true);
+
       const res = await fetch(`${API}/tema`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${tokenAtual}`,
         },
         body: JSON.stringify({
           nome: form.nome.trim(),
         }),
       });
 
+      const data = await res.json().catch(() => null);
+
       if (!res.ok) {
-        throw new Error("Erro ao criar tema");
+        const mensagem = Array.isArray(data?.message)
+          ? data.message.join(", ")
+          : data?.message || "Erro ao criar tema.";
+
+        toast.error(mensagem);
+        return;
       }
 
       fecharModal();
 
+      toast.success("Tema criado com sucesso!");
+
       await buscarTemas();
     } catch (error) {
       console.error("Erro ao criar tema:", error);
+      toast.error("Não foi possível conectar ao servidor.");
     } finally {
       setLoading(false);
     }
@@ -131,19 +177,37 @@ export default function TemasPage() {
 
   const editarTema = async () => {
     if (!temaEditando) {
+      toast.error("Nenhum tema selecionado.");
       return;
     }
 
-    setLoading(true);
+    if (!form.nome.trim()) {
+      toast.error("Digite o nome do tema.");
+      return;
+    }
+
+    if (!API) {
+      toast.error("API não configurada.");
+      return;
+    }
+
+    const tokenAtual = Cookies.get("token");
+
+    if (!tokenAtual) {
+      toast.error("Sessão não encontrada. Faça login novamente.");
+      return;
+    }
 
     try {
+      setLoading(true);
+
       const res = await fetch(
         `${API}/tema/${temaEditando.id}`,
         {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${tokenAtual}`,
           },
           body: JSON.stringify({
             nome: form.nome.trim(),
@@ -151,15 +215,25 @@ export default function TemasPage() {
         }
       );
 
+      const data = await res.json().catch(() => null);
+
       if (!res.ok) {
-        throw new Error("Erro ao editar tema");
+        const mensagem = Array.isArray(data?.message)
+          ? data.message.join(", ")
+          : data?.message || "Erro ao editar tema.";
+
+        toast.error(mensagem);
+        return;
       }
 
       fecharModal();
 
+      toast.success("Tema atualizado com sucesso!");
+
       await buscarTemas();
     } catch (error) {
       console.error("Erro ao editar tema:", error);
+      toast.error("Não foi possível conectar ao servidor.");
     } finally {
       setLoading(false);
     }
@@ -171,40 +245,59 @@ export default function TemasPage() {
    * ============================
    */
 
-  const excluirTema = async (tema: Tema) => {
-    const confirmou = window.confirm(
-      `Deseja realmente excluir o tema "${tema.nome}"?`
-    );
-
-    if (!confirmou) {
+  const excluirTema = async () => {
+    if (!temaParaExcluir) {
       return;
     }
 
-    setLoading(true);
+    if (!API) {
+      toast.error("API não configurada.");
+      return;
+    }
+
+    const tokenAtual = Cookies.get("token");
+
+    if (!tokenAtual) {
+      toast.error("Sessão não encontrada. Faça login novamente.");
+      return;
+    }
 
     try {
+      setExcluindo(true);
+
       const res = await fetch(
-        `${API}/tema/${tema.id}`,
+        `${API}/tema/${temaParaExcluir.id}`,
         {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${tokenAtual}`,
           },
         }
       );
 
+      const data = await res.json().catch(() => null);
+
       if (!res.ok) {
-        throw new Error("Erro ao excluir tema");
+        const mensagem = Array.isArray(data?.message)
+          ? data.message.join(", ")
+          : data?.message || "Erro ao excluir tema.";
+
+        toast.error(mensagem);
+        return;
       }
 
+      setTemaParaExcluir(null);
       setMenuAberto(null);
+
+      toast.success("Tema excluído com sucesso!");
 
       await buscarTemas();
     } catch (error) {
       console.error("Erro ao excluir tema:", error);
+      toast.error("Não foi possível conectar ao servidor.");
     } finally {
-      setLoading(false);
+      setExcluindo(false);
     }
   };
 
@@ -248,7 +341,6 @@ export default function TemasPage() {
     });
 
     setModalAberto(true);
-
     setMenuAberto(null);
   }
 
@@ -266,7 +358,17 @@ export default function TemasPage() {
     });
 
     setModalAberto(true);
+    setMenuAberto(null);
+  }
 
+  /*
+   * ============================
+   * ABRIR MODAL DE EXCLUSÃO
+   * ============================
+   */
+
+  function abrirModalExclusao(tema: Tema) {
+    setTemaParaExcluir(tema);
     setMenuAberto(null);
   }
 
@@ -314,6 +416,7 @@ export default function TemasPage() {
     event.preventDefault();
 
     if (!form.nome.trim()) {
+      toast.error("Digite o nome do tema.");
       return;
     }
 
@@ -345,10 +448,6 @@ export default function TemasPage() {
         message="Carregando..."
       />
 
-      {/* =========================
-            HEADER
-        ========================= */}
-
       <Header />
 
       {/* =========================
@@ -362,7 +461,6 @@ export default function TemasPage() {
         <div className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
 
           <div>
-
             <div className="flex items-center gap-3">
 
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10 text-purple-400">
@@ -382,13 +480,12 @@ export default function TemasPage() {
               </div>
 
             </div>
-
           </div>
 
           <button
             type="button"
             onClick={abrirModalCriacao}
-            className="flex items-center justify-center gap-2 rounded-xl bg-purple-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-purple-500/20 transition hover:bg-purple-400"
+            className="cursor-pointer flex items-center justify-center gap-2 rounded-xl bg-purple-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-purple-500/20 transition hover:bg-purple-400"
           >
             <Plus size={18} />
             Novo tema
@@ -539,7 +636,7 @@ export default function TemasPage() {
                         onClick={() =>
                           alternarMenu(tema.id)
                         }
-                        className="flex h-9 w-9 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/5 hover:text-white"
+                        className="cursor-pointer flex h-9 w-9 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/5 hover:text-white"
                       >
                         <MoreHorizontal size={18} />
                       </button>
@@ -555,7 +652,7 @@ export default function TemasPage() {
                             onClick={() =>
                               abrirModalEdicao(tema)
                             }
-                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/60 transition hover:bg-white/5 hover:text-white"
+                            className="cursor-pointer flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/60 transition hover:bg-white/5 hover:text-white"
                           >
                             <Edit3 size={15} />
                             Editar
@@ -566,9 +663,9 @@ export default function TemasPage() {
                           <button
                             type="button"
                             onClick={() =>
-                              excluirTema(tema)
+                              abrirModalExclusao(tema)
                             }
-                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/5"
+                            className="cursor-pointer flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/5"
                           >
                             <Trash2 size={15} />
                             Excluir
@@ -595,7 +692,7 @@ export default function TemasPage() {
       </div>
 
       {/* =========================
-            MODAL
+            MODAL CRIAR / EDITAR
         ========================= */}
 
       {modalAberto && (
@@ -618,9 +715,7 @@ export default function TemasPage() {
               <div>
 
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-purple-400">
-                  {temaEditando
-                    ? "Edição"
-                    : "Cadastro"}
+                  {temaEditando ? "Edição" : "Cadastro"}
                 </p>
 
                 <h3 className="mt-1 text-xl font-black">
@@ -634,7 +729,7 @@ export default function TemasPage() {
               <button
                 type="button"
                 onClick={fecharModal}
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/5 hover:text-white"
+                className="cursor-pointer flex h-9 w-9 items-center justify-center rounded-lg text-white/30 transition hover:bg-white/5 hover:text-white"
               >
                 <X size={18} />
               </button>
@@ -704,14 +799,16 @@ export default function TemasPage() {
                 <button
                   type="button"
                   onClick={fecharModal}
-                  className="h-11 rounded-xl border border-white/10 px-5 text-sm font-semibold text-white/50 transition hover:bg-white/5 hover:text-white"
+                  disabled={loading}
+                  className="cursor-pointer h-11 rounded-xl border border-white/10 px-5 text-sm font-semibold text-white/50 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Cancelar
                 </button>
 
                 <button
                   type="submit"
-                  className="h-11 rounded-xl bg-purple-500 px-5 text-sm font-bold text-white transition hover:bg-purple-400"
+                  disabled={loading}
+                  className="cursor-pointer h-11 rounded-xl bg-purple-500 px-5 text-sm font-bold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {temaEditando
                     ? "Salvar alterações"
@@ -728,17 +825,101 @@ export default function TemasPage() {
 
       )}
 
+      {/* =========================
+            MODAL EXCLUIR
+        ========================= */}
+
+      {temaParaExcluir && (
+
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !excluindo) {
+              setTemaParaExcluir(null);
+            }
+          }}
+        >
+
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#12121e] shadow-2xl">
+
+            {/* CONTEÚDO */}
+
+            <div className="p-6">
+
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10">
+                <Trash2
+                  size={22}
+                  className="text-red-400"
+                />
+              </div>
+
+              <h3 className="mt-5 text-xl font-black">
+                Excluir tema?
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-white/40">
+                Tem certeza que deseja excluir o tema{" "}
+                <span className="font-semibold text-white/80">
+                  "{temaParaExcluir.nome}"
+                </span>
+                ?
+              </p>
+
+              <p className="mt-3 text-xs text-red-400/70">
+                Essa ação não poderá ser desfeita.
+              </p>
+
+            </div>
+
+            {/* BOTÕES */}
+
+            <div className="flex flex-col-reverse gap-3 border-t border-white/5 p-5 sm:flex-row sm:justify-end">
+
+              <button
+                type="button"
+                disabled={excluindo}
+                onClick={() => setTemaParaExcluir(null)}
+                className="cursor-pointer h-11 rounded-xl border border-white/10 px-5 text-sm font-semibold text-white/50 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                disabled={excluindo}
+                onClick={excluirTema}
+                className="cursor-pointer flex h-11 items-center justify-center gap-2 rounded-xl bg-red-500 px-5 text-sm font-bold text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {excluindo ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    Excluir tema
+                  </>
+                )}
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )}
+
     </main>
   );
-
 }
 
 /*
-
-* ============================
-* CARD DE ESTATÍSTICA
-* ============================
-  */
+ * ============================
+ * CARD DE ESTATÍSTICA
+ * ============================
+ */
 
 function StatCard({
   label,
@@ -749,27 +930,25 @@ function StatCard({
   value: number;
   icon: React.ReactNode;
 }) {
-  return (<div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
 
+      <div className="flex items-center justify-between">
 
-    <div className="flex items-center justify-between">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
+          {icon}
+        </div>
 
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
-        {icon}
+        <span className="text-2xl font-black">
+          {value}
+        </span>
+
       </div>
 
-      <span className="text-2xl font-black">
-        {value}
-      </span>
+      <p className="mt-5 text-xs text-white/30">
+        {label}
+      </p>
 
     </div>
-
-    <p className="mt-5 text-xs text-white/30">
-      {label}
-    </p>
-
-  </div>
   );
-
-
 }

@@ -16,6 +16,8 @@ import {
   Users,
 } from "lucide-react";
 import Header from "@/app/components/dashboard/Header";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface Usuario {
   id: number;
@@ -66,6 +68,8 @@ export default function DashboardPage() {
   const [temas, setTemas] = useState<Tema[]>([]);
   const [patentes, setPatentes] = useState<Patente[]>([]);
 
+  const router = useRouter();
+
   const [loading, setLoading] = useState(true);
 
   // =========================================================
@@ -89,6 +93,17 @@ export default function DashboardPage() {
 
       const token = getToken();
 
+      if (!token) {
+        toast.error("Sessão não encontrada. Faça login novamente.");
+        router.push("/login");
+        return;
+      }
+
+      if (!API) {
+        toast.error("API não configurada.");
+        return;
+      }
+
       const headers = {
         Authorization: `Bearer ${token}`,
       };
@@ -107,14 +122,60 @@ export default function DashboardPage() {
         fetch(`${API}/patente`, { headers }),
       ]);
 
-      if (
-        !usuariosResponse.ok ||
-        !salasResponse.ok ||
-        !perguntasResponse.ok ||
-        !temasResponse.ok ||
-        !patentesResponse.ok
-      ) {
-        throw new Error("Erro ao carregar dados do dashboard.");
+      // Verifica se alguma requisição falhou
+      if (!usuariosResponse.ok) {
+        const data = await usuariosResponse.json();
+
+        const mensagem = Array.isArray(data.message)
+          ? data.message.join(", ")
+          : data.message || "Erro ao carregar usuários.";
+
+        toast.error(mensagem);
+        return;
+      }
+
+      if (!salasResponse.ok) {
+        const data = await salasResponse.json();
+
+        const mensagem = Array.isArray(data.message)
+          ? data.message.join(", ")
+          : data.message || "Erro ao carregar salas.";
+
+        toast.error(mensagem);
+        return;
+      }
+
+      if (!perguntasResponse.ok) {
+        const data = await perguntasResponse.json();
+
+        const mensagem = Array.isArray(data.message)
+          ? data.message.join(", ")
+          : data.message || "Erro ao carregar perguntas.";
+
+        toast.error(mensagem);
+        return;
+      }
+
+      if (!temasResponse.ok) {
+        const data = await temasResponse.json();
+
+        const mensagem = Array.isArray(data.message)
+          ? data.message.join(", ")
+          : data.message || "Erro ao carregar temas.";
+
+        toast.error(mensagem);
+        return;
+      }
+
+      if (!patentesResponse.ok) {
+        const data = await patentesResponse.json();
+
+        const mensagem = Array.isArray(data.message)
+          ? data.message.join(", ")
+          : data.message || "Erro ao carregar patentes.";
+
+        toast.error(mensagem);
+        return;
       }
 
       const [
@@ -138,6 +199,8 @@ export default function DashboardPage() {
       setPatentes(patentesData);
     } catch (error) {
       console.error("Erro ao carregar dashboard:", error);
+
+      toast.error("Não foi possível conectar ao servidor.");
     } finally {
       setLoading(false);
     }
@@ -194,22 +257,22 @@ export default function DashboardPage() {
   // PATENTES
   // =========================================================
 
- const usuariosPorPatente = useMemo(() => {
-  return [...patentes]
-    .sort((a, b) => a.pontos - b.pontos)
-    .map((patente) => {
-      const quantidade = usuarios.filter(
-        (usuario) => usuario.patente?.id === patente.id
-      ).length;
+  const usuariosPorPatente = useMemo(() => {
+    return [...patentes]
+      .sort((a, b) => a.pontos - b.pontos)
+      .map((patente) => {
+        const quantidade = usuarios.filter(
+          (usuario) => usuario.patente?.id === patente.id
+        ).length;
 
-      return {
-        id: patente.id,
-        nome: patente.nome,
-        pontos: patente.pontos,
-        quantidade,
-      };
-    });
-}, [patentes, usuarios]);
+        return {
+          id: patente.id,
+          nome: patente.nome,
+          pontos: patente.pontos,
+          quantidade,
+        };
+      });
+  }, [patentes, usuarios]);
 
   // =========================================================
   // LOADING
@@ -571,9 +634,14 @@ export default function DashboardPage() {
 
               {usuariosPorPatente.map((patente) => {
 
+                const totalDistribuicao = usuariosPorPatente.reduce(
+                  (total, item) => total + item.quantidade,
+                  0
+                );
+
                 const percentual =
-                  totalJogadores > 0
-                    ? (patente.quantidade / totalJogadores) * 100
+                  totalDistribuicao > 0
+                    ? (patente.quantidade / totalDistribuicao) * 100
                     : 0;
 
                 return (

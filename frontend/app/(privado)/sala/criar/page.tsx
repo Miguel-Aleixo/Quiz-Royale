@@ -9,12 +9,11 @@ import {
   Plus,
   Trash2,
   Users,
-  X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { useBuscarUsuario } from "@/app/hooks/usuario/useBuscarUsuario";
+import { toast } from "sonner";
 
 interface Tema {
   id: number;
@@ -49,15 +48,15 @@ export default function CriarSalaPage() {
   const [loadingTemas, setLoadingTemas] = useState(false);
   const [criandoSala, setCriandoSala] = useState(false);
 
-  const [erro, setErro] = useState("");
-  const [sucesso, setSucesso] = useState("");
-
   // =========================================================
   // BUSCAR TEMAS
   // =========================================================
 
   const buscarTemas = async () => {
-    if (!API) return;
+    if (!API) {
+      toast.error("API não configurada.");
+      return;
+    }
 
     try {
       setLoadingTemas(true);
@@ -72,16 +71,22 @@ export default function CriarSalaPage() {
         },
       });
 
-      if (!res.ok) {
-        throw new Error("Erro ao buscar temas");
-      }
+      const data = await res.json();
 
-      const data: Tema[] = await res.json();
+      if (!res.ok) {
+        const mensagem = Array.isArray(data.message)
+          ? data.message.join(", ")
+          : data.message || "Erro ao buscar temas.";
+
+        toast.error(mensagem);
+        return;
+      }
 
       setTemas(data);
     } catch (error) {
       console.error("Erro ao buscar temas:", error);
-      setErro("Não foi possível carregar os temas.");
+
+      toast.error("Não foi possível conectar ao servidor.");
     } finally {
       setLoadingTemas(false);
     }
@@ -171,9 +176,9 @@ export default function CriarSalaPage() {
           alternativas: pergunta.alternativas.map((alternativa, j) =>
             j === alternativaIndex
               ? {
-                ...alternativa,
-                texto,
-              }
+                  ...alternativa,
+                  texto,
+                }
               : alternativa
           ),
         };
@@ -210,17 +215,17 @@ export default function CriarSalaPage() {
 
   const validarFormulario = () => {
     if (!nomeSala.trim()) {
-      setErro("Digite o nome da sala.");
+      toast.error("Digite o nome da sala.");
       return false;
     }
 
     if (maxJogadores < 2 || maxJogadores > 50) {
-      setErro("A sala deve ter entre 2 e 50 jogadores.");
+      toast.error("A sala deve ter entre 2 e 50 jogadores.");
       return false;
     }
 
     if (perguntas.length === 0) {
-      setErro("Adicione pelo menos uma pergunta.");
+      toast.error("Adicione pelo menos uma pergunta.");
       return false;
     }
 
@@ -228,23 +233,25 @@ export default function CriarSalaPage() {
       const pergunta = perguntas[i];
 
       if (!pergunta.enunciado.trim()) {
-        setErro(`Preencha o enunciado da pergunta ${i + 1}.`);
+        toast.error(`Preencha o enunciado da pergunta ${i + 1}.`);
         return false;
       }
 
       if (!pergunta.temaId) {
-        setErro(`Selecione um tema para a pergunta ${i + 1}.`);
+        toast.error(`Selecione um tema para a pergunta ${i + 1}.`);
         return false;
       }
 
       if (pergunta.tempoLimite < 5) {
-        setErro(`O tempo da pergunta ${i + 1} deve ser de pelo menos 5 segundos.`);
+        toast.error(
+          `O tempo da pergunta ${i + 1} deve ser de pelo menos 5 segundos.`
+        );
         return false;
       }
 
       for (let j = 0; j < pergunta.alternativas.length; j++) {
         if (!pergunta.alternativas[j].texto.trim()) {
-          setErro(
+          toast.error(
             `Preencha a alternativa ${j + 1} da pergunta ${i + 1}.`
           );
           return false;
@@ -256,7 +263,7 @@ export default function CriarSalaPage() {
       ).length;
 
       if (quantidadeCorretas !== 1) {
-        setErro(
+        toast.error(
           `A pergunta ${i + 1} precisa ter exatamente uma alternativa correta.`
         );
         return false;
@@ -271,12 +278,8 @@ export default function CriarSalaPage() {
   // =========================================================
 
   const criarSala = async () => {
-    console.log("🔥 CRIAR SALA FOI CHAMADA");
-
-    setErro("");
-    setSucesso("");
-
     if (!token) {
+      toast.error("Você precisa estar logado para criar uma sala.");
       router.push("/login");
       return;
     }
@@ -286,7 +289,7 @@ export default function CriarSalaPage() {
     }
 
     if (!API) {
-      setErro("API não configurada.");
+      toast.error("API não configurada.");
       return;
     }
 
@@ -310,15 +313,18 @@ export default function CriarSalaPage() {
         }),
       });
 
-      if (!salaRes.ok) {
-        const mensagem = await salaRes.text();
+      const salaData = await salaRes.json();
 
-        throw new Error(
-          mensagem || "Erro ao criar a sala."
-        );
+      if (!salaRes.ok) {
+        const mensagem = Array.isArray(salaData.message)
+          ? salaData.message.join(", ")
+          : salaData.message || "Erro ao criar a sala.";
+
+        toast.error(mensagem);
+        return;
       }
 
-      const sala = await salaRes.json();
+      const sala = salaData;
 
       // O código retornado pela API é a fonte correta
       const codigoSala = String(sala.codigo ?? "")
@@ -326,9 +332,10 @@ export default function CriarSalaPage() {
         .toUpperCase();
 
       if (!codigoSala) {
-        throw new Error(
+        toast.error(
           "A sala foi criada, mas a API não retornou um código."
         );
+        return;
       }
 
       // Atualiza apenas para mostrar na tela
@@ -351,15 +358,19 @@ export default function CriarSalaPage() {
           }),
         });
 
-        if (!perguntaRes.ok) {
-          const mensagem = await perguntaRes.text();
+        const perguntaData = await perguntaRes.json();
 
-          throw new Error(
-            mensagem || "Erro ao criar uma pergunta."
-          );
+        if (!perguntaRes.ok) {
+          const mensagem = Array.isArray(perguntaData.message)
+            ? perguntaData.message.join(", ")
+            : perguntaData.message ||
+              `Erro ao criar a pergunta ${index + 1}.`;
+
+          toast.error(mensagem);
+          return;
         }
 
-        const perguntaCriada = await perguntaRes.json();
+        const perguntaCriada = perguntaData;
 
         // ===================================================
         // 3. CRIAR ALTERNATIVAS
@@ -382,12 +393,16 @@ export default function CriarSalaPage() {
             }
           );
 
-          if (!alternativaRes.ok) {
-            const mensagem = await alternativaRes.text();
+          const alternativaData = await alternativaRes.json();
 
-            throw new Error(
-              mensagem || "Erro ao criar uma alternativa."
-            );
+          if (!alternativaRes.ok) {
+            const mensagem = Array.isArray(alternativaData.message)
+              ? alternativaData.message.join(", ")
+              : alternativaData.message ||
+                "Erro ao criar uma alternativa.";
+
+            toast.error(mensagem);
+            return;
           }
         }
 
@@ -409,12 +424,15 @@ export default function CriarSalaPage() {
           }),
         });
 
-        if (!rodadaRes.ok) {
-          const mensagem = await rodadaRes.text();
+        const rodadaData = await rodadaRes.json();
 
-          throw new Error(
-            mensagem || "Erro ao criar a rodada."
-          );
+        if (!rodadaRes.ok) {
+          const mensagem = Array.isArray(rodadaData.message)
+            ? rodadaData.message.join(", ")
+            : rodadaData.message || "Erro ao criar a rodada.";
+
+          toast.error(mensagem);
+          return;
         }
       }
 
@@ -422,19 +440,13 @@ export default function CriarSalaPage() {
       // 5. ENTRAR AUTOMATICAMENTE NA SALA
       // =====================================================
 
-      setSucesso("Sala criada com sucesso!");
-
       const tokenAtual = Cookies.get("token");
 
       if (!tokenAtual) {
+        toast.error("Sua sessão expirou. Faça login novamente.");
         router.push("/login");
         return;
       }
-
-      console.log("🔥 VOU ENTRAR NA SALA");
-      console.log("sala:", sala);
-      console.log("sala.codigo:", sala.codigo);
-      console.log("codigoSala:", codigoSala);
 
       const entrarRes = await fetch(`${API}/sala/entrar`, {
         method: "POST",
@@ -450,30 +462,31 @@ export default function CriarSalaPage() {
       const entrarData = await entrarRes.json();
 
       if (!entrarRes.ok) {
-        throw new Error(
-          Array.isArray(entrarData.message)
-            ? entrarData.message.join(", ")
-            : entrarData.message ||
-            "Erro ao entrar na sala."
-        );
+        const mensagem = Array.isArray(entrarData.message)
+          ? entrarData.message.join(", ")
+          : entrarData.message || "Erro ao entrar na sala.";
+
+        toast.error(mensagem);
+        return;
       }
 
       // =====================================================
-      // 6. IR PARA A SALA
+      // 6. SUCESSO
+      // =====================================================
+
+      toast.success("Sala criada com sucesso!");
+
+      // =====================================================
+      // 7. IR PARA A SALA
       // =====================================================
 
       router.push(
         `/sala/entrar?codigo=${encodeURIComponent(codigoSala)}`
       );
-
     } catch (error) {
       console.error("Erro ao criar sala:", error);
 
-      setErro(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível criar a sala."
-      );
+      toast.error("Não foi possível conectar ao servidor.");
     } finally {
       setCriandoSala(false);
     }
@@ -520,26 +533,10 @@ export default function CriarSalaPage() {
           </h1>
 
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/45">
-            Configure a sala, adicione as perguntas e defina as alternativas
-            que os jogadores deverão responder.
+            Configure a sala, adicione as perguntas e defina as
+            alternativas que os jogadores deverão responder.
           </p>
         </div>
-
-        {/* ERRO */}
-        {erro && (
-          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm text-red-200">
-            <X size={18} className="mt-0.5 shrink-0" />
-            <span>{erro}</span>
-          </div>
-        )}
-
-        {/* SUCESSO */}
-        {sucesso && (
-          <div className="mb-6 flex items-start gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-sm text-emerald-200">
-            <Check size={18} className="mt-0.5 shrink-0" />
-            <span>{sucesso}</span>
-          </div>
-        )}
 
         <div className="space-y-6">
           {/* CONFIGURAÇÃO DA SALA */}
@@ -550,14 +547,17 @@ export default function CriarSalaPage() {
               </div>
 
               <div>
-                <h2 className="font-bold">Configuração da sala</h2>
+                <h2 className="font-bold">
+                  Configuração da sala
+                </h2>
+
                 <p className="text-xs text-white/35">
                   Defina as informações básicas da partida.
                 </p>
               </div>
             </div>
 
-            <div className="grid gap-5 w-full">
+            <div className="grid w-full gap-5">
               {/* NOME */}
               <div>
                 <label className="mb-2 block text-xs font-bold text-white/60">
@@ -573,7 +573,7 @@ export default function CriarSalaPage() {
               </div>
 
               {/* JOGADORES */}
-              <div >
+              <div>
                 <label className="mb-2 block text-xs font-bold text-white/60">
                   Máximo de jogadores
                 </label>
@@ -591,15 +591,17 @@ export default function CriarSalaPage() {
                     }
                     className="h-12 w-full appearance-none rounded-xl border border-white/10 bg-white/[0.03] pl-11 pr-10 text-sm outline-none transition focus:border-violet-400/40"
                   >
-                    {[2, 5, 10, 15, 20, 30, 40, 50].map((quantidade) => (
-                      <option
-                        key={quantidade}
-                        value={quantidade}
-                        className="bg-[#10101d]"
-                      >
-                        {quantidade} jogadores
-                      </option>
-                    ))}
+                    {[2, 5, 10, 15, 20, 30, 40, 50].map(
+                      (quantidade) => (
+                        <option
+                          key={quantidade}
+                          value={quantidade}
+                          className="bg-[#10101d]"
+                        >
+                          {quantidade} jogadores
+                        </option>
+                      )
+                    )}
                   </select>
 
                   <ChevronDown
@@ -616,7 +618,10 @@ export default function CriarSalaPage() {
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">
-                  <Gamepad2 size={19} className="text-indigo-300" />
+                  <Gamepad2
+                    size={19}
+                    className="text-indigo-300"
+                  />
                 </div>
 
                 <div>
@@ -636,7 +641,9 @@ export default function CriarSalaPage() {
               <button
                 type="button"
                 onClick={adicionarPergunta}
-                disabled={loadingTemas || temas.length === 0}
+                disabled={
+                  loadingTemas || temas.length === 0
+                }
                 className="flex h-10 items-center justify-center gap-2 rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 text-xs font-bold text-violet-200 transition hover:border-violet-400/40 hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Plus size={16} />
@@ -664,215 +671,232 @@ export default function CriarSalaPage() {
 
             {/* LISTA DE PERGUNTAS */}
             <div className="space-y-6">
-              {perguntas.map((pergunta, perguntaIndex) => (
-                <div
-                  key={perguntaIndex}
-                  className="rounded-2xl border border-white/10 bg-black/10 p-5"
-                >
-                  {/* CABEÇALHO DA PERGUNTA */}
-                  <div className="mb-5 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10 text-xs font-black text-violet-300">
-                        {perguntaIndex + 1}
+              {perguntas.map(
+                (pergunta, perguntaIndex) => (
+                  <div
+                    key={perguntaIndex}
+                    className="rounded-2xl border border-white/10 bg-black/10 p-5"
+                  >
+                    {/* CABEÇALHO */}
+                    <div className="mb-5 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10 text-xs font-black text-violet-300">
+                          {perguntaIndex + 1}
+                        </div>
+
+                        <div>
+                          <p className="text-sm font-bold">
+                            Pergunta {perguntaIndex + 1}
+                          </p>
+
+                          <p className="text-[11px] text-white/30">
+                            Defina o enunciado e as alternativas.
+                          </p>
+                        </div>
                       </div>
 
-                      <div>
-                        <p className="text-sm font-bold">
-                          Pergunta {perguntaIndex + 1}
-                        </p>
-
-                        <p className="text-[11px] text-white/30">
-                          Defina o enunciado e as alternativas.
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => removerPergunta(perguntaIndex)}
-                      className="flex h-9 w-9 items-center justify-center rounded-xl text-white/30 transition hover:bg-red-500/10 hover:text-red-300"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-
-                  <div className="space-y-5">
-                    {/* ENUNCIADO */}
-                    <div>
-                      <label className="mb-2 block text-xs font-bold text-white/60">
-                        Enunciado
-                      </label>
-
-                      <textarea
-                        value={pergunta.enunciado}
-                        onChange={(e) =>
-                          alterarPergunta(
-                            perguntaIndex,
-                            "enunciado",
-                            e.target.value
-                          )
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removerPergunta(perguntaIndex)
                         }
-                        placeholder="Digite a pergunta..."
-                        rows={3}
-                        className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm outline-none transition placeholder:text-white/20 focus:border-violet-400/40"
-                      />
+                        className="flex h-9 w-9 items-center justify-center rounded-xl text-white/30 transition hover:bg-red-500/10 hover:text-red-300"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
 
-                    {/* TEMA + TEMPO */}
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-5">
+                      {/* ENUNCIADO */}
                       <div>
                         <label className="mb-2 block text-xs font-bold text-white/60">
-                          Tema
+                          Enunciado
                         </label>
 
-                        <div className="relative">
-                          <select
-                            value={pergunta.temaId}
-                            onChange={(e) =>
-                              alterarPergunta(
-                                perguntaIndex,
-                                "temaId",
-                                Number(e.target.value)
-                              )
-                            }
-                            className="h-11 w-full appearance-none rounded-xl border border-white/10 bg-white/[0.03] px-4 pr-10 text-sm outline-none transition focus:border-violet-400/40"
-                          >
-                            <option value={0} className="bg-[#10101d]">
-                              Selecione um tema
-                            </option>
-
-                            {temas.map((tema) => (
-                              <option
-                                key={tema.id}
-                                value={tema.id}
-                                className="bg-[#10101d]"
-                              >
-                                {tema.nome}
-                              </option>
-                            ))}
-                          </select>
-
-                          <ChevronDown
-                            size={16}
-                            className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/30"
-                          />
-                        </div>
+                        <textarea
+                          value={pergunta.enunciado}
+                          onChange={(e) =>
+                            alterarPergunta(
+                              perguntaIndex,
+                              "enunciado",
+                              e.target.value
+                            )
+                          }
+                          placeholder="Digite a pergunta..."
+                          rows={3}
+                          className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm outline-none transition placeholder:text-white/20 focus:border-violet-400/40"
+                        />
                       </div>
 
-                      <div>
-                        <label className="mb-2 block text-xs font-bold text-white/60">
-                          Tempo para responder
-                        </label>
+                      {/* TEMA + TEMPO */}
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <label className="mb-2 block text-xs font-bold text-white/60">
+                            Tema
+                          </label>
 
-                        <div className="relative">
-                          <Clock3
-                            size={16}
-                            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/30"
-                          />
-
-                          <select
-                            value={pergunta.tempoLimite}
-                            onChange={(e) =>
-                              alterarPergunta(
-                                perguntaIndex,
-                                "tempoLimite",
-                                Number(e.target.value)
-                              )
-                            }
-                            className="h-11 w-full appearance-none rounded-xl border border-white/10 bg-white/[0.03] pl-11 pr-10 text-sm outline-none transition focus:border-violet-400/40"
-                          >
-                            {[10, 15, 20, 30, 45, 60, 90].map((tempo) => (
-                              <option
-                                key={tempo}
-                                value={tempo}
-                                className="bg-[#10101d]"
-                              >
-                                {tempo} segundos
-                              </option>
-                            ))}
-                          </select>
-
-                          <ChevronDown
-                            size={16}
-                            className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/30"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* ALTERNATIVAS */}
-                    <div>
-                      <div className="mb-3 flex items-center justify-between">
-                        <label className="text-xs font-bold text-white/60">
-                          Alternativas
-                        </label>
-
-                        <span className="text-[10px] text-white/25">
-                          Clique no círculo para marcar a correta
-                        </span>
-                      </div>
-
-                      <div className="grid gap-3">
-                        {pergunta.alternativas.map(
-                          (alternativa, alternativaIndex) => (
-                            <div
-                              key={alternativaIndex}
-                              className={`flex items-center gap-3 rounded-xl border p-2 transition ${alternativa.correta
-                                ? "border-emerald-400/30 bg-emerald-500/[0.06]"
-                                : "border-white/10 bg-white/[0.02]"
-                                }`}
+                          <div className="relative">
+                            <select
+                              value={pergunta.temaId}
+                              onChange={(e) =>
+                                alterarPergunta(
+                                  perguntaIndex,
+                                  "temaId",
+                                  Number(e.target.value)
+                                )
+                              }
+                              className="h-11 w-full appearance-none rounded-xl border border-white/10 bg-white/[0.03] px-4 pr-10 text-sm outline-none transition focus:border-violet-400/40"
                             >
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  definirCorreta(
-                                    perguntaIndex,
-                                    alternativaIndex
-                                  )
-                                }
-                                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs font-black transition ${alternativa.correta
-                                  ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-300"
-                                  : "border-white/10 bg-white/[0.03] text-white/30 hover:border-violet-400/30 hover:text-violet-300"
-                                  }`}
+                              <option
+                                value={0}
+                                className="bg-[#10101d]"
                               >
-                                {alternativa.correta ? (
-                                  <Check size={15} />
-                                ) : (
-                                  String.fromCharCode(
-                                    65 + alternativaIndex
-                                  )
-                                )}
-                              </button>
+                                Selecione um tema
+                              </option>
 
-                              <input
-                                value={alternativa.texto}
-                                onChange={(e) =>
-                                  alterarAlternativa(
-                                    perguntaIndex,
-                                    alternativaIndex,
-                                    e.target.value
-                                  )
-                                }
-                                placeholder={`Alternativa ${String.fromCharCode(
-                                  65 + alternativaIndex
-                                )}`}
-                                className="h-10 min-w-0 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-white/20"
-                              />
-                            </div>
-                          )
-                        )}
+                              {temas.map((tema) => (
+                                <option
+                                  key={tema.id}
+                                  value={tema.id}
+                                  className="bg-[#10101d]"
+                                >
+                                  {tema.nome}
+                                </option>
+                              ))}
+                            </select>
+
+                            <ChevronDown
+                              size={16}
+                              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/30"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="mb-2 block text-xs font-bold text-white/60">
+                            Tempo para responder
+                          </label>
+
+                          <div className="relative">
+                            <Clock3
+                              size={16}
+                              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/30"
+                            />
+
+                            <select
+                              value={pergunta.tempoLimite}
+                              onChange={(e) =>
+                                alterarPergunta(
+                                  perguntaIndex,
+                                  "tempoLimite",
+                                  Number(e.target.value)
+                                )
+                              }
+                              className="h-11 w-full appearance-none rounded-xl border border-white/10 bg-white/[0.03] pl-11 pr-10 text-sm outline-none transition focus:border-violet-400/40"
+                            >
+                              {[10, 15, 20, 30, 45, 60, 90].map(
+                                (tempo) => (
+                                  <option
+                                    key={tempo}
+                                    value={tempo}
+                                    className="bg-[#10101d]"
+                                  >
+                                    {tempo} segundos
+                                  </option>
+                                )
+                              )}
+                            </select>
+
+                            <ChevronDown
+                              size={16}
+                              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/30"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ALTERNATIVAS */}
+                      <div>
+                        <div className="mb-3 flex items-center justify-between">
+                          <label className="text-xs font-bold text-white/60">
+                            Alternativas
+                          </label>
+
+                          <span className="text-[10px] text-white/25">
+                            Clique no círculo para marcar a correta
+                          </span>
+                        </div>
+
+                        <div className="grid gap-3">
+                          {pergunta.alternativas.map(
+                            (
+                              alternativa,
+                              alternativaIndex
+                            ) => (
+                              <div
+                                key={alternativaIndex}
+                                className={`flex items-center gap-3 rounded-xl border p-2 transition ${
+                                  alternativa.correta
+                                    ? "border-emerald-400/30 bg-emerald-500/[0.06]"
+                                    : "border-white/10 bg-white/[0.02]"
+                                }`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    definirCorreta(
+                                      perguntaIndex,
+                                      alternativaIndex
+                                    )
+                                  }
+                                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs font-black transition ${
+                                    alternativa.correta
+                                      ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-300"
+                                      : "border-white/10 bg-white/[0.03] text-white/30 hover:border-violet-400/30 hover:text-violet-300"
+                                  }`}
+                                >
+                                  {alternativa.correta ? (
+                                    <Check size={15} />
+                                  ) : (
+                                    String.fromCharCode(
+                                      65 + alternativaIndex
+                                    )
+                                  )}
+                                </button>
+
+                                <input
+                                  value={alternativa.texto}
+                                  onChange={(e) =>
+                                    alterarAlternativa(
+                                      perguntaIndex,
+                                      alternativaIndex,
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder={`Alternativa ${String.fromCharCode(
+                                    65 + alternativaIndex
+                                  )}`}
+                                  className="h-10 min-w-0 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-white/20"
+                                />
+                              </div>
+                            )
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              )}
             </div>
           </section>
 
           {/* RESUMO */}
           <section className="rounded-3xl border border-white/10 bg-[#10101d]/80 p-6 shadow-2xl shadow-black/20 backdrop-blur-xl">
             <div className="mb-5">
-              <h2 className="font-bold">Resumo da sala</h2>
+              <h2 className="font-bold">
+                Resumo da sala
+              </h2>
+
               <p className="mt-1 text-xs text-white/35">
                 Confira as configurações antes de criar a partida.
               </p>
