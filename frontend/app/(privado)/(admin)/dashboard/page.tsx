@@ -25,6 +25,7 @@ interface Usuario {
   patente?: {
     id: number;
     nome: string;
+    pontos: number;
   } | null;
 }
 
@@ -53,6 +54,7 @@ interface Tema {
 interface Patente {
   id: number;
   nome: string;
+  pontos: number;
 }
 
 export default function DashboardPage() {
@@ -193,17 +195,20 @@ export default function DashboardPage() {
   // =========================================================
 
   const usuariosPorPatente = useMemo(() => {
-    return patentes.map((patente) => {
-      const quantidade = usuarios.filter(
-        (usuario) => usuario.patente?.id === patente.id
-      ).length;
+    return [...patentes]
+      .sort((a, b) => a.pontos - b.pontos)
+      .map((patente) => {
+        const quantidade = usuarios.filter(
+          (usuario) => usuario.patente?.id === patente.id
+        ).length;
 
-      return {
-        id: patente.id,
-        nome: patente.nome,
-        quantidade,
-      };
-    });
+        return {
+          id: patente.id,
+          nome: patente.nome,
+          pontos: patente.pontos,
+          quantidade,
+        };
+      });
   }, [patentes, usuarios]);
 
   // =========================================================
@@ -534,6 +539,7 @@ export default function DashboardPage() {
           transition={{ delay: 0.2 }}
           className="mt-5 rounded-2xl border border-white/10 bg-white/[0.025]"
         >
+          {/* CABEÇALHO */}
 
           <div className="border-b border-white/10 px-5 py-4">
 
@@ -544,24 +550,31 @@ export default function DashboardPage() {
               </div>
 
               <div>
+
                 <h2 className="text-sm font-semibold">
                   Jogadores por patente
                 </h2>
 
                 <p className="mt-1 text-xs text-white/30">
-                  Distribuição dos jogadores entre as patentes
+                  Distribuição dos jogadores e pontuação das patentes
                 </p>
+
               </div>
 
             </div>
 
           </div>
 
+          {/* CONTEÚDO */}
+
           {usuariosPorPatente.length === 0 ? (
+
             <div className="px-5 py-10 text-center text-sm text-white/30">
               Nenhuma patente cadastrada.
             </div>
+
           ) : (
+
             <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
 
               {usuariosPorPatente.map((patente) => {
@@ -572,32 +585,58 @@ export default function DashboardPage() {
                     : 0;
 
                 return (
+
                   <div
                     key={patente.id}
-                    className="rounded-xl border border-white/10 bg-white/[0.02] p-4"
+                    className="rounded-xl border border-white/10 bg-white/[0.02] p-4 transition hover:border-yellow-400/15 hover:bg-white/[0.035]"
                   >
+
+                    {/* NOME + ÍCONE */}
 
                     <div className="mb-3 flex items-center justify-between">
 
-                      <span className="text-sm font-semibold">
-                        {patente.nome}
-                      </span>
+                      <div>
 
-                      <Crown className="h-4 w-4 text-yellow-400/60" />
+                        <span className="text-sm font-semibold">
+                          {patente.nome}
+                        </span>
+
+                        <p className="mt-1 text-[10px] text-white/25">
+                          A partir de{" "}
+                          {patente.pontos.toLocaleString("pt-BR")} pontos
+                        </p>
+
+                      </div>
+
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-yellow-500/10">
+                        <Crown className="h-4 w-4 text-yellow-400/70" />
+                      </div>
 
                     </div>
 
+                    {/* JOGADORES */}
+
                     <div className="mb-2 flex items-end justify-between">
 
-                      <span className="text-2xl font-bold">
-                        {patente.quantidade}
-                      </span>
+                      <div>
+
+                        <span className="text-2xl font-bold">
+                          {patente.quantidade}
+                        </span>
+
+                        <span className="ml-1 text-xs text-white/25">
+                          jogadores
+                        </span>
+
+                      </div>
 
                       <span className="text-xs text-white/30">
                         {percentual.toFixed(0)}%
                       </span>
 
                     </div>
+
+                    {/* BARRA */}
 
                     <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
 
@@ -612,11 +651,27 @@ export default function DashboardPage() {
 
                     </div>
 
+                    {/* PONTUAÇÃO */}
+
+                    <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
+
+                      <span className="text-[10px] uppercase tracking-wider text-white/20">
+                        Pontuação mínima
+                      </span>
+
+                      <span className="text-xs font-bold text-amber-400">
+                        {patente.pontos.toLocaleString("pt-BR")} pts
+                      </span>
+
+                    </div>
+
                   </div>
+
                 );
               })}
 
             </div>
+
           )}
 
         </motion.div>
