@@ -12,6 +12,7 @@ import { SalaModule } from './sala/sala.module';
 import { RodadaModule } from './rodada/rodada.module';
 import { AlternativaModule } from './alternativa/alternativa.module';
 import { RespostaModule } from './resposta/resposta.module';
+import { PartidaModule } from './partida/partida.module';
 
 import { PrismaService } from './prisma/prisma.service';
 
@@ -32,6 +33,8 @@ import { PrismaService } from './prisma/prisma.service';
     RodadaModule,
     AlternativaModule,
     RespostaModule,
+    PartidaModule,
+    
   ],
 
   providers: [

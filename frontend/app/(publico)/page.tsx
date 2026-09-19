@@ -487,7 +487,7 @@ export default function Home() {
 
             <div className="grid gap-3 md:grid-cols-3">
 
-              {salasAbertas.slice(0, 3).map((sala) => (
+              {salasAbertas.map((sala) => (
 
                 <button
                   key={sala.id}
