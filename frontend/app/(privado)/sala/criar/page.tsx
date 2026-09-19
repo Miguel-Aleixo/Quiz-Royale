@@ -404,11 +404,47 @@ export default function CriarSalaPage() {
 
       setSucesso("Sala criada com sucesso!");
 
-      setTimeout(() => {
-        router.push(
-          `/sala/entrar?codigo=${encodeURIComponent(sala.codigo)}`
-        );
-      }, 1000);
+      /*
+   * ============================
+   * ENTRAR NA SALA
+   * ============================
+   */
+
+      try {
+
+        const token = Cookies.get("token");
+
+        if (!token) {
+          router.push("/login");
+          return;
+        }
+
+        const res = await fetch(`${API}/sala/entrar`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            codigo: codigo.trim().toUpperCase(),
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(
+            Array.isArray(data.message)
+              ? data.message.join(", ")
+              : data.message || "Erro ao entrar na sala"
+          );
+        }
+
+        router.push(`/sala/entrar?codigo=${encodeURIComponent(sala.codigo)}`);
+      } catch (error) {
+        console.error(error)
+      }
+
     } catch (error) {
       console.error("Erro ao criar sala:", error);
 
