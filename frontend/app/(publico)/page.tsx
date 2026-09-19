@@ -602,7 +602,7 @@ export default function Home() {
               <h3 className="mt-1 text-xl font-black">
                 {loadingUsuario
                   ? "Carregando..."
-                  : usuario?.patente?.nome ?? "Sem patente"}
+                  : usuario?.patente?.nome ?? "Sem classificação"}
               </h3>
 
               {!loadingUsuario && usuario?.patente && (
