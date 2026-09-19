@@ -5,6 +5,7 @@ import {
   Crown,
   Gamepad2,
   Plus,
+  Search,
   Shield,
   Swords,
   Tags,
@@ -55,11 +56,12 @@ interface Pergunta {
 }
 
 const glassCard =
-  "border border-white/[0.08] bg-[#12121d]/80 shadow-[0_20px_80px_rgba(0,0,0,0.22)] backdrop-blur-xl";
+  "border border-white/[0.09] bg-white/[0.045] shadow-[0_20px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl";
 
 export default function Home() {
   const router = useRouter();
   const API = process.env.NEXT_PUBLIC_API;
+  const [busca, setBusca] = useState('')
 
   const [token, setToken] = useState<string | undefined>(undefined);
   const [mounted, setMounted] = useState(false);
@@ -228,10 +230,25 @@ export default function Home() {
   /*
    * SALAS ABERTAS
    */
-  const salasAbertas = useMemo(
-    () => salas.filter((sala) => sala.status === "ABERTA"),
-    [salas]
-  );
+  const salasAbertas = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+
+    return salas.filter((sala) => {
+      if (sala.status !== "ABERTA") {
+        return false;
+      }
+
+      if (!termo) {
+        return true;
+      }
+
+      return (
+        sala.nome.toLowerCase().includes(termo) ||
+        sala.codigo.toLowerCase().includes(termo) ||
+        String(sala.id).includes(termo)
+      );
+    });
+  }, [salas, busca]);
 
   /*
    * TOTAL DE JOGADORES
@@ -304,18 +321,18 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#080811] text-white selection:bg-violet-400/30">
+    <main className="min-h-screen overflow-hidden bg-[#070711] text-white selection:bg-fuchsia-400/30">
       <LoadingOverlay show={loading || loadingPerguntas || loadingSalas || loadingUsuario} />
 
       {/* BACKGROUND */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-48 -top-48 h-[34rem] w-[34rem] rounded-full bg-violet-600/20 blur-[110px]" />
+        <div className="absolute -left-48 -top-48 h-[34rem] w-[34rem] rounded-full bg-fuchsia-600/15 blur-[110px]" />
 
         <div className="absolute -right-40 top-1/4 h-[30rem] w-[30rem] rounded-full bg-fuchsia-600/10 blur-[120px]" />
 
-        <div className="absolute bottom-[-18rem] left-1/3 h-[34rem] w-[34rem] rounded-full bg-indigo-600/10 blur-[120px]" />
+        <div className="absolute bottom-[-18rem] left-1/3 h-[34rem] w-[34rem] rounded-full bg-cyan-600/10 blur-[120px]" />
 
-        <div className="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.7)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.7)_1px,transparent_1px)] [background-size:56px_56px]" />
+        <div className="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:48px_48px]" />
       </div>
 
       <Header
@@ -327,9 +344,14 @@ export default function Home() {
         {/* HERO */}
         <div className="mb-10 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
           <div className="max-w-2xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-fuchsia-300/20 bg-fuchsia-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-fuchsia-200">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-fuchsia-300 shadow-[0_0_12px_rgba(232,121,249,.9)]" />
+              Arena online
+            </div>
+
             <h1 className="text-4xl font-black leading-[1.02] tracking-[-0.04em] sm:text-6xl">
               Pronto para
-              <span className="block bg-fuchsia-300 bg-clip-text text-transparent">
+              <span className="block bg-gradient-to-r from-fuchsia-200 via-violet-200 to-cyan-200 bg-clip-text text-transparent">
                 dominar a arena?
               </span>
             </h1>
@@ -391,12 +413,12 @@ export default function Home() {
         {/* CARDS PRINCIPAIS */}
         <div className="grid gap-5 lg:grid-cols-2">
           {/* ENTRAR EM SALA */}
-          <div className="group relative overflow-hidden rounded-[2rem] border border-violet-300/20 bg-gradient-to-br from-violet-500/20 via-[#18152b] to-[#11111c] p-6 sm:p-8">
+          <div className="group relative overflow-hidden rounded-[2rem] border border-violet-300/20 bg-gradient-to-br from-violet-500/20 via-[#18152b] to-[#11111c] p-6 shadow-2xl shadow-violet-950/15 transition hover:-translate-y-1 hover:border-violet-300/40 sm:p-8">
             <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-violet-500/20 blur-[70px] transition duration-500 group-hover:bg-violet-400/30" />
 
             <div className="relative">
               <div className="flex items-start justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-400/15 text-violet-200 ring-1 ring-inset ring-violet-300/15">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-400/15 text-violet-200 ring-1 ring-inset ring-violet-300/15 shadow-lg shadow-violet-950/20">
                   <Gamepad2 size={23} />
                 </div>
 
@@ -427,14 +449,14 @@ export default function Home() {
                   placeholder="CÓDIGO DA SALA"
                   maxLength={6}
                   aria-label="Código da sala"
-                  className="h-13 min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/25 px-4 text-sm font-bold tracking-[0.18em] text-white outline-none transition placeholder:text-white/20 focus:border-violet-300/60 focus:bg-black/35 focus:ring-4 focus:ring-violet-400/10"
+                  className="h-13 min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/25 px-4 text-sm font-bold tracking-[0.18em] text-white outline-none transition placeholder:text-white/20 focus:border-fuchsia-300/60 focus:bg-black/35 focus:ring-4 focus:ring-fuchsia-400/10"
                 />
 
                 <button
                   onClick={entrarNaSala}
                   disabled={!estaLogado || !codigo.trim() || loading}
                   aria-label="Entrar na sala"
-                  className="flex h-13 w-13 shrink-0 cursor-pointer items-center justify-center rounded-2xl bg-violet-400 text-[#171022] transition hover:bg-violet-300 hover:shadow-lg hover:shadow-violet-500/20 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-13 w-13 shrink-0 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-300 to-violet-400 text-[#171022] transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-fuchsia-500/20 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <ArrowRight size={20} />
                 </button>
@@ -446,7 +468,7 @@ export default function Home() {
                     setLoading(true);
                     router.push("/login");
                   }}
-                  className="mt-4 cursor-pointer text-xs font-bold text-violet-200 transition hover:text-violet-100"
+                    className="mt-4 cursor-pointer text-xs font-bold text-fuchsia-200 transition hover:text-fuchsia-100"
                 >
                   Entre para participar →
                 </button>
@@ -460,7 +482,7 @@ export default function Home() {
               setLoading(true);
               router.push(estaLogado ? "/sala/criar" : "/login");
             }}
-            className="group relative cursor-pointer overflow-hidden rounded-[2rem] border border-fuchsia-300/20 bg-gradient-to-br from-fuchsia-500/15 via-[#1b1428] to-[#11111c] p-6 text-left transition duration-300 hover:-translate-y-1 hover:border-fuchsia-300/45 hover:shadow-2xl hover:shadow-fuchsia-950/30 sm:p-8"
+              className="group relative cursor-pointer overflow-hidden rounded-[2rem] border border-fuchsia-300/20 bg-gradient-to-br from-fuchsia-500/15 via-[#1b1428] to-[#11111c] p-6 text-left shadow-2xl shadow-fuchsia-950/10 transition duration-300 hover:-translate-y-1 hover:border-fuchsia-300/45 hover:shadow-fuchsia-950/30 sm:p-8"
           >
             <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-fuchsia-500/15 blur-[70px] transition group-hover:bg-fuchsia-400/25" />
 
@@ -498,8 +520,8 @@ export default function Home() {
         </div>
 
         {/* SALAS ABERTAS */}
-        <section className={`${glassCard} mt-6 rounded-[2rem] p-5 sm:p-7`}>
-          <div className="mb-6 flex items-end justify-between gap-4">
+        <section className={`${glassCard} mt-6 rounded-[2rem] p-5 transition hover:border-violet-300/20 sm:p-7`}>
+          <div className="mb-6 flex items-center justify-between gap-4 w-full">
             <div>
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-400/10 text-violet-200">
@@ -516,13 +538,73 @@ export default function Home() {
               </p>
             </div>
 
-            <span className="rounded-full border border-violet-300/15 bg-violet-400/10 px-3 py-1.5 text-xs font-bold text-violet-200">
-              {!estaLogado
-                ? "—"
-                : loadingSalas
+            {/* BUSCA */}
+            <div className="flex w-full items-center gap-3 sm:w-auto">
+              <div className="relative w-full sm:w-64">
+                <Search
+                  size={16}
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 transition-colors"
+                />
+
+                <input
+                  value={busca}
+                  onChange={(event) => setBusca(event.target.value)}
+                  placeholder="Buscar por nome..."
+                  className="
+        h-10 w-full rounded-xl
+        border border-white/[0.08]
+        bg-white/[0.035]
+        pl-10 pr-4
+        text-sm font-medium text-white
+        outline-none
+        placeholder:text-white/20
+        transition-all duration-200
+        hover:border-white/[0.14]
+        hover:bg-white/[0.05]
+                  focus:border-fuchsia-400/40
+                  focus:bg-fuchsia-400/[0.04]
+                  focus:ring-4 focus:ring-fuchsia-400/[0.06]
+      "
+                />
+
+                {busca && (
+                  <button
+                    type="button"
+                    onClick={() => setBusca("")}
+                    className="cursor-pointer
+          absolute right-3 top-1/2
+          -translate-y-1/2
+          text-xs font-bold text-white/25
+          transition-colors
+          hover:text-white/60
+        "
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              <span
+                className="
+      shrink-0 rounded-xl
+      border border-violet-300/[0.12]
+      bg-violet-400/[0.07]
+      px-3 py-2
+      text-xs font-bold
+      text-violet-200/80
+      shadow-[0_0_20px_rgba(139,92,246,0.05)]
+    "
+              >
+                {!estaLogado
                   ? "—"
-                  : `${salasAbertas.length} disponíveis`}
-            </span>
+                  : loadingSalas
+                    ? "—"
+                    : salasAbertas.length === 1
+                      ? "1 disponível"
+                      : `${salasAbertas.length} disponíveis`}
+              </span>
+            </div>
+
           </div>
 
           {!estaLogado ? (
@@ -574,7 +656,7 @@ export default function Home() {
                 <button
                   key={sala.id}
                   onClick={() => setCodigo(sala.codigo)}
-                  className="group cursor-pointer rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 text-left transition hover:-translate-y-0.5 hover:border-violet-300/35 hover:bg-violet-400/[0.06]"
+                  className="group cursor-pointer rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 text-left transition hover:-translate-y-1 hover:border-fuchsia-300/35 hover:bg-fuchsia-400/[0.06] hover:shadow-lg hover:shadow-fuchsia-950/15"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="truncate text-sm font-bold text-white/85">

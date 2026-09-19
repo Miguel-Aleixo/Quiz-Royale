@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { io, Socket } from "socket.io-client";
@@ -131,6 +131,65 @@ export default function PartidaPage() {
     ranking,
     setRanking,
   ] = useState<RankingJogador[]>([]);
+
+  const [pontuacao, setPontuacao] = useState(0);
+  const [placarPulsando, setPlacarPulsando] = useState(false);
+
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  function tocarSom(
+    tipo: "nova" | "clique" | "acerto" | "erro" | "comemoracao"
+  ) {
+    if (typeof window === "undefined") return;
+
+    try {
+      const AudioContextClass = window.AudioContext;
+      if (!AudioContextClass) return;
+
+      const context =
+        audioContextRef.current ?? new AudioContextClass();
+      audioContextRef.current = context;
+
+      if (context.state === "suspended") {
+        void context.resume();
+      }
+
+      const notas = {
+        nova: [392, 523],
+        clique: [330],
+        acerto: [523, 659, 784],
+        erro: [330, 262],
+        comemoracao: [523, 659, 784, 1047, 1319],
+      }[tipo];
+
+      const agora = context.currentTime;
+      notas.forEach((frequencia, index) => {
+        const inicio = agora + index * (tipo === "comemoracao" ? 0.13 : 0.1);
+        const oscilador = context.createOscillator();
+        const ganho = context.createGain();
+
+        oscilador.type = tipo === "erro"
+          ? "sawtooth"
+          : tipo === "comemoracao"
+            ? "triangle"
+            : "sine";
+        oscilador.frequency.value = frequencia;
+        ganho.gain.setValueAtTime(0.0001, inicio);
+        ganho.gain.exponentialRampToValueAtTime(0.07, inicio + 0.015);
+        ganho.gain.exponentialRampToValueAtTime(
+          0.0001,
+          inicio + (tipo === "comemoracao" ? 0.3 : 0.18)
+        );
+
+        oscilador.connect(ganho);
+        ganho.connect(context.destination);
+        oscilador.start(inicio);
+        oscilador.stop(inicio + (tipo === "comemoracao" ? 0.32 : 0.2));
+      });
+    } catch {
+      // O áudio é um enhancement; a partida continua mesmo se bloqueado.
+    }
+  }
 
   /*
    * =========================================================
@@ -455,6 +514,37 @@ export default function PartidaPage() {
     usuarioId,
   ]);
 
+  useEffect(() => {
+    if (rodadaAtual > 0) {
+      tocarSom("nova");
+    }
+  }, [rodadaAtual]);
+
+  useEffect(() => {
+    if (resultadoResposta === true) {
+      tocarSom("acerto");
+      setPontuacao((valorAtual) => valorAtual + 100);
+      setPlacarPulsando(true);
+
+      const timer = window.setTimeout(
+        () => setPlacarPulsando(false),
+        700
+      );
+
+      return () => window.clearTimeout(timer);
+    }
+
+    if (resultadoResposta === false) {
+      tocarSom("erro");
+    }
+  }, [resultadoResposta]);
+
+  useEffect(() => {
+    if (partidaFinalizada) {
+      tocarSom("comemoracao");
+    }
+  }, [partidaFinalizada]);
+
   /*
    * =========================================================
    * RODADA ATUAL
@@ -628,6 +718,8 @@ export default function PartidaPage() {
      * Seleciona visualmente.
      */
 
+    tocarSom("clique");
+
     setAlternativaSelecionada(
       id
     );
@@ -678,11 +770,14 @@ export default function PartidaPage() {
 
   if (carregando) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-purple-400" />
+      <main className="flex min-h-screen items-center justify-center overflow-hidden bg-[#070711] text-white">
+        <div className="pointer-events-none fixed inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:44px_44px]" />
+        <div className="relative flex flex-col items-center gap-5 rounded-3xl border border-white/10 bg-white/[0.045] px-10 py-9 shadow-2xl shadow-fuchsia-950/20 backdrop-blur-xl">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-fuchsia-300/20 bg-fuchsia-500/10">
+            <Loader2 className="h-7 w-7 animate-spin text-fuchsia-300" />
+          </div>
 
-          <p className="text-sm text-white/50">
+          <p className="text-sm font-medium text-white/50">
             Carregando partida...
           </p>
         </div>
@@ -698,8 +793,9 @@ export default function PartidaPage() {
 
   if (erro) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-white">
-        <div className="w-full max-w-md rounded-3xl border border-red-400/20 bg-red-500/10 p-8 text-center">
+      <main className="flex min-h-screen items-center justify-center overflow-hidden bg-[#070711] px-6 text-white">
+        <div className="pointer-events-none fixed inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:44px_44px]" />
+        <div className="relative w-full max-w-md rounded-[2rem] border border-red-400/20 bg-white/[0.045] p-8 text-center shadow-2xl shadow-red-950/20 backdrop-blur-xl">
           <XCircle className="mx-auto h-12 w-12 text-red-400" />
 
           <h1 className="mt-5 text-xl font-bold">
@@ -714,7 +810,7 @@ export default function PartidaPage() {
             onClick={() =>
               router.back()
             }
-            className="mt-6 rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold transition hover:bg-white/15"
+            className="mt-6 cursor-pointer rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold transition hover:-translate-y-0.5 hover:bg-white/15"
           >
             Voltar
           </button>
@@ -731,15 +827,16 @@ export default function PartidaPage() {
 
   if (partidaFinalizada) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white">
+      <main className="min-h-screen overflow-hidden bg-[#070711] text-white">
         <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-5 py-8 md:px-8">
 
-          <header className="text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-yellow-400/20 bg-yellow-500/10">
+          <header className="relative text-center">
+            <div className="pointer-events-none absolute left-1/2 top-[-180px] h-[360px] w-[560px] -translate-x-1/2 rounded-full bg-yellow-500/10 blur-[120px]" />
+            <div className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-[1.5rem] border border-yellow-300/30 bg-gradient-to-br from-yellow-400/25 to-orange-500/10 shadow-2xl shadow-yellow-950/30">
               <Trophy className="h-8 w-8 text-yellow-300" />
             </div>
 
-            <h1 className="mt-5 text-3xl font-black md:text-4xl">
+            <h1 className="relative mt-5 bg-gradient-to-r from-white via-yellow-100 to-orange-300 bg-clip-text text-3xl font-black text-transparent md:text-5xl">
               Partida finalizada!
             </h1>
 
@@ -749,7 +846,7 @@ export default function PartidaPage() {
           </header>
 
           <section className="mt-10">
-            <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] shadow-2xl">
+            <div className="overflow-hidden rounded-[2rem] border border-white/[0.09] bg-white/[0.045] shadow-2xl shadow-black/30 backdrop-blur-xl">
 
               <div className="border-b border-white/10 px-6 py-5 md:px-8">
                 <div className="flex items-center gap-3">
@@ -853,7 +950,7 @@ export default function PartidaPage() {
               onClick={() =>
                 router.push("/")
               }
-              className="flex items-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:bg-white/15"
+              className="flex cursor-pointer items-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 hover:bg-white/15"
             >
               <ArrowLeft className="h-4 w-4" />
               Voltar
@@ -872,8 +969,9 @@ export default function PartidaPage() {
 
   if (jogadorEliminado) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-white">
-        <div className="w-full max-w-md rounded-[2rem] border border-red-400/20 bg-white/[0.035] p-8 text-center shadow-2xl">
+      <main className="flex min-h-screen items-center justify-center overflow-hidden bg-[#070711] px-6 text-white">
+        <div className="pointer-events-none fixed inset-0 bg-red-500/[0.03]" />
+        <div className="relative w-full max-w-md rounded-[2rem] border border-red-400/20 bg-white/[0.045] p-8 text-center shadow-2xl shadow-red-950/20 backdrop-blur-xl">
 
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10">
             <XCircle className="h-10 w-10 text-red-400" />
@@ -894,7 +992,7 @@ export default function PartidaPage() {
               Resultado
             </p>
 
-            <p className="mt-2 text-lg font-black text-purple-300">
+            <p className="mt-2 text-lg font-black text-fuchsia-300">
               Aguardando resultado final
             </p>
           </div>
@@ -903,7 +1001,7 @@ export default function PartidaPage() {
             onClick={() =>
               router.push("/")
             }
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:bg-white/15"
+            className="mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 hover:bg-white/15"
           >
             <ArrowLeft className="h-4 w-4" />
             Voltar para o início
@@ -921,9 +1019,9 @@ export default function PartidaPage() {
 
   if (!sala || !rodada) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-white">
+      <main className="flex min-h-screen items-center justify-center bg-[#070711] px-6 text-white">
         <div className="text-center">
-          <Gamepad2 className="mx-auto h-12 w-12 text-purple-400" />
+          <Gamepad2 className="mx-auto h-12 w-12 text-fuchsia-300" />
 
           <h1 className="mt-5 text-2xl font-bold">
             Nenhuma pergunta disponível
@@ -958,13 +1056,17 @@ export default function PartidaPage() {
    */
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-5 py-6 md:px-8">
+    <main className="min-h-screen overflow-hidden bg-[#070711] text-white">
+      <div className="pointer-events-none fixed inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:44px_44px]" />
+      <div className="pointer-events-none fixed left-1/2 top-[-220px] h-[440px] w-[760px] -translate-x-1/2 rounded-full bg-fuchsia-600/10 blur-[140px]" />
+      <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-5 py-6 md:px-8">
 
-        <header className="flex items-center justify-between">
+        <header className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.035] px-4 py-3 backdrop-blur-xl md:px-5">
           <div>
             <div className="flex items-center gap-2">
-              <Gamepad2 className="h-6 w-6 text-purple-400" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-fuchsia-500/10 ring-1 ring-fuchsia-300/20">
+                <Gamepad2 className="h-5 w-5 text-fuchsia-300" />
+              </div>
 
               <h1 className="text-lg font-black">
                 Quiz Royale
@@ -977,22 +1079,46 @@ export default function PartidaPage() {
             </p>
           </div>
 
-          <div
-            className={`flex items-center gap-2 rounded-2xl border px-4 py-3 ${
-              tempoRestante <= 5
-                ? "border-red-400/30 bg-red-500/10 text-red-300"
-                : "border-white/10 bg-white/5 text-white"
-            }`}
-          >
-            <Clock3 className="h-5 w-5" />
+          <div className="flex items-center gap-2">
+            <div
+              key={pontuacao}
+              className={`relative flex items-center gap-2 rounded-2xl border border-amber-300/20 bg-amber-400/10 px-3 py-2.5 text-amber-200 shadow-lg shadow-amber-950/20 transition-transform ${
+                placarPulsando
+                  ? "animate-[score-pop_700ms_cubic-bezier(.22,1,.36,1)]"
+                  : ""
+              }`}
+            >
+              <Trophy className="h-4 w-4" />
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-200/60">
+                Pontos
+              </span>
+              <span className="min-w-[42px] text-right text-lg font-black tabular-nums">
+                {pontuacao}
+              </span>
+              {placarPulsando && (
+                <span className="absolute -top-5 right-2 animate-[score-float_900ms_ease-out_both] text-xs font-black text-amber-200">
+                  +100
+                </span>
+              )}
+            </div>
 
-            <span className="min-w-[32px] text-center text-lg font-black tabular-nums">
-              {tempoRestante}s
-            </span>
+            <div
+              className={`flex items-center gap-2 rounded-2xl border px-4 py-2.5 shadow-lg backdrop-blur-xl ${
+                tempoRestante <= 5
+                  ? "border-red-400/30 bg-red-500/10 text-red-300"
+                  : "border-white/10 bg-white/5 text-white"
+              }`}
+            >
+              <Clock3 className="h-5 w-5" />
+
+              <span className="min-w-[32px] text-center text-lg font-black tabular-nums">
+                {tempoRestante}s
+              </span>
+            </div>
           </div>
         </header>
 
-        <div className="mt-8">
+        <div className="mt-8 rounded-2xl border border-white/[0.06] bg-black/10 p-4">
           <div className="mb-2 flex items-center justify-between text-xs">
             <span className="font-semibold text-white/50">
               Rodada{" "}
@@ -1008,9 +1134,9 @@ export default function PartidaPage() {
             </span>
           </div>
 
-          <div className="h-2 overflow-hidden rounded-full bg-white/10">
+          <div className="h-2 overflow-hidden rounded-full bg-white/10 shadow-inner shadow-black/40">
             <div
-              className="h-full rounded-full bg-purple-500 transition-all duration-300"
+              className="h-full rounded-full bg-gradient-to-r from-fuchsia-400 to-violet-500 shadow-[0_0_14px_rgba(217,70,239,.65)] transition-all duration-300"
               style={{
                 width: `${progresso}%`,
               }}
@@ -1018,22 +1144,45 @@ export default function PartidaPage() {
           </div>
         </div>
 
-        <section className="mt-10">
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-7 shadow-2xl md:p-10">
+        <section key={rodada.id} className="mt-10 animate-[quiz-question-in_550ms_cubic-bezier(.22,1,.36,1)]">
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/[0.09] bg-white/[0.055] p-7 shadow-2xl shadow-black/30 backdrop-blur-xl md:p-10">
+            <div className="pointer-events-none absolute right-[-100px] top-[-100px] h-64 w-64 rounded-full bg-fuchsia-500/10 blur-[90px]" />
 
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-purple-400">
+            {resultadoResposta === true && (
+              <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+                {Array.from({ length: 24 }, (_, index) => (
+                  <span
+                    key={index}
+                    className="absolute top-[42%] h-2 w-1.5 animate-[confetti-fall_1200ms_ease-out_both] rounded-sm"
+                    style={{
+                      left: `${6 + ((index * 37) % 88)}%`,
+                      animationDelay: `${(index % 8) * 45}ms`,
+                      backgroundColor: [
+                        "#f0abfc",
+                        "#c4b5fd",
+                        "#fde68a",
+                        "#86efac",
+                        "#67e8f9",
+                      ][index % 5],
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            <span className="inline-flex rounded-full border border-fuchsia-300/20 bg-fuchsia-500/10 px-3 py-1 text-xs font-black uppercase tracking-[0.2em] text-fuchsia-300">
               Pergunta{" "}
               {rodadaAtual + 1}
             </span>
 
-            <h2 className="mt-5 text-2xl font-black leading-tight md:text-4xl">
+            <h2 className="relative mt-5 max-w-4xl text-2xl font-black leading-tight tracking-tight md:text-4xl">
               {
                 rodada.pergunta
                   .enunciado
               }
             </h2>
 
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <div className="relative mt-8 grid gap-4 md:grid-cols-2">
               {rodada.pergunta.alternativas.map(
                 (
                   alternativa,
@@ -1062,10 +1211,11 @@ export default function PartidaPage() {
                       disabled={
                         desabilitada
                       }
-                      className={`group flex min-h-[90px] items-center gap-4 rounded-2xl border p-5 text-left transition-all duration-200 ${
+                      style={{ animationDelay: `${index * 70}ms` }}
+                      className={`group flex min-h-[90px] animate-[quiz-option-in_450ms_ease-out_both] items-center gap-4 rounded-2xl border p-5 text-left transition-all duration-200 ${
                         selecionada
-                          ? "border-purple-400 bg-purple-500/15 shadow-lg shadow-purple-500/10"
-                          : "border-white/10 bg-white/[0.025] hover:border-purple-400/40 hover:bg-white/[0.06]"
+                          ? "border-fuchsia-400 bg-fuchsia-500/15 shadow-lg shadow-fuchsia-500/10"
+                          : "border-white/10 bg-white/[0.025] hover:-translate-y-0.5 hover:border-fuchsia-400/40 hover:bg-white/[0.06]"
                       } ${
                         desabilitada
                           ? "cursor-not-allowed opacity-50"
@@ -1076,8 +1226,8 @@ export default function PartidaPage() {
                       <span
                         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-black ${
                           selecionada
-                            ? "bg-purple-500 text-white"
-                            : "bg-white/10 text-white/60 group-hover:bg-purple-500/20 group-hover:text-purple-300"
+                            ? "bg-gradient-to-br from-fuchsia-400 to-violet-500 text-white shadow-lg shadow-fuchsia-950/30"
+                            : "bg-white/10 text-white/60 group-hover:bg-fuchsia-500/20 group-hover:text-fuchsia-300"
                         }`}
                       >
                         {String.fromCharCode(
@@ -1093,7 +1243,7 @@ export default function PartidaPage() {
                       </span>
 
                       {selecionada && (
-                        <CheckCircle2 className="h-5 w-5 shrink-0 text-purple-400" />
+                        <CheckCircle2 className="h-5 w-5 shrink-0 text-fuchsia-300" />
                       )}
                     </button>
                   );
@@ -1101,7 +1251,7 @@ export default function PartidaPage() {
               )}
             </div>
 
-            <div className="mt-7 flex justify-center">
+            <div className="mt-8 flex min-h-9 justify-center">
 
               {tempoRestante ===
               0 ? (
@@ -1122,7 +1272,7 @@ export default function PartidaPage() {
                 </span>
               ) : alternativaSelecionada !==
                 null ? (
-                <span className="rounded-xl border border-purple-400/20 bg-purple-500/10 px-4 py-2 text-xs font-bold text-purple-300">
+                <span className="rounded-xl border border-fuchsia-400/20 bg-fuchsia-500/10 px-4 py-2 text-xs font-bold text-fuchsia-300">
                   Resposta enviada
                 </span>
               ) : (
@@ -1133,6 +1283,61 @@ export default function PartidaPage() {
             </div>
           </div>
         </section>
+
+        <style jsx global>{`
+          @keyframes quiz-question-in {
+            from {
+              opacity: 0;
+              transform: translateY(18px) scale(0.985);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
+          }
+
+          @keyframes quiz-option-in {
+            from {
+              opacity: 0;
+              transform: translateY(10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          @keyframes score-pop {
+            0% { transform: scale(1); }
+            35% { transform: scale(1.14) rotate(-2deg); }
+            70% { transform: scale(0.97) rotate(1deg); }
+            100% { transform: scale(1); }
+          }
+
+          @keyframes score-float {
+            from {
+              opacity: 0;
+              transform: translateY(8px) scale(0.8);
+            }
+            25% { opacity: 1; }
+            to {
+              opacity: 0;
+              transform: translateY(-18px) scale(1.1);
+            }
+          }
+
+          @keyframes confetti-fall {
+            0% {
+              opacity: 0;
+              transform: translateY(-18px) rotate(0deg) scale(0.7);
+            }
+            15% { opacity: 1; }
+            100% {
+              opacity: 0;
+              transform: translateY(220px) rotate(520deg) scale(1);
+            }
+          }
+        `}</style>
       </div>
     </main>
   );

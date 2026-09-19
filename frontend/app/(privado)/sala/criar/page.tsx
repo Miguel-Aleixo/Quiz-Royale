@@ -493,30 +493,31 @@ export default function CriarSalaPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#080812] text-white">
+    <main className="min-h-screen overflow-hidden bg-[#070711] text-white selection:bg-fuchsia-400/30">
       {/* FUNDO */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute left-1/2 top-[-250px] h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-violet-600/10 blur-[140px]" />
-        <div className="absolute bottom-[-250px] right-[-100px] h-[500px] w-[500px] rounded-full bg-indigo-600/10 blur-[140px]" />
+        <div className="absolute left-1/2 top-[-280px] h-[560px] w-[760px] -translate-x-1/2 rounded-full bg-fuchsia-600/15 blur-[150px]" />
+        <div className="absolute bottom-[-280px] right-[-100px] h-[560px] w-[560px] rounded-full bg-cyan-600/10 blur-[150px]" />
+        <div className="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:44px_44px]" />
       </div>
 
-      <div className="relative mx-auto w-full max-w-6xl px-5 py-8">
+      <div className="relative mx-auto w-full max-w-6xl px-5 py-6 sm:py-8">
         {/* HEADER */}
         <div className="mb-10 flex items-center justify-between">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-sm font-medium text-white/50 transition hover:text-white"
+            className="group flex cursor-pointer items-center gap-2 text-sm font-semibold text-white/45 transition hover:text-white"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={18} className="transition-transform group-hover:-translate-x-1" />
             Voltar
           </button>
 
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-violet-400/20 bg-violet-500/10">
-              <Gamepad2 size={18} className="text-violet-300" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-fuchsia-300/30 bg-gradient-to-br from-fuchsia-500/25 to-violet-500/10 shadow-lg shadow-fuchsia-950/30">
+              <Gamepad2 size={19} className="text-fuchsia-200" />
             </div>
 
-            <span className="font-bold tracking-tight">
+            <span className="font-black tracking-tight">
               Criar Sala
             </span>
           </div>
@@ -524,26 +525,27 @@ export default function CriarSalaPage() {
 
         {/* TÍTULO */}
         <div className="mb-8">
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.25em] text-violet-400">
-            Nova partida
+            <p className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] text-fuchsia-300">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-fuchsia-300 shadow-[0_0_12px_rgba(232,121,249,.9)]" />
+            Nova missão
           </p>
 
-          <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
-            Monte sua batalha
+          <h1 className="bg-gradient-to-r from-white via-fuchsia-100 to-violet-300 bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-5xl">
+            Monte sua batalha<span className="text-fuchsia-300">.</span>
           </h1>
 
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/45">
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-white/45">
             Configure a sala, adicione as perguntas e defina as
             alternativas que os jogadores deverão responder.
           </p>
         </div>
 
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
           {/* CONFIGURAÇÃO DA SALA */}
-          <section className="rounded-3xl border border-white/10 bg-[#10101d]/80 p-6 shadow-2xl shadow-black/20 backdrop-blur-xl">
+          <section className="group rounded-3xl border border-white/[0.09] bg-white/[0.045] p-5 shadow-2xl shadow-black/30 backdrop-blur-xl transition hover:border-fuchsia-400/20">
             <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10">
-                <Gamepad2 size={19} className="text-violet-300" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-500/10 ring-1 ring-fuchsia-300/15">
+                <Gamepad2 size={19} className="text-fuchsia-300" />
               </div>
 
               <div>
@@ -568,7 +570,7 @@ export default function CriarSalaPage() {
                   value={nomeSala}
                   onChange={(e) => setNomeSala(e.target.value)}
                   placeholder="Ex: Desafio de JavaScript"
-                  className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 text-sm outline-none transition placeholder:text-white/20 focus:border-violet-400/40 focus:bg-white/[0.05]"
+                  className="h-12 w-full rounded-xl border border-white/10 bg-black/20 px-4 text-sm outline-none transition placeholder:text-white/20 focus:border-fuchsia-400/50 focus:bg-fuchsia-400/[0.04] focus:ring-4 focus:ring-fuchsia-400/5"
                 />
               </div>
 
@@ -589,7 +591,7 @@ export default function CriarSalaPage() {
                     onChange={(e) =>
                       setMaxJogadores(Number(e.target.value))
                     }
-                    className="h-12 w-full appearance-none rounded-xl border border-white/10 bg-white/[0.03] pl-11 pr-10 text-sm outline-none transition focus:border-violet-400/40"
+                    className="h-12 w-full appearance-none rounded-xl border border-white/10 bg-black/20 pl-11 pr-10 text-sm outline-none transition focus:border-fuchsia-400/50 focus:ring-4 focus:ring-fuchsia-400/5"
                   >
                     {[2, 5, 10, 15, 20, 30, 40, 50].map(
                       (quantidade) => (
@@ -614,10 +616,10 @@ export default function CriarSalaPage() {
           </section>
 
           {/* PERGUNTAS */}
-          <section className="rounded-3xl border border-white/10 bg-[#10101d]/80 p-6 shadow-2xl shadow-black/20 backdrop-blur-xl">
+          <section className="rounded-3xl border border-white/[0.09] bg-white/[0.045] p-6 shadow-2xl shadow-black/30 backdrop-blur-xl transition hover:border-violet-400/20">
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10 ring-1 ring-violet-300/15">
                   <Gamepad2
                     size={19}
                     className="text-indigo-300"
@@ -644,7 +646,7 @@ export default function CriarSalaPage() {
                 disabled={
                   loadingTemas || temas.length === 0
                 }
-                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 text-xs font-bold text-violet-200 transition hover:border-violet-400/40 hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-fuchsia-400/25 bg-fuchsia-500/10 px-4 text-xs font-bold text-fuchsia-100 transition hover:-translate-y-0.5 hover:border-fuchsia-300/50 hover:bg-fuchsia-500/20 hover:shadow-lg hover:shadow-fuchsia-950/30 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Plus size={16} />
                 Adicionar pergunta
@@ -653,7 +655,7 @@ export default function CriarSalaPage() {
 
             {/* SEM PERGUNTAS */}
             {perguntas.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center">
+                <div className="rounded-2xl border border-dashed border-fuchsia-300/15 bg-gradient-to-br from-fuchsia-500/[0.05] to-transparent px-6 py-14 text-center">
                 <Gamepad2
                   size={30}
                   className="mx-auto mb-4 text-white/20"
@@ -675,12 +677,12 @@ export default function CriarSalaPage() {
                 (pergunta, perguntaIndex) => (
                   <div
                     key={perguntaIndex}
-                    className="rounded-2xl border border-white/10 bg-black/10 p-5"
+                    className="rounded-2xl border border-white/10 bg-black/20 p-5 shadow-inner shadow-white/[0.02] transition hover:border-violet-400/20"
                   >
                     {/* CABEÇALHO */}
                     <div className="mb-5 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10 text-xs font-black text-violet-300">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-500/25 to-violet-500/10 text-xs font-black text-fuchsia-200 ring-1 ring-fuchsia-300/20">
                           {perguntaIndex + 1}
                         </div>
 
@@ -700,7 +702,7 @@ export default function CriarSalaPage() {
                         onClick={() =>
                           removerPergunta(perguntaIndex)
                         }
-                        className="flex h-9 w-9 items-center justify-center rounded-xl text-white/30 transition hover:bg-red-500/10 hover:text-red-300"
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-white/30 transition hover:bg-red-500/10 hover:text-red-300"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -724,7 +726,7 @@ export default function CriarSalaPage() {
                           }
                           placeholder="Digite a pergunta..."
                           rows={3}
-                          className="w-full resize-none rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm outline-none transition placeholder:text-white/20 focus:border-violet-400/40"
+                          className="w-full resize-none rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none transition placeholder:text-white/20 focus:border-fuchsia-400/50 focus:ring-4 focus:ring-fuchsia-400/5"
                         />
                       </div>
 
@@ -745,7 +747,7 @@ export default function CriarSalaPage() {
                                   Number(e.target.value)
                                 )
                               }
-                              className="h-11 w-full appearance-none rounded-xl border border-white/10 bg-white/[0.03] px-4 pr-10 text-sm outline-none transition focus:border-violet-400/40"
+                              className="h-11 w-full appearance-none rounded-xl border border-white/10 bg-black/20 px-4 pr-10 text-sm outline-none transition focus:border-fuchsia-400/50"
                             >
                               <option
                                 value={0}
@@ -792,7 +794,7 @@ export default function CriarSalaPage() {
                                   Number(e.target.value)
                                 )
                               }
-                              className="h-11 w-full appearance-none rounded-xl border border-white/10 bg-white/[0.03] pl-11 pr-10 text-sm outline-none transition focus:border-violet-400/40"
+                              className="h-11 w-full appearance-none rounded-xl border border-white/10 bg-black/20 pl-11 pr-10 text-sm outline-none transition focus:border-fuchsia-400/50"
                             >
                               {[10, 15, 20, 30, 45, 60, 90].map(
                                 (tempo) => (
@@ -837,7 +839,7 @@ export default function CriarSalaPage() {
                                 key={alternativaIndex}
                                 className={`flex items-center gap-3 rounded-xl border p-2 transition ${
                                   alternativa.correta
-                                    ? "border-emerald-400/30 bg-emerald-500/[0.06]"
+                                  ? "border-emerald-400/40 bg-emerald-500/[0.08] shadow-lg shadow-emerald-950/10"
                                     : "border-white/10 bg-white/[0.02]"
                                 }`}
                               >
@@ -849,7 +851,7 @@ export default function CriarSalaPage() {
                                       alternativaIndex
                                     )
                                   }
-                                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs font-black transition ${
+                                  className={`flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border text-xs font-black transition ${
                                     alternativa.correta
                                       ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-300"
                                       : "border-white/10 bg-white/[0.03] text-white/30 hover:border-violet-400/30 hover:text-violet-300"
@@ -889,9 +891,7 @@ export default function CriarSalaPage() {
               )}
             </div>
           </section>
-
-          {/* RESUMO */}
-          <section className="rounded-3xl border border-white/10 bg-[#10101d]/80 p-6 shadow-2xl shadow-black/20 backdrop-blur-xl">
+          <section className="rounded-3xl border border-white/[0.09] bg-white/[0.045] p-5 shadow-2xl shadow-black/30 backdrop-blur-xl">
             <div className="mb-5">
               <h2 className="font-bold">
                 Resumo da sala
@@ -935,13 +935,15 @@ export default function CriarSalaPage() {
             </div>
           </section>
 
+          {/* RESUMO */}
+
           {/* BOTÃO */}
-          <div className="flex justify-end pb-10">
+          <div className="flex justify-end border-t border-white/[0.06] pt-6 pb-10">
             <button
               type="button"
               onClick={criarSala}
               disabled={criandoSala}
-              className="flex h-13 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-7 text-sm font-black shadow-xl shadow-violet-950/30 transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-13 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-violet-600 px-7 text-sm font-black shadow-xl shadow-fuchsia-950/40 transition hover:-translate-y-1 hover:shadow-2xl hover:shadow-fuchsia-950/50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
               {criandoSala ? (
                 <>
