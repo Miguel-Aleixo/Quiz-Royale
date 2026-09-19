@@ -60,6 +60,13 @@ interface ErroSocket {
   mensagem: string;
 }
 
+interface JogadorEliminado {
+  jogadorId: number;
+  usuarioId: number;
+  codigo: string;
+  mensagem: string;
+}
+
 interface RankingJogador {
   posicao: number;
   jogadorId: number;
@@ -108,6 +115,11 @@ export default function PartidaPage() {
     resultadoResposta,
     setResultadoResposta,
   ] = useState<boolean | null>(null);
+
+  const [
+    jogadorEliminado,
+    setJogadorEliminado,
+  ] = useState(false);
 
   const [
     partidaFinalizada,
@@ -213,13 +225,6 @@ export default function PartidaPage() {
       return;
     }
 
-    /*
-     * O JWT é enviado no handshake.
-     *
-     * O backend usa esse token para
-     * descobrir o Usuario.id.
-     */
-
     const socketInstance = io(API, {
       auth: {
         token,
@@ -241,12 +246,6 @@ export default function PartidaPage() {
           "Conectado ao PartidaGateway:",
           socketInstance.id
         );
-
-        /*
-         * Entrar na partida.
-         *
-         * Não enviamos jogadorId.
-         */
 
         socketInstance.emit(
           "entrar_partida",
@@ -272,24 +271,22 @@ export default function PartidaPage() {
         );
 
         /*
-         * Atualiza a rodada.
+         * Se por algum motivo o usuário
+         * estiver eliminado, não continua
+         * processando perguntas.
          */
+
+        if (jogadorEliminado) {
+          return;
+        }
 
         setRodadaAtual(
           data.numeroRodada - 1
         );
 
-        /*
-         * Reinicia o cronômetro.
-         */
-
         setTempoRestante(
           data.rodada.tempoLimite
         );
-
-        /*
-         * Limpa a resposta anterior.
-         */
 
         setAlternativaSelecionada(
           null
@@ -323,6 +320,44 @@ export default function PartidaPage() {
 
     /*
      * =======================================================
+     * JOGADOR ELIMINADO
+     * =======================================================
+     */
+
+    socketInstance.on(
+      "jogador_eliminado",
+      (data: JogadorEliminado) => {
+        console.log(
+          "Jogador eliminado:",
+          data
+        );
+
+        /*
+         * Verifica se o jogador eliminado
+         * é o próprio usuário.
+         */
+
+        if (
+          Number(usuario?.sub) ===
+          Number(data.usuarioId)
+        ) {
+          setJogadorEliminado(true);
+
+          setAlternativaSelecionada(
+            null
+          );
+
+          setResultadoResposta(
+            false
+          );
+
+          setTempoRestante(0);
+        }
+      }
+    );
+
+    /*
+     * =======================================================
      * PARTIDA FINALIZADA
      * =======================================================
      */
@@ -336,7 +371,8 @@ export default function PartidaPage() {
         );
 
         /*
-         * Mostra a tela de ranking.
+         * Recebe o ranking calculado
+         * pelo backend.
          */
 
         setRanking(
@@ -420,7 +456,13 @@ export default function PartidaPage() {
     return () => {
       socketInstance.disconnect();
     };
-  }, [codigo, API, router]);
+  }, [
+    codigo,
+    API,
+    router,
+    usuario,
+    jogadorEliminado,
+  ]);
 
   /*
    * =========================================================
@@ -457,6 +499,15 @@ export default function PartidaPage() {
    */
 
   useEffect(() => {
+    /*
+     * Jogador eliminado não possui
+     * mais cronômetro.
+     */
+
+    if (jogadorEliminado) {
+      return;
+    }
+
     /*
      * Se a partida acabou,
      * não inicia cronômetro.
@@ -507,6 +558,7 @@ export default function PartidaPage() {
   }, [
     rodada,
     partidaFinalizada,
+    jogadorEliminado,
   ]);
 
   /*
@@ -518,6 +570,15 @@ export default function PartidaPage() {
   function selecionarAlternativa(
     id: number
   ) {
+    /*
+     * Jogador eliminado não pode
+     * responder novamente.
+     */
+
+    if (jogadorEliminado) {
+      return;
+    }
+
     /*
      * Não permite responder
      * depois do tempo.
@@ -549,7 +610,6 @@ export default function PartidaPage() {
 
     /*
      * Precisa estar conectado.
-
      */
 
     if (!socket) {
@@ -582,13 +642,6 @@ export default function PartidaPage() {
 
     /*
      * Calcula o tempo utilizado.
-
-     * Exemplo:
-     *
-     * tempo limite = 30
-     * tempo restante = 24
-     *
-     * tempoResposta = 6
      */
 
     const tempoResposta =
@@ -598,12 +651,10 @@ export default function PartidaPage() {
     /*
      * Envia a resposta.
      *
-     * IMPORTANTE:
-     *
      * NÃO enviamos jogadorId.
      *
-     * O backend pega o Usuario pelo
-     * JWT e encontra o Jogador.
+     * O backend identifica o usuário
+     * através do JWT.
      */
 
     socket.emit(
@@ -733,7 +784,9 @@ export default function PartidaPage() {
                       Number(
                         usuario?.sub
                       ) ===
-                      jogador.usuarioId;
+                      Number(
+                        jogador.usuarioId
+                      );
 
                     return (
                       <div
@@ -822,7 +875,7 @@ export default function PartidaPage() {
           <div className="mt-8 flex justify-center">
             <button
               onClick={() =>
-                router.push('/')
+                router.push("/")
               }
               className="flex items-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:bg-white/15"
             >
@@ -830,6 +883,55 @@ export default function PartidaPage() {
               Voltar
             </button>
           </div>
+        </div>
+      </main>
+    );
+  }
+
+  /*
+   * =========================================================
+   * JOGADOR ELIMINADO
+   * =========================================================
+   */
+
+  if (jogadorEliminado) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-white">
+        <div className="w-full max-w-md rounded-[2rem] border border-red-400/20 bg-white/[0.035] p-8 text-center shadow-2xl">
+
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10">
+            <XCircle className="h-10 w-10 text-red-400" />
+          </div>
+
+          <h1 className="mt-6 text-3xl font-black">
+            Você foi eliminado!
+          </h1>
+
+          <p className="mt-3 text-sm leading-relaxed text-white/40">
+            Sua resposta estava incorreta.
+            Aguarde o fim da partida para
+            conferir sua posição final.
+          </p>
+
+          <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.025] px-5 py-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-white/30">
+              Resultado
+            </p>
+
+            <p className="mt-2 text-lg font-black text-purple-300">
+              Aguardando resultado final
+            </p>
+          </div>
+
+          <button
+            onClick={() =>
+              router.push("/")
+            }
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:bg-white/15"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar para o início
+          </button>
         </div>
       </main>
     );
@@ -979,6 +1081,12 @@ export default function PartidaPage() {
                     alternativaSelecionada ===
                     alternativa.id;
 
+                  const desabilitada =
+                    jogadorEliminado ||
+                    tempoRestante <= 0 ||
+                    alternativaSelecionada !==
+                      null;
+
                   return (
                     <button
                       key={
@@ -990,20 +1098,14 @@ export default function PartidaPage() {
                         )
                       }
                       disabled={
-                        tempoRestante <=
-                          0 ||
-                        alternativaSelecionada !==
-                          null
+                        desabilitada
                       }
                       className={`group flex min-h-[90px] items-center gap-4 rounded-2xl border p-5 text-left transition-all duration-200 ${
                         selecionada
                           ? "border-purple-400 bg-purple-500/15 shadow-lg shadow-purple-500/10"
                           : "border-white/10 bg-white/[0.025] hover:border-purple-400/40 hover:bg-white/[0.06]"
                       } ${
-                        tempoRestante <=
-                          0 ||
-                        alternativaSelecionada !==
-                          null
+                        desabilitada
                           ? "cursor-not-allowed opacity-50"
                           : "cursor-pointer"
                       }`}
