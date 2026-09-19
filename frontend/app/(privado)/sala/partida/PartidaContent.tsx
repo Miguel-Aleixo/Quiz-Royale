@@ -89,6 +89,7 @@ export default function PartidaPage() {
   const API = process.env.NEXT_PUBLIC_API;
 
   const usuario = useToken();
+  const usuarioId = usuario?.sub;
 
   const [sala, setSala] = useState<Sala | null>(null);
 
@@ -153,7 +154,6 @@ export default function PartidaPage() {
 
       if (!token) {
         router.push("/login");
-
         return;
       }
 
@@ -221,7 +221,6 @@ export default function PartidaPage() {
 
     if (!token) {
       router.push("/login");
-
       return;
     }
 
@@ -229,6 +228,12 @@ export default function PartidaPage() {
       auth: {
         token,
       },
+
+      /*
+       * Evita o transporte inicial por polling.
+       * A conexão será feita diretamente por WebSocket.
+       */
+      transports: ["websocket"],
     });
 
     setSocket(socketInstance);
@@ -269,16 +274,6 @@ export default function PartidaPage() {
           "Pergunta recebida:",
           data
         );
-
-        /*
-         * Se por algum motivo o usuário
-         * estiver eliminado, não continua
-         * processando perguntas.
-         */
-
-        if (jogadorEliminado) {
-          return;
-        }
 
         setRodadaAtual(
           data.numeroRodada - 1
@@ -338,7 +333,7 @@ export default function PartidaPage() {
          */
 
         if (
-          Number(usuario?.sub) ===
+          Number(usuarioId) ===
           Number(data.usuarioId)
         ) {
           setJogadorEliminado(true);
@@ -370,11 +365,6 @@ export default function PartidaPage() {
           data
         );
 
-        /*
-         * Recebe o ranking calculado
-         * pelo backend.
-         */
-
         setRanking(
           data.ranking
         );
@@ -382,10 +372,6 @@ export default function PartidaPage() {
         setPartidaFinalizada(
           true
         );
-
-        /*
-         * Para o cronômetro.
-         */
 
         setTempoRestante(0);
       }
@@ -454,14 +440,19 @@ export default function PartidaPage() {
      */
 
     return () => {
+      console.log(
+        "Encerrando conexão do PartidaGateway"
+      );
+
+      socketInstance.removeAllListeners();
+
       socketInstance.disconnect();
     };
   }, [
     codigo,
     API,
     router,
-    usuario,
-    jogadorEliminado,
+    usuarioId,
   ]);
 
   /*
@@ -622,9 +613,10 @@ export default function PartidaPage() {
 
     /*
      * Precisa ter usuário logado.
-     */
 
-    if (!usuario?.sub) {
+    */
+
+    if (!usuarioId) {
       setErro(
         "Usuário não identificado."
       );
@@ -742,8 +734,6 @@ export default function PartidaPage() {
       <main className="min-h-screen bg-slate-950 text-white">
         <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-5 py-8 md:px-8">
 
-          {/* HEADER */}
-
           <header className="text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-yellow-400/20 bg-yellow-500/10">
               <Trophy className="h-8 w-8 text-yellow-300" />
@@ -758,12 +748,8 @@ export default function PartidaPage() {
             </p>
           </header>
 
-          {/* RANKING */}
-
           <section className="mt-10">
             <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035] shadow-2xl">
-
-              {/* TÍTULO */}
 
               <div className="border-b border-white/10 px-6 py-5 md:px-8">
                 <div className="flex items-center gap-3">
@@ -775,14 +761,12 @@ export default function PartidaPage() {
                 </div>
               </div>
 
-              {/* JOGADORES */}
-
               <div className="divide-y divide-white/5">
                 {ranking.map(
                   (jogador) => {
                     const souEu =
                       Number(
-                        usuario?.sub
+                        usuarioId
                       ) ===
                       Number(
                         jogador.usuarioId
@@ -800,8 +784,6 @@ export default function PartidaPage() {
                         }`}
                       >
 
-                        {/* POSIÇÃO */}
-
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10">
                           {jogador.posicao ===
                           1 ? (
@@ -817,8 +799,6 @@ export default function PartidaPage() {
                             </span>
                           )}
                         </div>
-
-                        {/* NOME */}
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
@@ -839,8 +819,6 @@ export default function PartidaPage() {
                             {jogador.posicao}º lugar
                           </p>
                         </div>
-
-                        {/* PONTUAÇÃO */}
 
                         <div className="text-right">
                           <p className="text-lg font-black">
@@ -869,8 +847,6 @@ export default function PartidaPage() {
               </div>
             </div>
           </section>
-
-          {/* VOLTAR */}
 
           <div className="mt-8 flex justify-center">
             <button
@@ -985,8 +961,6 @@ export default function PartidaPage() {
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-5 py-6 md:px-8">
 
-        {/* HEADER */}
-
         <header className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -1003,8 +977,6 @@ export default function PartidaPage() {
             </p>
           </div>
 
-          {/* CRONÔMETRO */}
-
           <div
             className={`flex items-center gap-2 rounded-2xl border px-4 py-3 ${
               tempoRestante <= 5
@@ -1019,8 +991,6 @@ export default function PartidaPage() {
             </span>
           </div>
         </header>
-
-        {/* PROGRESSO */}
 
         <div className="mt-8">
           <div className="mb-2 flex items-center justify-between text-xs">
@@ -1048,19 +1018,13 @@ export default function PartidaPage() {
           </div>
         </div>
 
-        {/* PERGUNTA */}
-
         <section className="mt-10">
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-7 shadow-2xl md:p-10">
-
-            {/* IDENTIFICAÇÃO */}
 
             <span className="text-xs font-bold uppercase tracking-[0.2em] text-purple-400">
               Pergunta{" "}
               {rodadaAtual + 1}
             </span>
-
-            {/* ENUNCIADO */}
 
             <h2 className="mt-5 text-2xl font-black leading-tight md:text-4xl">
               {
@@ -1068,8 +1032,6 @@ export default function PartidaPage() {
                   .enunciado
               }
             </h2>
-
-            {/* ALTERNATIVAS */}
 
             <div className="mt-8 grid gap-4 md:grid-cols-2">
               {rodada.pergunta.alternativas.map(
@@ -1111,8 +1073,6 @@ export default function PartidaPage() {
                       }`}
                     >
 
-                      {/* LETRA */}
-
                       <span
                         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-black ${
                           selecionada
@@ -1126,15 +1086,11 @@ export default function PartidaPage() {
                         )}
                       </span>
 
-                      {/* TEXTO */}
-
                       <span className="flex-1 font-semibold text-white/90">
                         {
                           alternativa.texto
                         }
                       </span>
-
-                      {/* ÍCONE */}
 
                       {selecionada && (
                         <CheckCircle2 className="h-5 w-5 shrink-0 text-purple-400" />
@@ -1145,11 +1101,7 @@ export default function PartidaPage() {
               )}
             </div>
 
-            {/* RESULTADO */}
-
             <div className="mt-7 flex justify-center">
-
-              {/* TEMPO ESGOTADO */}
 
               {tempoRestante ===
               0 ? (
