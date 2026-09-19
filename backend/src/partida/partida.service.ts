@@ -118,7 +118,7 @@ export class PartidaService {
             id: sala.id,
           },
           data: {
-            status: 'EM_ANDAMENTO',
+            status: 'ANDAMENTO',
           },
         });
 
@@ -133,7 +133,7 @@ export class PartidaService {
         id: sala.id,
         nome: sala.nome,
         codigo: sala.codigo,
-        status: 'EM_ANDAMENTO',
+        status: 'ANDAMENTO',
       },
       quantidadeRodadas: rodadas.length,
       rodadas,
