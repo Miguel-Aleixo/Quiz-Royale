@@ -16,6 +16,7 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
+import { useToken } from "@/app/hooks/usuario/useToken";
 
 interface Usuario {
   id: number;
@@ -51,10 +52,13 @@ function SalaContent() {
 
   const codigo = searchParams.get("codigo")?.toUpperCase() || "";
 
+  const usuario = useToken();
+
   const [sala, setSala] = useState<Sala | null>(null);
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(true);
   const [saindo, setSaindo] = useState(false);
+  const [iniciando, setIniciando] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const [conectado, setConectado] = useState(false);
 
@@ -99,7 +103,7 @@ function SalaContent() {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          }
+          },
         );
 
         const data = await res.json();
@@ -108,7 +112,7 @@ function SalaContent() {
           throw new Error(
             Array.isArray(data.message)
               ? data.message.join(", ")
-              : data.message || "Sala não encontrada"
+              : data.message || "Sala não encontrada",
           );
         }
 
@@ -140,10 +144,13 @@ function SalaContent() {
         /*
          * Recebe atualização da sala.
          */
-        socket.on("sala_atualizada", (salaAtualizada: Sala) => {
-          setSala(salaAtualizada);
-          setErro("");
-        });
+        socket.on(
+          "sala_atualizada",
+          (salaAtualizada: Sala) => {
+            setSala(salaAtualizada);
+            setErro("");
+          },
+        );
 
         /*
          * Recebe erros enviados pelo Gateway.
@@ -152,13 +159,13 @@ function SalaContent() {
           "erro_sala",
           (data: { mensagem?: string }) => {
             setErro(data?.mensagem || "Erro na sala");
-          }
+          },
         );
       } catch (error) {
         setErro(
           error instanceof Error
             ? error.message
-            : "Não foi possível carregar a sala"
+            : "Não foi possível carregar a sala",
         );
       } finally {
         setLoading(false);
@@ -171,6 +178,55 @@ function SalaContent() {
       socket?.disconnect();
     };
   }, [API, codigo, router]);
+
+  async function iniciarPartida() {
+    if (!codigo) return;
+
+    const token = Cookies.get("token");
+
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    try {
+      setIniciando(true);
+      setErro("");
+
+      const res = await fetch(
+        `${API}/partida/iniciar/${codigo}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          Array.isArray(data.message)
+            ? data.message.join(", ")
+            : data.message ||
+                "Não foi possível iniciar a partida",
+        );
+      }
+
+      console.log("Partida iniciada:", data);
+
+      router.push(`/partida?codigo=${codigo}`);
+    } catch (error) {
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Erro ao iniciar a partida",
+      );
+    } finally {
+      setIniciando(false);
+    }
+  }
 
   async function sairDaSala() {
     if (!codigo) return;
@@ -193,7 +249,7 @@ function SalaContent() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const data = await res.json();
@@ -202,7 +258,8 @@ function SalaContent() {
         throw new Error(
           Array.isArray(data.message)
             ? data.message.join(", ")
-            : data.message || "Não foi possível sair da sala"
+            : data.message ||
+                "Não foi possível sair da sala",
         );
       }
 
@@ -211,7 +268,7 @@ function SalaContent() {
       setErro(
         error instanceof Error
           ? error.message
-          : "Erro ao sair da sala"
+          : "Erro ao sair da sala",
       );
     } finally {
       setSaindo(false);
@@ -305,10 +362,17 @@ function SalaContent() {
     );
   }
 
-  const quantidadeJogadores = sala.jogadores?.length || 0;
+  const quantidadeJogadores =
+    sala.jogadores?.length || 0;
 
   const vagasRestantes =
     sala.maxJogadores - quantidadeJogadores;
+
+  /*
+   * Verifica se o usuário atual é o criador da sala.
+   */
+  const ehCriador =
+    sala.criador?.id === usuario?.sub;
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#080712] text-white">
@@ -405,7 +469,9 @@ function SalaContent() {
                   >
                     <Copy size={14} />
 
-                    {copiado ? "Copiado!" : "Copiar"}
+                    {copiado
+                      ? "Copiado!"
+                      : "Copiar"}
                   </button>
                 </div>
 
@@ -414,7 +480,8 @@ function SalaContent() {
                 </p>
 
                 <p className="mt-3 text-center text-xs text-white/30">
-                  Compartilhe este código para outros jogadores entrarem.
+                  Compartilhe este código para outros
+                  jogadores entrarem.
                 </p>
               </div>
 
@@ -431,6 +498,7 @@ function SalaContent() {
 
                   <p className="mt-2 text-xl font-black">
                     {quantidadeJogadores}
+
                     <span className="ml-1 text-sm font-semibold text-white/25">
                       / {sala.maxJogadores}
                     </span>
@@ -462,9 +530,13 @@ function SalaContent() {
                   <span className="font-bold text-white/50">
                     {vagasRestantes > 0
                       ? `${vagasRestantes} vaga${
-                          vagasRestantes === 1 ? "" : "s"
+                          vagasRestantes === 1
+                            ? ""
+                            : "s"
                         } disponível${
-                          vagasRestantes === 1 ? "" : "eis"
+                          vagasRestantes === 1
+                            ? ""
+                            : "eis"
                         }`
                       : "Sala cheia"}
                   </span>
@@ -478,37 +550,67 @@ function SalaContent() {
                         (quantidadeJogadores /
                           sala.maxJogadores) *
                           100,
-                        100
+                        100,
                       )}%`,
                     }}
                   />
                 </div>
               </div>
 
-              {/* Sair */}
-              <button
-                type="button"
-                onClick={sairDaSala}
-                disabled={saindo}
-                className="mt-7 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-500/[0.04] text-sm font-bold text-red-300 transition hover:border-red-400/40 hover:bg-red-500/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {saindo ? (
-                  <>
-                    <Loader2
-                      size={17}
-                      className="animate-spin"
-                    />
+              {/* Ações */}
+              <div className="mt-7 space-y-3">
+                {/* Somente o criador pode iniciar */}
+                {ehCriador &&
+                  sala.status === "ABERTA" && (
+                    <button
+                      type="button"
+                      onClick={iniciarPartida}
+                      disabled={
+                        iniciando ||
+                        quantidadeJogadores === 0
+                      }
+                      className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-purple-600 text-sm font-black transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {iniciando ? (
+                        <>
+                          <Loader2
+                            size={17}
+                            className="animate-spin"
+                          />
+                          Iniciando...
+                        </>
+                      ) : (
+                        <>
+                          <Crown size={17} />
+                          Iniciar partida
+                        </>
+                      )}
+                    </button>
+                  )}
 
-                    Saindo...
-                  </>
-                ) : (
-                  <>
-                    <LogOut size={17} />
-
-                    Sair da sala
-                  </>
-                )}
-              </button>
+                {/* Sair */}
+                <button
+                  type="button"
+                  onClick={sairDaSala}
+                  disabled={saindo}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-500/[0.04] text-sm font-bold text-red-300 transition hover:border-red-400/40 hover:bg-red-500/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {saindo ? (
+                    <>
+                      <Loader2
+                        size={17}
+                        className="animate-spin"
+                      />
+                      Saindo...
+                    </>
+                  ) : (
+                    <>
+                      <LogOut size={17} />
+                      Sair da sala
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -554,14 +656,15 @@ function SalaContent() {
                   </p>
 
                   <p className="mt-1 max-w-xs text-xs leading-5 text-white/30">
-                    Compartilhe o código da sala para chamar outros jogadores.
+                    Compartilhe o código da sala para
+                    chamar outros jogadores.
                   </p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {sala.jogadores.map(
                     (jogador, index) => {
-                      const ehCriador =
+                      const ehCriadorJogador =
                         sala.criador?.id ===
                         jogador.usuario.id;
 
@@ -589,7 +692,7 @@ function SalaContent() {
                                 {jogador.usuario.nome}
                               </p>
 
-                              {ehCriador && (
+                              {ehCriadorJogador && (
                                 <span className="flex shrink-0 items-center gap-1 rounded-lg border border-yellow-400/20 bg-yellow-400/[0.06] px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-yellow-300">
                                   <Crown size={10} />
                                   Criador
@@ -603,7 +706,7 @@ function SalaContent() {
                           </div>
                         </div>
                       );
-                    }
+                    },
                   )}
                 </div>
               )}
