@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-    ArrowLeft,
     Crown,
     Edit3,
     MoreHorizontal,
@@ -11,22 +10,20 @@ import {
     Trash2,
     X,
 } from "lucide-react";
-import Link from "next/link";
 import Cookies from "js-cookie";
+
 import Header from "@/app/components/dashboard/Header";
 import LoadingOverlay from "@/app/components/global/Loading";
 
 type Patente = {
     id: number;
     nome: string;
+    pontos: number;
 };
 
 type FormPatente = {
     nome: string;
-};
-
-const patenteInicial: FormPatente = {
-    nome: "",
+    pontos: number;
 };
 
 export default function PatentesPage() {
@@ -45,7 +42,10 @@ export default function PatentesPage() {
     const [patenteEditando, setPatenteEditando] =
         useState<Patente | null>(null);
 
-    const [form, setForm] = useState<FormPatente>();
+    const [form, setForm] = useState<FormPatente>({
+        nome: "",
+        pontos: 0,
+    });
 
     const [loading, setLoading] = useState(false);
 
@@ -82,7 +82,9 @@ export default function PatentesPage() {
     };
 
     /*
-     * Busca as patentes quando a página abre
+     * ============================
+     * BUSCAR AO ABRIR A PÁGINA
+     * ============================
      */
 
     useEffect(() => {
@@ -96,6 +98,14 @@ export default function PatentesPage() {
      */
 
     const criarPatente = async () => {
+        if (!form.nome.trim()) {
+            return;
+        }
+
+        if (form.pontos < 0) {
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -106,12 +116,19 @@ export default function PatentesPage() {
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    nome: form?.nome.trim(),
+                    nome: form.nome.trim(),
+                    pontos: form.pontos,
                 }),
             });
 
+            const data = await res.json();
+
             if (!res.ok) {
-                throw new Error("Erro ao criar patente");
+                throw new Error(
+                    Array.isArray(data.message)
+                        ? data.message.join(", ")
+                        : data.message || "Erro ao criar patente"
+                );
             }
 
             fecharModal();
@@ -135,6 +152,14 @@ export default function PatentesPage() {
             return;
         }
 
+        if (!form.nome.trim()) {
+            return;
+        }
+
+        if (form.pontos < 0) {
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -147,13 +172,20 @@ export default function PatentesPage() {
                         Authorization: `Bearer ${token}`,
                     },
                     body: JSON.stringify({
-                        nome: form?.nome.trim(),
+                        nome: form.nome.trim(),
+                        pontos: form.pontos,
                     }),
                 }
             );
 
+            const data = await res.json();
+
             if (!res.ok) {
-                throw new Error("Erro ao editar patente");
+                throw new Error(
+                    Array.isArray(data.message)
+                        ? data.message.join(", ")
+                        : data.message || "Erro ao editar patente"
+                );
             }
 
             fecharModal();
@@ -195,8 +227,14 @@ export default function PatentesPage() {
                 }
             );
 
+            const data = await res.json().catch(() => null);
+
             if (!res.ok) {
-                throw new Error("Erro ao excluir patente");
+                throw new Error(
+                    Array.isArray(data?.message)
+                        ? data.message.join(", ")
+                        : data?.message || "Erro ao excluir patente"
+                );
             }
 
             setMenuAberto(null);
@@ -231,7 +269,15 @@ export default function PatentesPage() {
                 .toString()
                 .includes(termo);
 
-            return correspondeNome || correspondeId;
+            const correspondePontos = patente.pontos
+                .toString()
+                .includes(termo);
+
+            return (
+                correspondeNome ||
+                correspondeId ||
+                correspondePontos
+            );
         });
     }, [patentes, busca]);
 
@@ -246,6 +292,7 @@ export default function PatentesPage() {
 
         setForm({
             nome: "",
+            pontos: 0,
         });
 
         setModalAberto(true);
@@ -264,6 +311,7 @@ export default function PatentesPage() {
 
         setForm({
             nome: patente.nome,
+            pontos: patente.pontos,
         });
 
         setModalAberto(true);
@@ -284,6 +332,7 @@ export default function PatentesPage() {
 
         setForm({
             nome: "",
+            pontos: 0,
         });
     }
 
@@ -295,7 +344,7 @@ export default function PatentesPage() {
 
     function atualizarCampo(
         campo: keyof FormPatente,
-        valor: string
+        valor: string | number
     ) {
         setForm((estadoAtual) => ({
             ...estadoAtual,
@@ -314,7 +363,11 @@ export default function PatentesPage() {
     ) {
         event.preventDefault();
 
-        if (!form?.nome.trim()) {
+        if (!form.nome.trim()) {
+            return;
+        }
+
+        if (form.pontos < 0) {
             return;
         }
 
@@ -338,24 +391,45 @@ export default function PatentesPage() {
         );
     }
 
+    /*
+     * ============================
+     * MAIOR PATENTE
+     * ============================
+     */
+
+    const maiorPontuacao = useMemo(() => {
+        if (patentes.length === 0) {
+            return 0;
+        }
+
+        return Math.max(
+            ...patentes.map((patente) => patente.pontos)
+        );
+    }, [patentes]);
+
     return (
         <main className="min-h-screen bg-[#080812] text-white">
 
-            <LoadingOverlay show={loading} message="Autenticando..." />
+            <LoadingOverlay
+                show={loading}
+                message="Processando..."
+            />
 
             {/* =========================
                 HEADER
             ========================= */}
 
             <Header />
-            
+
             {/* =========================
                 CONTEÚDO
             ========================= */}
 
             <div className="mx-auto max-w-7xl p-6 lg:p-8">
 
-                {/* TÍTULO */}
+                {/* =========================
+                    TÍTULO
+                ========================= */}
 
                 <div className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end">
 
@@ -398,7 +472,7 @@ export default function PatentesPage() {
                     ESTATÍSTICAS
                 ========================= */}
 
-                <div className="mb-6 grid gap-4 sm:grid-cols-2">
+                <div className="mb-6 grid gap-4 sm:grid-cols-3">
 
                     <StatCard
                         label="Total de patentes"
@@ -412,13 +486,19 @@ export default function PatentesPage() {
                         icon={<Search size={19} />}
                     />
 
+                    <StatCard
+                        label="Maior pontuação"
+                        value={maiorPontuacao}
+                        icon={<Crown size={19} />}
+                    />
+
                 </div>
 
                 {/* =========================
                     LISTAGEM
                 ========================= */}
 
-                <section className=" rounded-2xl border border-white/10 bg-white/[0.025]">
+                <section className="rounded-2xl border border-white/10 bg-white/[0.025]">
 
                     {/* CABEÇALHO */}
 
@@ -450,8 +530,8 @@ export default function PatentesPage() {
                                 onChange={(event) =>
                                     setBusca(event.target.value)
                                 }
-                                placeholder="Buscar por nome ou ID..."
-                                className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.04] pl-9 pr-4 text-sm text-white outline-none placeholder:text-white/20 focus:border-purple-400/50 sm:w-64"
+                                placeholder="Buscar por nome, ID ou pontos..."
+                                className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.04] pl-9 pr-4 text-sm text-white outline-none placeholder:text-white/20 focus:border-purple-400/50 sm:w-72"
                             />
 
                         </div>
@@ -504,7 +584,9 @@ export default function PatentesPage() {
                                     className="flex flex-col gap-4 p-5 transition hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between"
                                 >
 
-                                    {/* INFORMAÇÕES */}
+                                    {/* =========================
+                                        INFORMAÇÕES
+                                    ========================= */}
 
                                     <div className="flex min-w-0 items-center gap-4">
 
@@ -518,15 +600,27 @@ export default function PatentesPage() {
                                                 {patente.nome}
                                             </p>
 
-                                            <p className="mt-1 text-[11px] font-bold tracking-widest text-purple-400">
-                                                ID #{patente.id}
-                                            </p>
+                                            <div className="mt-1 flex flex-wrap items-center gap-3">
+
+                                                <p className="text-[11px] font-bold tracking-widest text-purple-400">
+                                                    ID #{patente.id}
+                                                </p>
+
+                                                <span className="h-1 w-1 rounded-full bg-white/20" />
+
+                                                <p className="text-[11px] font-bold text-amber-400">
+                                                    {patente.pontos.toLocaleString("pt-BR")} pontos
+                                                </p>
+
+                                            </div>
 
                                         </div>
 
                                     </div>
 
-                                    {/* AÇÕES */}
+                                    {/* =========================
+                                        AÇÕES
+                                    ========================= */}
 
                                     <div className="flex items-center justify-end">
 
@@ -544,7 +638,7 @@ export default function PatentesPage() {
 
                                             {menuAberto === patente.id && (
 
-                                                <div className="absolute right-0 top-11 z-100 w-44 rounded-xl border border-white/10 bg-[#12121e] p-2 shadow-2xl">
+                                                <div className="absolute right-0 top-11 z-[100] w-44 rounded-xl border border-white/10 bg-[#12121e] p-2 shadow-2xl">
 
                                                     {/* EDITAR */}
 
@@ -566,7 +660,7 @@ export default function PatentesPage() {
                                                         onClick={() =>
                                                             excluirPatente(patente)
                                                         }
-                                                        className="flex w-full items-center z-100 gap-2 rounded-lg px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/5"
+                                                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-400 transition hover:bg-red-500/5"
                                                     >
                                                         <Trash2 size={15} />
                                                         Excluir
@@ -609,7 +703,9 @@ export default function PatentesPage() {
 
                     <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-[#12121e] shadow-2xl">
 
-                        {/* CABEÇALHO */}
+                        {/* =========================
+                            CABEÇALHO
+                        ========================= */}
 
                         <div className="flex items-center justify-between border-b border-white/5 p-6">
 
@@ -639,7 +735,9 @@ export default function PatentesPage() {
 
                         </div>
 
-                        {/* FORMULÁRIO */}
+                        {/* =========================
+                            FORMULÁRIO
+                        ========================= */}
 
                         <form onSubmit={salvarPatente}>
 
@@ -680,7 +778,7 @@ export default function PatentesPage() {
                                     <input
                                         required
                                         autoFocus
-                                        value={form?.nome}
+                                        value={form.nome}
                                         onChange={(event) =>
                                             atualizarCampo(
                                                 "nome",
@@ -693,9 +791,48 @@ export default function PatentesPage() {
 
                                 </div>
 
+                                {/* PONTOS */}
+
+                                <div>
+
+                                    <label className="mb-2 block text-xs font-bold text-white/60">
+                                        Pontos necessários
+                                    </label>
+
+                                    <div className="relative">
+
+                                        <input
+                                            required
+                                            type="number"
+                                            min={0}
+                                            value={form.pontos}
+                                            onChange={(event) =>
+                                                atualizarCampo(
+                                                    "pontos",
+                                                    Number(event.target.value)
+                                                )
+                                            }
+                                            placeholder="Ex: 1000"
+                                            className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 pr-20 text-sm text-white outline-none placeholder:text-white/20 focus:border-purple-400/60"
+                                        />
+
+                                        <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-amber-400/70">
+                                            PONTOS
+                                        </span>
+
+                                    </div>
+
+                                    <p className="mt-2 text-[11px] text-white/20">
+                                        Quantidade de pontos necessária para alcançar esta patente.
+                                    </p>
+
+                                </div>
+
                             </div>
 
-                            {/* BOTÕES */}
+                            {/* =========================
+                                BOTÕES
+                            ========================= */}
 
                             <div className="flex flex-col-reverse gap-3 border-t border-white/5 p-6 sm:flex-row sm:justify-end">
 
@@ -709,7 +846,11 @@ export default function PatentesPage() {
 
                                 <button
                                     type="submit"
-                                    className="h-11 rounded-xl bg-purple-500 px-5 text-sm font-bold text-white transition hover:bg-purple-400"
+                                    disabled={
+                                        !form.nome.trim() ||
+                                        form.pontos < 0
+                                    }
+                                    className="h-11 rounded-xl bg-purple-500 px-5 text-sm font-bold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                     {patenteEditando
                                         ? "Salvar alterações"
@@ -755,7 +896,7 @@ function StatCard({
                 </div>
 
                 <span className="text-2xl font-black">
-                    {value}
+                    {value.toLocaleString("pt-BR")}
                 </span>
 
             </div>

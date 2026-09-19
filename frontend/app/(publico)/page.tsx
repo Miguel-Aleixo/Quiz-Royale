@@ -26,6 +26,7 @@ interface Usuario {
   email: string;
   role: "ADMIN" | "JOGADOR";
   patenteId: number | null;
+  pontuacao: number;
   patente?: {
     id: number;
     nome: string;
