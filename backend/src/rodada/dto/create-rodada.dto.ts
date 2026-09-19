@@ -16,4 +16,8 @@ export class CreateRodadaDto {
     @Max(120, { message: 'O tempo limite  não pode ter mais de 120 segundos.' })
     tempoLimite!: number
 
+    @IsInt()
+    @IsNotEmpty()
+    ordem!: number;
+
 }

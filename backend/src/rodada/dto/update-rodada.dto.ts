@@ -21,4 +21,9 @@ export class UpdateRodadaDto extends PartialType(CreateRodadaDto) {
     @Max(120, { message: 'O tempo limite  não pode ter mais de 120 segundos.' })
     tempoLimite?: number
 
+    @IsOptional()
+    @IsInt()
+    @IsNotEmpty()
+    ordem?: number;
+
 }
