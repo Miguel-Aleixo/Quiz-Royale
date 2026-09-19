@@ -42,16 +42,16 @@ interface Jogador {
 
 interface Sala {
 
-  id: number;
-  nome: string;
-  codigo: string;
-  status: string;
-  maxJogadores: number;
+  id: number;
+  nome: string;
+  codigo: string;
+  status: string;
+  maxJogadores: number;
 
-  _count?: {
-    jogadores: number;
-    rodadas: number;
-  };
+  _count?: {
+    jogadores: number;
+    rodadas: number;
+  };
 }
 
 interface Pergunta {
@@ -577,7 +577,6 @@ export default function Home() {
             onClick={() => router.push("/perfil")}
             className="group relative overflow-hidden rounded-3xl border border-amber-400/15 bg-gradient-to-br from-amber-500/10 via-[#15131b] to-[#10101b] p-7 text-left transition hover:-translate-y-1 hover:border-amber-400/30"
           >
-
             <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-amber-500/10 blur-3xl" />
 
             <div className="relative">
@@ -605,8 +604,17 @@ export default function Home() {
                   : usuario?.patente?.nome ?? "Sem patente"}
               </h3>
 
-            </div>
+              {!loadingUsuario && usuario?.patente && (
+                <div className="mt-3 flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-amber-400" />
 
+                  <span className="text-xs font-semibold text-amber-300">
+                    {usuario.patente.pontos.toLocaleString("pt-BR")} pontos
+                  </span>
+                </div>
+              )}
+
+            </div>
           </button>
 
         </div>
