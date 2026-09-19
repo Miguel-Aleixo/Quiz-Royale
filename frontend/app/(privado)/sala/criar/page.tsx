@@ -405,8 +405,8 @@ export default function CriarSalaPage() {
       setSucesso("Sala criada com sucesso!");
 
       setTimeout(() => {
-        router.push(`/partida?codigo=${encodeURIComponent(codigo)}`);
-      }, 2000);
+        router.push(`/sala/entrar?codigo=${codigo}`);
+      }, 1000);
     } catch (error) {
       console.error("Erro ao criar sala:", error);
 

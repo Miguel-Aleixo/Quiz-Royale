@@ -216,7 +216,7 @@ function SalaContent() {
 
       console.log("Partida iniciada:", data);
 
-      router.push(`/partida?codigo=${codigo}`);
+      router.push(`/sala/partida?codigo=${codigo}`);
     } catch (error) {
       setErro(
         error instanceof Error

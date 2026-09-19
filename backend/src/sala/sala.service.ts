@@ -133,6 +133,7 @@ export class SalaService {
       where: {
         codigo: codigo.toUpperCase(),
       },
+
       include: {
         criador: {
           select: {
@@ -140,6 +141,7 @@ export class SalaService {
             nome: true,
           },
         },
+
         jogadores: {
           include: {
             usuario: {
@@ -147,6 +149,28 @@ export class SalaService {
                 id: true,
                 nome: true,
                 pontuacao: true,
+              },
+            },
+          },
+        },
+
+        rodadas: {
+          orderBy: {
+            ordem: 'asc',
+          },
+
+          include: {
+            pergunta: {
+              select: {
+                id: true,
+                enunciado: true,
+
+                alternativas: {
+                  select: {
+                    id: true,
+                    texto: true,
+                  },
+                },
               },
             },
           },
