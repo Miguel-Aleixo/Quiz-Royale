@@ -118,6 +118,8 @@ export default function Home() {
 
       const data: Usuario = await res.json();
 
+      console.log("USUÁRIO RECEBIDO:", data);
+
       setUsuario(data);
     } catch (error) {
       console.error("Erro ao buscar usuário:", error);

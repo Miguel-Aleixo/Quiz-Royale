@@ -45,12 +45,21 @@ export class UsuarioService {
   };
 
   async findOne(id: number) {
-    return await this.prisma.usuario.findFirst({
+    const usuario = await this.prisma.usuario.findFirst({
       where: {
-        id: id
-      }
-    })
-  };
+        id: id,
+      },
+      include: {
+        patente: true,
+      },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    return usuario;
+  }
 
   async update(id: number, updateUsuarioDto: UpdateUsuarioDto) {
     return await this.prisma.usuario.update({
