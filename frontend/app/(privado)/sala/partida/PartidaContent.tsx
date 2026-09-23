@@ -187,7 +187,6 @@ export default function PartidaPage() {
         oscilador.stop(inicio + (tipo === "comemoracao" ? 0.32 : 0.2));
       });
     } catch {
-      // O áudio é um enhancement; a partida continua mesmo se bloqueado.
     }
   }
 
@@ -287,11 +286,6 @@ export default function PartidaPage() {
       auth: {
         token,
       },
-
-      /*
-       * Evita o transporte inicial por polling.
-       * A conexão será feita diretamente por WebSocket.
-       */
       transports: ["websocket"],
     });
 
@@ -580,19 +574,10 @@ export default function PartidaPage() {
    */
 
   useEffect(() => {
-    /*
-     * Jogador eliminado não possui
-     * mais cronômetro.
-     */
 
     if (jogadorEliminado) {
       return;
     }
-
-    /*
-     * Se a partida acabou,
-     * não inicia cronômetro.
-     */
 
     if (partidaFinalizada) {
       return;
@@ -1061,7 +1046,7 @@ export default function PartidaPage() {
       <div className="pointer-events-none fixed left-1/2 top-[-220px] h-[440px] w-[760px] -translate-x-1/2 rounded-full bg-fuchsia-600/10 blur-[140px]" />
       <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-5 py-6 md:px-8">
 
-        <header className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.035] px-4 py-3 backdrop-blur-xl md:px-5">
+        <header className="flex items-center justify-between rounded-3xl border border-white/[0.08] bg-white/[0.035] px-4 py-3 backdrop-blur-xl md:px-5">
           <div>
             <div className="flex items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-fuchsia-500/10 ring-1 ring-fuchsia-300/20">

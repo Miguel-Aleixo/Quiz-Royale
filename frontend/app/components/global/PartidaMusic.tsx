@@ -8,6 +8,7 @@ type MusicState = {
   master: GainNode;
   timer: number | null;
   step: number;
+  tocando: boolean;
 };
 
 export default function PartidaMusic() {
@@ -17,7 +18,6 @@ export default function PartidaMusic() {
   const bpm = 132;
   const stepDuration = (60 / bpm) * 1000;
 
-  // Progressão com clima mais "battle / arcade"
   const acordes = [
     [261.63, 329.63, 392.0], // C
     [220.0, 261.63, 329.63], // Am
@@ -50,7 +50,7 @@ export default function PartidaMusic() {
 
     gain.gain.exponentialRampToValueAtTime(
       volume,
-      context.currentTime + 0.015
+      context.currentTime + 0.01
     );
 
     gain.gain.exponentialRampToValueAtTime(
@@ -71,20 +71,21 @@ export default function PartidaMusic() {
   function bateria(
     context: AudioContext,
     destino: AudioNode,
-    volume: number
+    volume = 0.09
   ) {
     const oscillator = context.createOscillator();
     const gain = context.createGain();
 
-    oscillator.type = "square";
+    oscillator.type = "sine";
+
     oscillator.frequency.setValueAtTime(
-      110,
+      150,
       context.currentTime
     );
 
     oscillator.frequency.exponentialRampToValueAtTime(
-      45,
-      context.currentTime + 0.08
+      42,
+      context.currentTime + 0.11
     );
 
     gain.gain.setValueAtTime(
@@ -94,14 +95,17 @@ export default function PartidaMusic() {
 
     gain.gain.exponentialRampToValueAtTime(
       0.0001,
-      context.currentTime + 0.1
+      context.currentTime + 0.13
     );
 
     oscillator.connect(gain);
     gain.connect(destino);
 
     oscillator.start();
-    oscillator.stop(context.currentTime + 0.11);
+
+    oscillator.stop(
+      context.currentTime + 0.14
+    );
   }
 
   function clap(
@@ -111,24 +115,36 @@ export default function PartidaMusic() {
     const oscillator = context.createOscillator();
     const gain = context.createGain();
 
-    oscillator.type = "square";
-    oscillator.frequency.value = 1800;
+    oscillator.type = "triangle";
+
+    oscillator.frequency.setValueAtTime(
+      1600,
+      context.currentTime
+    );
+
+    oscillator.frequency.exponentialRampToValueAtTime(
+      600,
+      context.currentTime + 0.08
+    );
 
     gain.gain.setValueAtTime(
-      0.025,
+      0.055,
       context.currentTime
     );
 
     gain.gain.exponentialRampToValueAtTime(
       0.0001,
-      context.currentTime + 0.07
+      context.currentTime + 0.09
     );
 
     oscillator.connect(gain);
     gain.connect(destino);
 
     oscillator.start();
-    oscillator.stop(context.currentTime + 0.08);
+
+    oscillator.stop(
+      context.currentTime + 0.1
+    );
   }
 
   function hiHat(
@@ -139,11 +155,12 @@ export default function PartidaMusic() {
     const gain = context.createGain();
 
     oscillator.type = "square";
+
     oscillator.frequency.value =
-      3500 + Math.random() * 1200;
+      4500 + Math.random() * 1800;
 
     gain.gain.setValueAtTime(
-      0.008,
+      0.025,
       context.currentTime
     );
 
@@ -156,140 +173,179 @@ export default function PartidaMusic() {
     gain.connect(destino);
 
     oscillator.start();
-    oscillator.stop(context.currentTime + 0.04);
+
+    oscillator.stop(
+      context.currentTime + 0.04
+    );
   }
 
   function tocarPasso() {
     const musica = musicRef.current;
 
-    if (!musica) return;
+    if (!musica || !musica.tocando) {
+      return;
+    }
 
     const { context, master } = musica;
-
     const passo = musica.step;
 
-    /*
-     * Cada 8 passos muda o acorde.
-     */
     const indiceAcorde =
       Math.floor(passo / 8) % acordes.length;
 
     const acorde = acordes[indiceAcorde];
 
     /*
+     * ==========================
      * KICK
-     *
-     * Batida principal.
+     * ==========================
      */
+
     if (passo % 2 === 0) {
-      bateria(context, master, 0.045);
+      bateria(context, master, 0.11);
     }
 
     /*
+     * ==========================
      * CLAP
-     *
-     * Entra no contratempo.
+     * ==========================
      */
+
     if (passo % 4 === 2) {
       clap(context, master);
     }
 
     /*
+     * ==========================
      * HI-HAT
-     *
-     * Mantém a música movimentada.
+     * ==========================
      */
+
     hiHat(context, master);
 
     /*
+     * ==========================
      * BAIXO
+     * ==========================
      */
-    if (passo % 2 === 0) {
-      const oitavaBaixo =
-        acorde[0] / 2;
 
+    if (passo % 2 === 0) {
       nota(
         context,
         master,
-        oitavaBaixo,
-        0.18,
-        0.045,
+        acorde[0] / 2,
+        0.22,
+        0.085,
         "square"
       );
     }
 
     /*
-     * Acorde curto.
+     * ==========================
+     * SEGUNDO BAIXO
+     * ==========================
      */
+
+    if (passo % 8 === 6) {
+      nota(
+        context,
+        master,
+        acorde[2] / 2,
+        0.16,
+        0.065,
+        "square"
+      );
+    }
+
+    /*
+     * ==========================
+     * ACORDES
+     * ==========================
+     */
+
     if (passo % 4 === 0) {
       acorde.forEach((frequencia) => {
         nota(
           context,
           master,
           frequencia,
-          0.35,
-          0.018,
+          0.5,
+          0.035,
           "sawtooth"
         );
       });
     }
 
     /*
-     * MELODIA
-     *
-     * A sequência muda um pouco a cada ciclo.
+     * ==========================
+     * ARPEJO
+     * ==========================
      */
-    const notasMelodia = [
+
+    const arpejo = [
       acorde[0] * 2,
       acorde[1] * 2,
       acorde[2] * 2,
-      acorde[1] * 2.5,
+      acorde[1] * 2,
     ];
 
-    let notaEscolhida: number;
-
-    if (Math.random() > 0.3) {
-      notaEscolhida =
-        notasMelodia[
-          Math.floor(
-            Math.random() *
-              notasMelodia.length
-          )
-        ];
-    } else {
-      notaEscolhida =
-        acorde[
-          Math.floor(
-            Math.random() * acorde.length
-          )
-        ] * 2;
-    }
+    nota(
+      context,
+      master,
+      arpejo[passo % arpejo.length],
+      0.16,
+      0.035,
+      "square"
+    );
 
     /*
-     * Melodia não toca em todos os passos,
-     * evitando ficar robótica.
+     * ==========================
+     * MELODIA
+     * ==========================
      */
+
+    const melodia = [
+      acorde[0] * 2,
+      acorde[1] * 2,
+      acorde[2] * 2,
+      acorde[1] * 2,
+      acorde[2] * 2.5,
+      acorde[1] * 2,
+      acorde[0] * 2,
+      acorde[2] * 2,
+    ];
+
     if (passo % 2 === 1) {
+      const notaMelodia =
+        melodia[
+          Math.floor(passo / 2) %
+            melodia.length
+        ];
+
       nota(
         context,
         master,
-        notaEscolhida,
-        0.16 + Math.random() * 0.12,
-        0.018,
+        notaMelodia,
+        0.22,
+        0.055,
         "triangle"
       );
     }
 
     /*
-     * Pequeno "efeito" ocasional.
+     * ==========================
+     * EFEITO DE TRANSIÇÃO
+     * ==========================
      */
-    if (Math.random() > 0.88) {
+
+    if (
+      passo % 16 === 15
+    ) {
       nota(
         context,
         master,
-        acorde[2] * 4,
-        0.08,
-        0.012,
+        acorde[2] * 2,
+        0.12,
+        0.035,
         "sine"
       );
     }
@@ -302,87 +358,70 @@ export default function PartidaMusic() {
     );
   }
 
-  async function alternarMusica() {
-    if (typeof window === "undefined") {
+  async function criarMusica() {
+    if (musicRef.current) {
+      return musicRef.current;
+    }
+
+    const AudioContextClass =
+      window.AudioContext ||
+      (
+        window as typeof window & {
+          webkitAudioContext?: typeof AudioContext;
+        }
+      ).webkitAudioContext;
+
+    if (!AudioContextClass) {
+      return null;
+    }
+
+    const context =
+      new AudioContextClass();
+
+    const master =
+      context.createGain();
+
+    /*
+     * VOLUME GERAL
+     *
+     * Antes: 0.14
+     * Agora: 0.30
+     */
+    master.gain.setValueAtTime(
+      0.0001,
+      context.currentTime
+    );
+
+    master.connect(
+      context.destination
+    );
+
+    const musica: MusicState = {
+      context,
+      master,
+      timer: null,
+      step: 0,
+      tocando: false,
+    };
+
+    musicRef.current = musica;
+
+    await context.resume();
+
+    return musica;
+  }
+
+  async function iniciarMusica() {
+    const musica = await criarMusica();
+
+    if (!musica) {
       return;
     }
 
-    /*
-     * PRIMEIRA VEZ
-     */
-    if (!musicRef.current) {
-      const AudioContextClass =
-        window.AudioContext;
-
-      const context =
-        new AudioContextClass();
-
-      const master =
-        context.createGain();
-
-      master.gain.setValueAtTime(
-        0.0001,
-        context.currentTime
-      );
-
-      /*
-       * Volume geral.
-       *
-       * Mesmo sendo uma música animada,
-       * não fica alta demais.
-       */
-      master.gain.exponentialRampToValueAtTime(
-        0.14,
-        context.currentTime + 0.8
-      );
-
-      master.connect(context.destination);
-
-      musicRef.current = {
-        context,
-        master,
-        timer: null,
-        step: 0,
-      };
-
-      await context.resume();
-
-      setAtivo(true);
-
-      tocarPasso();
-
+    if (musica.tocando) {
       return;
     }
 
-    const musica = musicRef.current;
-
-    /*
-     * DESLIGAR
-     */
-    if (ativo) {
-      if (musica.timer !== null) {
-        clearTimeout(musica.timer);
-        musica.timer = null;
-      }
-
-      musica.master.gain.cancelScheduledValues(
-        musica.context.currentTime
-      );
-
-      musica.master.gain.setTargetAtTime(
-        0.0001,
-        musica.context.currentTime,
-        0.12
-      );
-
-      setAtivo(false);
-
-      return;
-    }
-
-    /*
-     * LIGAR NOVAMENTE
-     */
     await musica.context.resume();
 
     musica.master.gain.cancelScheduledValues(
@@ -390,29 +429,109 @@ export default function PartidaMusic() {
     );
 
     musica.master.gain.setTargetAtTime(
-      0.14,
+      0.30,
       musica.context.currentTime,
-      0.12
+      0.08
     );
+
+    musica.tocando = true;
 
     setAtivo(true);
 
     tocarPasso();
   }
 
+  function pararMusica() {
+    const musica = musicRef.current;
+
+    if (!musica) {
+      return;
+    }
+
+    musica.tocando = false;
+
+    if (musica.timer !== null) {
+      clearTimeout(musica.timer);
+      musica.timer = null;
+    }
+
+    musica.master.gain.cancelScheduledValues(
+      musica.context.currentTime
+    );
+
+    musica.master.gain.setTargetAtTime(
+      0.0001,
+      musica.context.currentTime,
+      0.08
+    );
+
+    setAtivo(false);
+  }
+
+  async function alternarMusica() {
+    if (ativo) {
+      pararMusica();
+    } else {
+      await iniciarMusica();
+    }
+  }
+
+  /*
+   * TENTA COMEÇAR AUTOMATICAMENTE
+   */
   useEffect(() => {
+    void iniciarMusica();
+
     return () => {
       const musica = musicRef.current;
 
-      if (!musica) return;
+      if (!musica) {
+        return;
+      }
+
+      musica.tocando = false;
 
       if (musica.timer !== null) {
         clearTimeout(musica.timer);
       }
 
       void musica.context.close();
+
+      musicRef.current = null;
     };
   }, []);
+
+  /*
+   * Alguns navegadores bloqueiam
+   * autoplay de áudio.
+   *
+   * Quando o usuário clicar em
+   * qualquer lugar da página,
+   * tentamos iniciar novamente.
+   */
+  useEffect(() => {
+    if (ativo) {
+      return;
+    }
+
+    const iniciarDepoisDoClique =
+      () => {
+        void iniciarMusica();
+      };
+
+    window.addEventListener(
+      "click",
+      iniciarDepoisDoClique,
+      { once: true }
+    );
+
+    return () => {
+      window.removeEventListener(
+        "click",
+        iniciarDepoisDoClique
+      );
+    };
+  }, [ativo]);
 
   return (
     <button
@@ -428,7 +547,7 @@ export default function PartidaMusic() {
         flex items-center gap-2
         rounded-2xl
         border border-white/10
-        bg-slate-950/75
+        bg-slate-950/80
         px-4 py-3
         text-xs font-bold text-white
         shadow-2xl
@@ -436,23 +555,19 @@ export default function PartidaMusic() {
         transition-all duration-200
         hover:-translate-y-0.5
         hover:border-violet-400/40
-        hover:bg-slate-900/90
+        hover:bg-slate-900
         active:scale-95
       "
     >
       {ativo ? (
         <Volume2
-          className="
-            h-4 w-4
-            text-violet-300
-          "
+          size={17}
+          className="text-violet-300"
         />
       ) : (
         <VolumeX
-          className="
-            h-4 w-4
-            text-white/50
-          "
+          size={17}
+          className="text-white/50"
         />
       )}
 

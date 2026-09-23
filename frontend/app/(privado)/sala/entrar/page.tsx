@@ -144,7 +144,6 @@ function SalaEntrarContent() {
         oscilador.stop(inicio + 0.2);
       });
     } catch {
-      // O lobby continua funcionando se o navegador bloquear o áudio.
     }
   }
 
@@ -590,10 +589,6 @@ function SalaEntrarContent() {
         "Partida iniciada!"
       );
 
-      /*
-       * O redirect acontece através
-       * do evento partida_iniciada.
-       */
     } catch (error) {
       const mensagem =
         error instanceof Error
@@ -726,7 +721,7 @@ function SalaEntrarContent() {
 
         {/* HEADER */}
 
-        <header className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.035] px-4 py-3 backdrop-blur-xl md:px-5">
+        <header className="flex items-center justify-between rounded-3xl border border-white/[0.08] bg-white/[0.035] px-4 py-3 backdrop-blur-xl md:px-5">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-fuchsia-300/25 bg-gradient-to-br from-fuchsia-500/20 to-violet-500/10 shadow-lg shadow-fuchsia-950/20">
               <Gamepad2 className="h-5 w-5 text-fuchsia-200" />

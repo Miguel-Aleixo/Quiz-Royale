@@ -1,12 +1,18 @@
 "use client";
 
 import Image from "next/image";
-import { LogIn, LogOut, User } from "lucide-react";
+import {
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  User,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { useEffect, useState } from "react";
 
 import LoadingOverlay from "../global/Loading";
+import { useToken } from "@/app/hooks/usuario/useToken";
 
 interface HeaderProps {
   nome?: string;
@@ -18,10 +24,16 @@ export default function Header({
   patente,
 }: HeaderProps) {
   const router = useRouter();
+  const usuario = useToken();
 
-  const [token, setToken] = useState<string | undefined>(undefined);
+  const [token, setToken] = useState<string | undefined>(
+    undefined
+  );
+
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const ehAdmin = usuario?.role === "ADMIN";
 
   useEffect(() => {
     setToken(Cookies.get("token"));
@@ -31,6 +43,11 @@ export default function Header({
   function irParaPerfil() {
     setLoading(true);
     router.push("/perfil");
+  }
+
+  function irParaDashboard() {
+    setLoading(true);
+    router.push("/dashboard");
   }
 
   function entrar() {
@@ -57,11 +74,13 @@ export default function Header({
 
             {/* Logo */}
             <button
+              type="button"
               onClick={() => {
                 setLoading(true);
                 router.push("/");
               }}
-              className="flex items-center transition-opacity hover:opacity-80"
+              disabled={loading}
+              className="flex items-center transition-opacity hover:opacity-80 disabled:cursor-not-allowed"
             >
               <Image
                 src="/imagens/logo_dark_menor.png"
@@ -77,7 +96,7 @@ export default function Header({
             {mounted && token ? (
               <div className="flex items-center gap-3">
 
-                {/* Informações */}
+                {/* Informações do usuário */}
                 <div className="hidden text-right sm:block">
                   <p className="text-sm font-bold text-white">
                     {nome ?? "Carregando..."}
@@ -88,8 +107,24 @@ export default function Header({
                   </p>
                 </div>
 
+                {/* Dashboard - somente ADMIN */}
+                {ehAdmin && (
+                  <button
+                    type="button"
+                    onClick={irParaDashboard}
+                    disabled={loading}
+                    aria-label="Abrir dashboard"
+                    className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-violet-400/20 bg-violet-500/10 px-3 text-violet-200 transition hover:border-violet-400/40 hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <LayoutDashboard size={17} />
+
+                    
+                  </button>
+                )}
+
                 {/* Perfil */}
                 <button
+                  type="button"
                   onClick={irParaPerfil}
                   disabled={loading}
                   aria-label="Abrir perfil"
@@ -103,6 +138,7 @@ export default function Header({
 
                 {/* Logout */}
                 <button
+                  type="button"
                   onClick={logout}
                   disabled={loading}
                   aria-label="Sair"
@@ -115,6 +151,7 @@ export default function Header({
             ) : mounted ? (
               /* Entrar */
               <button
+                type="button"
                 onClick={entrar}
                 disabled={loading}
                 className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 text-sm font-bold text-violet-200 transition hover:border-violet-400/40 hover:bg-violet-500/20 disabled:cursor-not-allowed disabled:opacity-50"

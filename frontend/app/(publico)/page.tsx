@@ -208,9 +208,6 @@ export default function Home() {
 
   /*
    * INICIALIZAÇÃO
-   *
-   * O cookie é lido aqui, depois o mesmo token
-   * é enviado diretamente para as funções.
    */
   useEffect(() => {
     const currentToken = Cookies.get("token");
@@ -344,10 +341,7 @@ export default function Home() {
         {/* HERO */}
         <div className="mb-10 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
           <div className="max-w-2xl">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-fuchsia-300/20 bg-fuchsia-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-fuchsia-200">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-fuchsia-300 shadow-[0_0_12px_rgba(232,121,249,.9)]" />
-              Arena online
-            </div>
+           
 
             <h1 className="text-4xl font-black leading-[1.02] tracking-[-0.04em] sm:text-6xl">
               Pronto para
@@ -421,10 +415,7 @@ export default function Home() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-400/15 text-violet-200 ring-1 ring-inset ring-violet-300/15 shadow-lg shadow-violet-950/20">
                   <Gamepad2 size={23} />
                 </div>
-
-                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white/35">
-                  Quick join
-                </span>
+                
               </div>
 
               <h2 className="mt-8 text-2xl font-black tracking-tight">
@@ -609,7 +600,6 @@ export default function Home() {
 
           {!estaLogado ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.015] p-4 text-center">
-              <Zap size={18} className="mb-2 text-white/25" />
 
               <p className="text-sm font-semibold text-white/45">
                 Entre para visualizar as salas.
@@ -640,7 +630,6 @@ export default function Home() {
             </div>
           ) : salasAbertas.length === 0 ? (
             <div className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.015] px-5 text-center">
-              <Zap size={18} className="mb-2 text-white/25" />
 
               <p className="text-sm font-semibold text-white/45">
                 Nenhuma sala aberta no momento.

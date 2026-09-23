@@ -14,6 +14,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
+import Image from "next/image";
+import Link from "next/link";
 
 interface Tema {
   id: number;
@@ -176,9 +178,9 @@ export default function CriarSalaPage() {
           alternativas: pergunta.alternativas.map((alternativa, j) =>
             j === alternativaIndex
               ? {
-                  ...alternativa,
-                  texto,
-                }
+                ...alternativa,
+                texto,
+              }
               : alternativa
           ),
         };
@@ -364,7 +366,7 @@ export default function CriarSalaPage() {
           const mensagem = Array.isArray(perguntaData.message)
             ? perguntaData.message.join(", ")
             : perguntaData.message ||
-              `Erro ao criar a pergunta ${index + 1}.`;
+            `Erro ao criar a pergunta ${index + 1}.`;
 
           toast.error(mensagem);
           return;
@@ -399,7 +401,7 @@ export default function CriarSalaPage() {
             const mensagem = Array.isArray(alternativaData.message)
               ? alternativaData.message.join(", ")
               : alternativaData.message ||
-                "Erro ao criar uma alternativa.";
+              "Erro ao criar uma alternativa.";
 
             toast.error(mensagem);
             return;
@@ -493,7 +495,7 @@ export default function CriarSalaPage() {
   };
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#070711] text-white selection:bg-fuchsia-400/30">
+    <main className="min-h-screen bg-[#070711] text-white selection:bg-fuchsia-400/30">
       {/* FUNDO */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute left-1/2 top-[-280px] h-[560px] w-[760px] -translate-x-1/2 rounded-full bg-fuchsia-600/15 blur-[150px]" />
@@ -501,31 +503,53 @@ export default function CriarSalaPage() {
         <div className="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:44px_44px]" />
       </div>
 
-      <div className="relative mx-auto w-full max-w-6xl px-5 py-6 sm:py-8">
+      <div className="relative mx-auto w-full max-w-6xl mt-20 py-6 sm:py-8">
+
         {/* HEADER */}
-        <div className="mb-10 flex items-center justify-between">
-          <button
-            onClick={() => router.back()}
-            className="group flex cursor-pointer items-center gap-2 text-sm font-semibold text-white/45 transition hover:text-white"
-          >
-            <ArrowLeft size={18} className="transition-transform group-hover:-translate-x-1" />
-            Voltar
-          </button>
+        <header className="fixed overflow-hidden left-0 right-0 top-0 mt-5 z-50">
+          <div className="mx-auto max-w-6xl">
+            <nav className="flex h-16 items-center justify-between rounded-3xl border border-white/10 bg-[#10101d]/75 px-5 shadow-2xl shadow-black/20 backdrop-blur-xl">
 
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-fuchsia-300/30 bg-gradient-to-br from-fuchsia-500/25 to-violet-500/10 shadow-lg shadow-fuchsia-950/30">
-              <Gamepad2 size={19} className="text-fuchsia-200" />
-            </div>
+              <div className="flex items-center gap-4">
+                <Link
+                  href="/"
+                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/40 transition hover:-translate-x-0.5 hover:border-fuchsia-300/30 hover:bg-fuchsia-500/10 hover:text-fuchsia-100"
+                >
+                  <ArrowLeft size={18} />
+                </Link>
 
-            <span className="font-black tracking-tight">
-              Criar Sala
-            </span>
+                <div className="flex items-center gap-2">
+
+                  <span className="font-black tracking-tight">
+                    Criar Sala
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setLoadingTemas(true);
+                  router.push("/");
+                }}
+                className="flex items-center transition-opacity hover:opacity-80"
+              >
+                <Image
+                  src="/imagens/logo_dark_menor.png"
+                  alt="Logo Quiz Royale"
+                  width={150}
+                  height={150}
+                  className="object-contain"
+                  priority
+                />
+              </button>
+
+            </nav>
           </div>
-        </div>
+        </header>
 
         {/* TÍTULO */}
         <div className="mb-8">
-            <p className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] text-fuchsia-300">
+          <p className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] text-fuchsia-300">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-fuchsia-300 shadow-[0_0_12px_rgba(232,121,249,.9)]" />
             Nova missão
           </p>
@@ -655,7 +679,7 @@ export default function CriarSalaPage() {
 
             {/* SEM PERGUNTAS */}
             {perguntas.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-fuchsia-300/15 bg-gradient-to-br from-fuchsia-500/[0.05] to-transparent px-6 py-14 text-center">
+              <div className="rounded-2xl border border-dashed border-fuchsia-300/15 bg-gradient-to-br from-fuchsia-500/[0.05] to-transparent px-6 py-14 text-center">
                 <Gamepad2
                   size={30}
                   className="mx-auto mb-4 text-white/20"
@@ -837,11 +861,10 @@ export default function CriarSalaPage() {
                             ) => (
                               <div
                                 key={alternativaIndex}
-                                className={`flex items-center gap-3 rounded-xl border p-2 transition ${
-                                  alternativa.correta
+                                className={`flex items-center gap-3 rounded-xl border p-2 transition ${alternativa.correta
                                   ? "border-emerald-400/40 bg-emerald-500/[0.08] shadow-lg shadow-emerald-950/10"
-                                    : "border-white/10 bg-white/[0.02]"
-                                }`}
+                                  : "border-white/10 bg-white/[0.02]"
+                                  }`}
                               >
                                 <button
                                   type="button"
@@ -851,11 +874,10 @@ export default function CriarSalaPage() {
                                       alternativaIndex
                                     )
                                   }
-                                  className={`flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border text-xs font-black transition ${
-                                    alternativa.correta
-                                      ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-300"
-                                      : "border-white/10 bg-white/[0.03] text-white/30 hover:border-violet-400/30 hover:text-violet-300"
-                                  }`}
+                                  className={`flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border text-xs font-black transition ${alternativa.correta
+                                    ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-300"
+                                    : "border-white/10 bg-white/[0.03] text-white/30 hover:border-violet-400/30 hover:text-violet-300"
+                                    }`}
                                 >
                                   {alternativa.correta ? (
                                     <Check size={15} />

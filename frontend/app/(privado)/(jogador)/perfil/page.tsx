@@ -18,6 +18,8 @@ import {
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import LoadingOverlay from "@/app/components/global/Loading";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 interface Patente {
   id: number;
@@ -43,6 +45,7 @@ interface PerfilData {
 
 export default function PerfilPage() {
   const API = process.env.NEXT_PUBLIC_API;
+  const router = useRouter();
 
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [patentes, setPatentes] = useState<Patente[]>([]);
@@ -137,9 +140,6 @@ export default function PerfilPage() {
 
   /*
    * Patente atual.
-   *
-   * Primeiro tenta usar a relação patente que veio da API.
-   * Se por algum motivo ela não vier, procura pelo patenteId.
    */
   const patenteAtual =
     usuario?.patente ??
@@ -148,9 +148,6 @@ export default function PerfilPage() {
 
   /*
    * Próxima patente.
-   *
-   * Procura a primeira patente que exige mais pontos
-   * do que o usuário possui.
    */
   const proximaPatente =
     patentes.find(
@@ -177,12 +174,12 @@ export default function PerfilPage() {
     progresso =
       intervalo > 0
         ? Math.min(
-            100,
-            Math.max(
-              0,
-              (pontosDentroDaPatente / intervalo) * 100
-            )
+          100,
+          Math.max(
+            0,
+            (pontosDentroDaPatente / intervalo) * 100
           )
+        )
         : 0;
   } else if (usuario && patenteAtual) {
     progresso = 100;
@@ -191,55 +188,67 @@ export default function PerfilPage() {
   const pontosFaltantes =
     usuario && proximaPatente
       ? Math.max(
-          0,
-          proximaPatente.pontos - usuario.pontuacao
-        )
+        0,
+        proximaPatente.pontos - usuario.pontuacao
+      )
       : 0;
 
   return (
-    <main className="min-h-screen bg-[#080812] text-white">
+    <main className="min-h-screen bg-[#070711] text-white selection:bg-fuchsia-400/30">
 
       <LoadingOverlay show={loading} />
 
       {/* BACKGROUND */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute left-1/2 top-[-250px] h-[550px] w-[550px] -translate-x-1/2 rounded-full bg-purple-700/20 blur-[140px]" />
+        <div className="absolute left-1/2 top-[-250px] h-[550px] w-[550px] -translate-x-1/2 rounded-full bg-fuchsia-700/15 blur-[140px]" />
 
-        <div className="absolute bottom-[-250px] right-[-150px] h-[500px] w-[500px] rounded-full bg-indigo-700/10 blur-[130px]" />
+        <div className="absolute bottom-[-250px] right-[-150px] h-[500px] w-[500px] rounded-full bg-cyan-700/10 blur-[130px]" />
+
+        <div className="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:48px_48px]" />
       </div>
 
       {/* HEADER */}
-      <header className="relative z-10 border-b border-white/5 bg-[#080812]/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-6">
+      <header className="sticky left-0 right-0 top-0 z-50">
+        <div className="mx-auto max-w-6xl pt-5 px-5">
+          <nav className="flex h-16 items-center justify-between rounded-3xl border border-white/10 bg-[#10101d]/75 px-5 shadow-2xl shadow-black/20 backdrop-blur-xl">
 
-          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4">
+              <Link
+                href="/"
+                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/40 transition hover:-translate-x-0.5 hover:border-fuchsia-300/30 hover:bg-fuchsia-500/10 hover:text-fuchsia-100"
+              >
+                <ArrowLeft size={18} />
+              </Link>
 
-            <Link
-              href="/"
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-white/40 transition hover:bg-white/[0.06] hover:text-white"
-            >
-              <ArrowLeft size={18} />
-            </Link>
-
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-purple-400">
-                Quiz Royale
-              </p>
-
-              <h1 className="text-lg font-black">
+              <h1 className="text-lg font-black whitespace-nowrap">
                 Meu perfil
               </h1>
             </div>
 
-          </div>
+            <button
+              onClick={() => {
+                setLoading(true);
+                router.push("/");
+              }}
+              className="flex items-center transition-opacity hover:opacity-80"
+            >
+              <Image
+                src="/imagens/logo_dark_menor.png"
+                alt="Logo Quiz Royale"
+                width={150}
+                height={150}
+                className="object-contain"
+                priority
+              />
+            </button>
 
-          
-
+          </nav>
         </div>
       </header>
 
+
       {/* CONTEÚDO */}
-      <section className="relative z-10 mx-auto max-w-6xl px-6 py-10">
+      <section className="relative z-10 mx-auto max-w-6xl px-5 py-10">
 
         {/* ERRO */}
         {erro && (
@@ -249,14 +258,14 @@ export default function PerfilPage() {
         )}
 
         {/* PERFIL PRINCIPAL */}
-        <div className="overflow-hidden rounded-3xl border border-white/10 bg-[#10101c]/90 shadow-2xl">
+        <div className="overflow-hidden rounded-[2rem] border border-white/[0.09] bg-white/[0.045] shadow-2xl shadow-black/30 backdrop-blur-xl">
 
           {/* Banner */}
-          <div className="relative h-40 overflow-hidden bg-gradient-to-r from-purple-900/40 via-indigo-900/30 to-blue-900/20">
+          <div className="relative h-44 overflow-hidden bg-gradient-to-r from-fuchsia-900/35 via-violet-900/30 to-cyan-900/20">
 
-            <div className="absolute left-1/2 top-[-180px] h-96 w-96 -translate-x-1/2 rounded-full bg-purple-500/20 blur-3xl" />
+            <div className="absolute left-1/2 top-[-180px] h-96 w-96 -translate-x-1/2 rounded-full bg-fuchsia-500/20 blur-3xl" />
 
-            <div className="absolute bottom-4 right-6 flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white/40 backdrop-blur">
+            <div className="absolute bottom-4 right-6 flex items-center gap-2 rounded-full border border-white/15 bg-black/25 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white/60 backdrop-blur">
               <Shield size={12} />
 
               {loading
@@ -272,7 +281,7 @@ export default function PerfilPage() {
           <div className="relative px-6 pb-7 sm:px-8">
 
             {/* Avatar */}
-            <div className="-mt-14 flex h-28 w-28 items-center justify-center rounded-3xl border-4 border-[#10101c] bg-gradient-to-br from-purple-600 to-indigo-600 shadow-xl shadow-purple-900/30">
+            <div className="-mt-14 flex h-28 w-28 items-center justify-center rounded-3xl border-4 border-[#141320] bg-gradient-to-br from-fuchsia-500 to-violet-600 shadow-xl shadow-fuchsia-950/35 ring-1 ring-fuchsia-200/20">
               <User size={48} />
             </div>
 
@@ -311,7 +320,7 @@ export default function PerfilPage() {
               </div>
 
               <button
-                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 text-xs font-bold text-white/50 transition hover:border-purple-500/20 hover:bg-purple-500/5 hover:text-white"
+                className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs font-bold text-white/50 transition hover:-translate-y-0.5 hover:border-fuchsia-300/25 hover:bg-fuchsia-500/10 hover:text-white"
               >
                 Editar perfil
 
@@ -326,7 +335,7 @@ export default function PerfilPage() {
         <div className="mt-6 grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
 
           {/* PATENTE */}
-          <div className="rounded-3xl border border-white/10 bg-white/[0.025] p-7">
+          <div className="rounded-[2rem] border border-white/[0.09] bg-white/[0.045] p-7 shadow-xl shadow-black/20 backdrop-blur-xl">
 
             <div className="flex items-start justify-between">
 
@@ -344,7 +353,7 @@ export default function PerfilPage() {
 
               </div>
 
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-yellow-500/10 text-yellow-400">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-200 ring-1 ring-amber-300/20 shadow-lg shadow-amber-950/20">
                 <Crown size={27} />
               </div>
 
@@ -358,7 +367,7 @@ export default function PerfilPage() {
                   Pontuação
                 </p>
 
-                <p className="mt-1 text-2xl font-black text-purple-400">
+                <p className="mt-1 text-2xl font-black text-fuchsia-200">
                   {loading
                     ? "..."
                     : usuario?.pontuacao.toLocaleString("pt-BR") ?? 0}
@@ -389,7 +398,7 @@ export default function PerfilPage() {
                     Progresso para {proximaPatente.nome}
                   </span>
 
-                  <span className="font-bold text-purple-400">
+                  <span className="font-bold text-fuchsia-200">
                     {Math.round(progresso)}%
                   </span>
 
@@ -398,7 +407,7 @@ export default function PerfilPage() {
                 <div className="h-2 overflow-hidden rounded-full bg-white/5">
 
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-yellow-500 to-orange-400 transition-all duration-700"
+                    className="h-full rounded-full bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-300 shadow-[0_0_16px_rgba(217,70,239,.55)] transition-all duration-700"
                     style={{
                       width: `${progresso}%`,
                     }}
@@ -416,7 +425,7 @@ export default function PerfilPage() {
 
               </div>
             ) : (
-              <div className="mt-8 rounded-2xl border border-yellow-500/10 bg-yellow-500/5 p-4">
+              <div className="mt-8 rounded-2xl border border-amber-300/15 bg-amber-400/10 p-4">
 
                 <div className="flex items-center gap-3">
 
@@ -466,7 +475,7 @@ export default function PerfilPage() {
           </div>
 
           {/* ESTATÍSTICAS */}
-          <div className="rounded-3xl border border-white/10 bg-white/[0.025] p-7">
+          <div className="rounded-[2rem] border border-white/[0.09] bg-white/[0.045] p-7 shadow-xl shadow-black/20 backdrop-blur-xl">
 
             <div className="mb-6">
 
@@ -517,7 +526,7 @@ export default function PerfilPage() {
         </div>
 
         {/* HISTÓRICO */}
-        <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.025]">
+        <div className="mt-6 rounded-[2rem] border border-white/[0.09] bg-white/[0.045] shadow-xl shadow-black/20 backdrop-blur-xl">
 
           <div className="flex items-center justify-between border-b border-white/5 p-6">
 
@@ -533,7 +542,7 @@ export default function PerfilPage() {
 
             </div>
 
-            <button className="text-xs font-bold text-purple-400 transition hover:text-purple-300">
+            <button className="cursor-pointer text-xs font-bold text-fuchsia-200 transition hover:text-fuchsia-100">
               Ver tudo
             </button>
 
@@ -604,7 +613,7 @@ export default function PerfilPage() {
         </div>
 
       </section>
-    </main>
+    </main >
   );
 }
 
@@ -620,9 +629,9 @@ function ProfileStat({
   label: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 transition hover:-translate-y-0.5 hover:border-fuchsia-300/20 hover:bg-white/[0.05]">
 
-      <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
+      <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-lg bg-fuchsia-500/10 text-fuchsia-200 ring-1 ring-fuchsia-300/15">
         {icon}
       </div>
 
@@ -653,19 +662,17 @@ function Achievement({
 }) {
   return (
     <div
-      className={`rounded-2xl border p-5 ${
-        unlocked
-          ? "border-purple-500/20 bg-purple-500/[0.04]"
-          : "border-white/5 bg-white/[0.02] opacity-40"
-      }`}
+      className={`rounded-2xl border p-5 transition hover:-translate-y-0.5 ${unlocked
+        ? "border-fuchsia-300/20 bg-fuchsia-500/[0.07]"
+        : "border-white/5 bg-white/[0.02] opacity-40"
+        }`}
     >
 
       <div
-        className={`flex h-11 w-11 items-center justify-center rounded-xl ${
-          unlocked
-            ? "bg-purple-500/10 text-purple-400"
-            : "bg-white/5 text-white/30"
-        }`}
+        className={`flex h-11 w-11 items-center justify-center rounded-xl ${unlocked
+          ? "bg-fuchsia-500/10 text-fuchsia-200"
+          : "bg-white/5 text-white/30"
+          }`}
       >
         {icon}
       </div>
@@ -679,7 +686,7 @@ function Achievement({
       </p>
 
       {unlocked && (
-        <p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-purple-400">
+        <p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-fuchsia-200">
           Desbloqueada
         </p>
       )}
