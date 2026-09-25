@@ -524,6 +524,8 @@ export default function PartidaPage() {
           data.ranking
         );
 
+        setJogadorEliminado(false);
+
         setPartidaFinalizada(
           true
         );
