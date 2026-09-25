@@ -955,33 +955,37 @@ export default function PartidaPage() {
 
   /*
    * =========================================================
-   * JOGADOR ELIMINADO - AGUARDANDO PARTIDA
+   * JOGADOR ELIMINADO
    * =========================================================
    */
 
-  if (jogadorEliminado) {
+  if (
+    jogadorEliminado &&
+    mostrarFeedbackEliminacao
+  ) {
     return (
       <main className="flex min-h-screen items-center justify-center overflow-hidden bg-[#070711] px-6 text-white">
-        <div className="pointer-events-none fixed inset-0 bg-fuchsia-500/[0.03]" />
+        <div className="pointer-events-none fixed inset-0 bg-red-500/[0.03]" />
 
-        <div className="relative w-full max-w-md rounded-[2rem] border border-white/10 bg-white/[0.045] p-8 text-center shadow-2xl shadow-black/30 backdrop-blur-xl">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-fuchsia-300/20 bg-fuchsia-500/10">
-            <Loader2 className="h-10 w-10 animate-spin text-fuchsia-300" />
+        <div className="relative w-full max-w-md rounded-[2rem] border border-red-400/20 bg-white/[0.045] p-8 text-center shadow-2xl shadow-red-950/20 backdrop-blur-xl">
+
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10">
+            <XCircle className="h-10 w-10 text-red-400" />
           </div>
 
           <h1 className="mt-6 text-3xl font-black">
-            Você foi eliminado
+            Você foi eliminado!
           </h1>
 
           <p className="mt-3 text-sm leading-relaxed text-white/40">
             Sua resposta estava incorreta.
-            Aguarde os outros jogadores terminarem
-            a partida para conferir sua posição final.
+            Aguarde o fim da partida para
+            conferir sua posição final.
           </p>
 
           <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.025] px-5 py-4">
             <p className="text-xs font-bold uppercase tracking-wider text-white/30">
-              Status
+              Resultado
             </p>
 
             <p className="mt-2 text-lg font-black text-fuchsia-300">
@@ -990,7 +994,9 @@ export default function PartidaPage() {
           </div>
 
           <button
-            onClick={() => router.push("/")}
+            onClick={() =>
+              router.push("/")
+            }
             className="mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 hover:bg-white/15"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -1285,37 +1291,33 @@ export default function PartidaPage() {
 
   /*
    * =========================================================
-   * JOGADOR ELIMINADO
+   * JOGADOR ELIMINADO - AGUARDANDO PARTIDA
    * =========================================================
    */
 
-  if (
-    jogadorEliminado &&
-    mostrarFeedbackEliminacao
-  ) {
+  if (jogadorEliminado) {
     return (
       <main className="flex min-h-screen items-center justify-center overflow-hidden bg-[#070711] px-6 text-white">
-        <div className="pointer-events-none fixed inset-0 bg-red-500/[0.03]" />
+        <div className="pointer-events-none fixed inset-0 bg-fuchsia-500/[0.03]" />
 
-        <div className="relative w-full max-w-md rounded-[2rem] border border-red-400/20 bg-white/[0.045] p-8 text-center shadow-2xl shadow-red-950/20 backdrop-blur-xl">
-
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10">
-            <XCircle className="h-10 w-10 text-red-400" />
+        <div className="relative w-full max-w-md rounded-[2rem] border border-white/10 bg-white/[0.045] p-8 text-center shadow-2xl shadow-black/30 backdrop-blur-xl">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-fuchsia-300/20 bg-fuchsia-500/10">
+            <Loader2 className="h-10 w-10 animate-spin text-fuchsia-300" />
           </div>
 
           <h1 className="mt-6 text-3xl font-black">
-            Você foi eliminado!
+            Você foi eliminado
           </h1>
 
           <p className="mt-3 text-sm leading-relaxed text-white/40">
             Sua resposta estava incorreta.
-            Aguarde o fim da partida para
-            conferir sua posição final.
+            Aguarde os outros jogadores terminarem
+            a partida para conferir sua posição final.
           </p>
 
           <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.025] px-5 py-4">
             <p className="text-xs font-bold uppercase tracking-wider text-white/30">
-              Resultado
+              Status
             </p>
 
             <p className="mt-2 text-lg font-black text-fuchsia-300">
@@ -1324,9 +1326,7 @@ export default function PartidaPage() {
           </div>
 
           <button
-            onClick={() =>
-              router.push("/")
-            }
+            onClick={() => router.push("/")}
             className="mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 hover:bg-white/15"
           >
             <ArrowLeft className="h-4 w-4" />
