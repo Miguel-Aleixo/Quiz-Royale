@@ -356,52 +356,7 @@ export default function Home() {
             </p>
           </div>
 
-          {/* ESTATÍSTICAS */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <div className={`${glassCard} rounded-2xl px-4 py-3`}>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/30">
-                Salas abertas
-              </p>
-
-              <p className="mt-1 text-2xl font-black text-violet-200">
-                {!estaLogado
-                  ? "—"
-                  : loadingSalas
-                    ? "—"
-                    : salasAbertas.length}
-              </p>
-            </div>
-
-            <div className={`${glassCard} rounded-2xl px-4 py-3`}>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/30">
-                Jogadores
-              </p>
-
-              <p className="mt-1 text-2xl font-black text-fuchsia-200">
-                {!estaLogado
-                  ? "—"
-                  : loadingSalas
-                    ? "—"
-                    : jogadoresNasSalas}
-              </p>
-            </div>
-
-            <div
-              className={`${glassCard} col-span-2 rounded-2xl px-4 py-3 sm:col-span-1`}
-            >
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/30">
-                Perguntas
-              </p>
-
-              <p className="mt-1 text-2xl font-black text-amber-200">
-                {!estaLogado
-                  ? "—"
-                  : loadingPerguntas
-                    ? "—"
-                    : perguntas.length}
-              </p>
-            </div>
-          </div>
+          
         </div>
 
         {/* CARDS PRINCIPAIS */}

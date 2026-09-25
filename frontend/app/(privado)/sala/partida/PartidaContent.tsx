@@ -200,9 +200,9 @@ export default function PartidaPage() {
           const inicio =
             agora +
             index *
-              (tipo === "comemoracao"
-                ? 0.13
-                : 0.1);
+            (tipo === "comemoracao"
+              ? 0.13
+              : 0.1);
 
           const oscilador =
             context.createOscillator();
@@ -233,9 +233,9 @@ export default function PartidaPage() {
           ganho.gain.exponentialRampToValueAtTime(
             0.0001,
             inicio +
-              (tipo === "comemoracao"
-                ? 0.3
-                : 0.18)
+            (tipo === "comemoracao"
+              ? 0.3
+              : 0.18)
           );
 
           oscilador.connect(ganho);
@@ -247,9 +247,9 @@ export default function PartidaPage() {
 
           oscilador.stop(
             inicio +
-              (tipo === "comemoracao"
-                ? 0.32
-                : 0.2)
+            (tipo === "comemoracao"
+              ? 0.32
+              : 0.2)
           );
         }
       );
@@ -335,7 +335,7 @@ export default function PartidaPage() {
             Array.isArray(data.message)
               ? data.message.join(", ")
               : data.message ||
-                  "Erro ao buscar partida."
+              "Erro ao buscar partida."
           );
         }
 
@@ -933,6 +933,57 @@ export default function PartidaPage() {
   }
 
   /*
+ * =========================================================
+ * JOGADOR ELIMINADO
+ * =========================================================
+ */
+
+  if (jogadorEliminado) {
+    return (
+      <main className="flex min-h-screen items-center justify-center overflow-hidden bg-[#070711] px-6 text-white">
+        <div className="pointer-events-none fixed inset-0 bg-red-500/[0.03]" />
+
+        <div className="relative w-full max-w-md rounded-[2rem] border border-red-400/20 bg-white/[0.045] p-8 text-center shadow-2xl shadow-red-950/20 backdrop-blur-xl">
+
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10">
+            <XCircle className="h-10 w-10 text-red-400" />
+          </div>
+
+          <h1 className="mt-6 text-3xl font-black">
+            Você foi eliminado!
+          </h1>
+
+          <p className="mt-3 text-sm leading-relaxed text-white/40">
+            Sua resposta estava incorreta.
+            Aguarde o fim da partida para
+            conferir sua posição final.
+          </p>
+
+          <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.025] px-5 py-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-white/30">
+              Resultado
+            </p>
+
+            <p className="mt-2 text-lg font-black text-fuchsia-300">
+              Aguardando resultado final
+            </p>
+          </div>
+
+          <button
+            onClick={() =>
+              router.push("/")
+            }
+            className="mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 hover:bg-white/15"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar para o início
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  /*
    * =========================================================
    * PARTIDA FINALIZADA
    * =========================================================
@@ -1013,11 +1064,10 @@ export default function PartidaPage() {
                         key={
                           jogador.jogadorId
                         }
-                        className={`px-6 py-5 transition md:px-8 ${
-                          souEu
+                        className={`px-6 py-5 transition md:px-8 ${souEu
                             ? "bg-purple-500/10"
                             : "bg-transparent"
-                        }`}
+                          }`}
                       >
                         <div className="grid items-center gap-4 md:grid-cols-[70px_minmax(180px,1fr)_120px_150px_110px]">
 
@@ -1025,18 +1075,17 @@ export default function PartidaPage() {
 
                           <div className="flex items-center md:justify-start">
                             <div
-                              className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                                jogador.posicao ===
-                                1
+                              className={`flex h-10 w-10 items-center justify-center rounded-xl ${jogador.posicao ===
+                                  1
                                   ? "bg-yellow-400/15"
                                   : jogador.posicao <=
-                                      3
+                                    3
                                     ? "bg-white/10"
                                     : "bg-white/[0.06]"
-                              }`}
+                                }`}
                             >
                               {jogador.posicao ===
-                              1 ? (
+                                1 ? (
                                 <Trophy className="h-5 w-5 text-yellow-300" />
                               ) : jogador.posicao <=
                                 3 ? (
@@ -1144,12 +1193,12 @@ export default function PartidaPage() {
 
                 {ranking.length ===
                   0 && (
-                  <div className="px-6 py-12 text-center">
-                    <p className="text-sm text-white/40">
-                      Nenhum jogador encontrado.
-                    </p>
-                  </div>
-                )}
+                    <div className="px-6 py-12 text-center">
+                      <p className="text-sm text-white/40">
+                        Nenhum jogador encontrado.
+                      </p>
+                    </div>
+                  )}
               </div>
             </div>
           </section>
@@ -1209,57 +1258,6 @@ export default function PartidaPage() {
               Voltar
             </button>
           </div>
-        </div>
-      </main>
-    );
-  }
-
-  /*
-   * =========================================================
-   * JOGADOR ELIMINADO
-   * =========================================================
-   */
-
-  if (jogadorEliminado) {
-    return (
-      <main className="flex min-h-screen items-center justify-center overflow-hidden bg-[#070711] px-6 text-white">
-        <div className="pointer-events-none fixed inset-0 bg-red-500/[0.03]" />
-
-        <div className="relative w-full max-w-md rounded-[2rem] border border-red-400/20 bg-white/[0.045] p-8 text-center shadow-2xl shadow-red-950/20 backdrop-blur-xl">
-
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10">
-            <XCircle className="h-10 w-10 text-red-400" />
-          </div>
-
-          <h1 className="mt-6 text-3xl font-black">
-            Você foi eliminado!
-          </h1>
-
-          <p className="mt-3 text-sm leading-relaxed text-white/40">
-            Sua resposta estava incorreta.
-            Aguarde o fim da partida para
-            conferir sua posição final.
-          </p>
-
-          <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.025] px-5 py-4">
-            <p className="text-xs font-bold uppercase tracking-wider text-white/30">
-              Resultado
-            </p>
-
-            <p className="mt-2 text-lg font-black text-fuchsia-300">
-              Aguardando resultado final
-            </p>
-          </div>
-
-          <button
-            onClick={() =>
-              router.push("/")
-            }
-            className="mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 hover:bg-white/15"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar para o início
-          </button>
         </div>
       </main>
     );
@@ -1345,11 +1343,10 @@ export default function PartidaPage() {
              ================================================= */}
 
           <div
-            className={`flex items-center gap-2 rounded-2xl border px-4 py-2.5 shadow-lg backdrop-blur-xl ${
-              tempoRestante <= 5
+            className={`flex items-center gap-2 rounded-2xl border px-4 py-2.5 shadow-lg backdrop-blur-xl ${tempoRestante <= 5
                 ? "border-red-400/30 bg-red-500/10 text-red-300"
                 : "border-white/10 bg-white/5 text-white"
-            }`}
+              }`}
           >
             <Clock3 className="h-5 w-5" />
 
@@ -1410,15 +1407,13 @@ export default function PartidaPage() {
                       key={index}
                       className="absolute top-[42%] h-2 w-1.5 animate-[confetti-fall_1200ms_ease-out_both] rounded-sm"
                       style={{
-                        left: `${
-                          6 +
+                        left: `${6 +
                           ((index * 37) %
                             88)
-                        }%`,
-                        animationDelay: `${
-                          (index % 8) *
+                          }%`,
+                        animationDelay: `${(index % 8) *
                           45
-                        }ms`,
+                          }ms`,
                         backgroundColor:
                           [
                             "#f0abfc",
@@ -1427,7 +1422,7 @@ export default function PartidaPage() {
                             "#86efac",
                             "#67e8f9",
                           ][
-                            index % 5
+                          index % 5
                           ],
                       }}
                     />
@@ -1466,7 +1461,7 @@ export default function PartidaPage() {
                     jogadorEliminado ||
                     tempoRestante <= 0 ||
                     alternativaSelecionada !==
-                      null;
+                    null;
 
                   return (
                     <button
@@ -1482,26 +1477,22 @@ export default function PartidaPage() {
                         desabilitada
                       }
                       style={{
-                        animationDelay: `${
-                          index * 70
-                        }ms`,
+                        animationDelay: `${index * 70
+                          }ms`,
                       }}
-                      className={`group flex min-h-[90px] animate-[quiz-option-in_450ms_ease-out_both] items-center gap-4 rounded-2xl border p-5 text-left transition-all duration-200 ${
-                        selecionada
+                      className={`group flex min-h-[90px] animate-[quiz-option-in_450ms_ease-out_both] items-center gap-4 rounded-2xl border p-5 text-left transition-all duration-200 ${selecionada
                           ? "border-fuchsia-400 bg-fuchsia-500/15 shadow-lg shadow-fuchsia-500/10"
                           : "border-white/10 bg-white/[0.025] hover:-translate-y-0.5 hover:border-fuchsia-400/40 hover:bg-white/[0.06]"
-                      } ${
-                        desabilitada
+                        } ${desabilitada
                           ? "cursor-not-allowed opacity-50"
                           : "cursor-pointer"
-                      }`}
+                        }`}
                     >
                       <span
-                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-black ${
-                          selecionada
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-black ${selecionada
                             ? "bg-gradient-to-br from-fuchsia-400 to-violet-500 text-white shadow-lg shadow-fuchsia-950/30"
                             : "bg-white/10 text-white/60 group-hover:bg-fuchsia-500/20 group-hover:text-fuchsia-300"
-                        }`}
+                          }`}
                       >
                         {String.fromCharCode(
                           65 + index
@@ -1530,7 +1521,7 @@ export default function PartidaPage() {
             <div className="mt-8 flex min-h-9 justify-center">
 
               {tempoRestante ===
-              0 ? (
+                0 ? (
                 <span className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-300">
                   Tempo encerrado
                 </span>
