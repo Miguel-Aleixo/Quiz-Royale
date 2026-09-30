@@ -1,9 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  useSearchParams,
+  useRouter,
+} from "next/navigation";
+
 import Cookies from "js-cookie";
-import { io, Socket } from "socket.io-client";
+
+import {
+  io,
+  Socket,
+} from "socket.io-client";
+
 import {
   Clock3,
   CheckCircle2,
@@ -13,6 +28,7 @@ import {
   Trophy,
   Medal,
   ArrowLeft,
+  Users,
 } from "lucide-react";
 
 import { useToken } from "@/app/hooks/usuario/useToken";
@@ -48,16 +64,18 @@ interface PerguntaSocket {
   rodada: Rodada;
   numeroRodada: number;
   totalRodadas: number;
+
+  iniciadaEm: number;
+  terminaEm: number;
 }
 
 interface ResultadoResposta {
   correta: boolean;
   alternativaId: number;
   rodadaId: number;
-
-  // Dados enviados pelo novo backend
   acertos?: number;
   tempoTotal?: number;
+  eliminado?: boolean;
 }
 
 interface ErroSocket {
@@ -81,11 +99,12 @@ interface RankingJogador {
   jogadorId: number;
   usuarioId: number;
   nome: string;
-
-  // Novo sistema de ranking
   acertos: number;
   tempoTotal: number;
   totalRespostas: number;
+  pontosGanhos?: number;
+  pontuacao?: number;
+  eliminado?: boolean;
 }
 
 interface PartidaFinalizada {
@@ -93,29 +112,58 @@ interface PartidaFinalizada {
   ranking: RankingJogador[];
 }
 
+interface ProgressoRespostas {
+  respondidos: number;
+  total: number;
+}
+
 export default function PartidaPage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  const searchParams =
+    useSearchParams();
 
-  const codigo = searchParams.get("codigo");
+  const router =
+    useRouter();
 
-  const API = process.env.NEXT_PUBLIC_API;
+  const codigo =
+    searchParams.get("codigo");
 
-  const usuario = useToken();
-  const usuarioId = usuario?.sub;
+  const API =
+    process.env.NEXT_PUBLIC_API;
 
-  const [sala, setSala] = useState<Sala | null>(null);
+  const usuario =
+    useToken();
+
+  const usuarioId =
+    usuario?.sub;
+
+  const [sala, setSala] =
+    useState<Sala | null>(null);
 
   const [carregando, setCarregando] =
     useState(true);
 
-  const [erro, setErro] = useState("");
+  const [erro, setErro] =
+    useState("");
 
   const [rodadaAtual, setRodadaAtual] =
     useState(0);
 
   const [tempoRestante, setTempoRestante] =
     useState(0);
+
+  /*
+   * Guarda o timestamp de término
+   * enviado pelo servidor.
+   */
+  const terminaEmRef =
+    useRef(0);
+
+  /*
+   * Guarda o timestamp de início
+   * enviado pelo servidor.
+   */
+  const iniciadaEmRef =
+    useRef(0);
 
   const [
     alternativaSelecionada,
@@ -163,10 +211,16 @@ export default function PartidaPage() {
     setPartidaFinalizada,
   ] = useState(false);
 
+  const [ranking, setRanking] =
+    useState<RankingJogador[]>([]);
+
   const [
-    ranking,
-    setRanking,
-  ] = useState<RankingJogador[]>([]);
+    progressoRespostas,
+    setProgressoRespostas,
+  ] = useState<ProgressoRespostas>({
+    respondidos: 0,
+    total: 0,
+  });
 
   /*
    * =========================================================
@@ -183,31 +237,53 @@ export default function PartidaPage() {
       | "clique"
       | "acerto"
       | "erro"
-      | "comemoracao"
+      | "comemoracao",
   ) {
-    if (typeof window === "undefined") return;
+    if (
+      typeof window ===
+      "undefined"
+    ) {
+      return;
+    }
 
     try {
       const AudioContextClass =
         window.AudioContext;
 
-      if (!AudioContextClass) return;
+      if (!AudioContextClass) {
+        return;
+      }
 
       const context =
         audioContextRef.current ??
         new AudioContextClass();
 
-      audioContextRef.current = context;
+      audioContextRef.current =
+        context;
 
-      if (context.state === "suspended") {
+      if (
+        context.state ===
+        "suspended"
+      ) {
         void context.resume();
       }
 
       const notas = {
         nova: [392, 523],
+
         clique: [330],
-        acerto: [523, 659, 784],
-        erro: [330, 262],
+
+        acerto: [
+          523,
+          659,
+          784,
+        ],
+
+        erro: [
+          330,
+          262,
+        ],
+
         comemoracao: [
           523,
           659,
@@ -221,11 +297,15 @@ export default function PartidaPage() {
         context.currentTime;
 
       notas.forEach(
-        (frequencia, index) => {
+        (
+          frequencia,
+          index,
+        ) => {
           const inicio =
             agora +
             index *
-              (tipo === "comemoracao"
+              (tipo ===
+              "comemoracao"
                 ? 0.13
                 : 0.1);
 
@@ -238,7 +318,8 @@ export default function PartidaPage() {
           oscilador.type =
             tipo === "erro"
               ? "sawtooth"
-              : tipo === "comemoracao"
+              : tipo ===
+                  "comemoracao"
                 ? "triangle"
                 : "sine";
 
@@ -247,36 +328,43 @@ export default function PartidaPage() {
 
           ganho.gain.setValueAtTime(
             0.0001,
-            inicio
+            inicio,
           );
 
           ganho.gain.exponentialRampToValueAtTime(
             0.07,
-            inicio + 0.015
+            inicio + 0.015,
           );
 
           ganho.gain.exponentialRampToValueAtTime(
             0.0001,
             inicio +
-              (tipo === "comemoracao"
+              (tipo ===
+              "comemoracao"
                 ? 0.3
-                : 0.18)
+                : 0.18),
           );
 
-          oscilador.connect(ganho);
+          oscilador.connect(
+            ganho,
+          );
+
           ganho.connect(
-            context.destination
+            context.destination,
           );
 
-          oscilador.start(inicio);
+          oscilador.start(
+            inicio,
+          );
 
           oscilador.stop(
             inicio +
-              (tipo === "comemoracao"
+              (tipo ===
+              "comemoracao"
                 ? 0.32
-                : 0.2)
+                : 0.2),
           );
-        }
+        },
       );
     } catch {
       // Ignora erros do áudio
@@ -287,16 +375,10 @@ export default function PartidaPage() {
    * =========================================================
    * FORMATAR TEMPO
    * =========================================================
-   *
-   * O backend trabalha com milissegundos.
-   *
-   * Exemplo:
-   *
-   * 38420 -> 38.42s
    */
 
   function formatarTempo(
-    tempoMs: number
+    tempoMs: number,
   ) {
     return `${(
       tempoMs / 1000
@@ -313,7 +395,7 @@ export default function PartidaPage() {
     async function buscarPartida() {
       if (!codigo) {
         setErro(
-          "Código da sala não informado."
+          "Código da sala não informado.",
         );
 
         setCarregando(false);
@@ -326,12 +408,13 @@ export default function PartidaPage() {
 
       if (!token) {
         router.push("/login");
+
         return;
       }
 
       if (!API) {
         setErro(
-          "API não configurada."
+          "API não configurada.",
         );
 
         setCarregando(false);
@@ -341,26 +424,33 @@ export default function PartidaPage() {
 
       try {
         setCarregando(true);
+
         setErro("");
 
-        const res = await fetch(
-          `${API}/sala/codigo/${codigo}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
+        const res =
+          await fetch(
+            `${API}/sala/codigo/${codigo}`,
+            {
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+              },
             },
-          }
-        );
+          );
 
         const data =
           await res.json();
 
         if (!res.ok) {
           throw new Error(
-            Array.isArray(data.message)
-              ? data.message.join(", ")
+            Array.isArray(
+              data.message,
+            )
+              ? data.message.join(
+                  ", ",
+                )
               : data.message ||
-                  "Erro ao buscar partida."
+                  "Erro ao buscar partida.",
           );
         }
 
@@ -369,7 +459,7 @@ export default function PartidaPage() {
         setErro(
           error instanceof Error
             ? error.message
-            : "Erro ao carregar a partida."
+            : "Erro ao carregar a partida.",
         );
       } finally {
         setCarregando(false);
@@ -377,16 +467,23 @@ export default function PartidaPage() {
     }
 
     buscarPartida();
-  }, [API, codigo, router]);
+  }, [
+    API,
+    codigo,
+    router,
+  ]);
 
   /*
    * =========================================================
-   * CONEXÃO COM PARTIDA GATEWAY
+   * SOCKET
    * =========================================================
    */
 
   useEffect(() => {
-    if (!codigo || !API) {
+    if (
+      !codigo ||
+      !API
+    ) {
       return;
     }
 
@@ -395,17 +492,24 @@ export default function PartidaPage() {
 
     if (!token) {
       router.push("/login");
+
       return;
     }
 
-    const socketInstance = io(API, {
-      auth: {
-        token,
-      },
-      transports: ["websocket"],
-    });
+    const socketInstance =
+      io(API, {
+        auth: {
+          token,
+        },
 
-    setSocket(socketInstance);
+        transports: [
+          "websocket",
+        ],
+      });
+
+    setSocket(
+      socketInstance,
+    );
 
     /*
      * =======================================================
@@ -418,68 +522,123 @@ export default function PartidaPage() {
       () => {
         console.log(
           "Conectado ao PartidaGateway:",
-          socketInstance.id
+          socketInstance.id,
         );
 
         socketInstance.emit(
           "entrar_partida",
           {
             codigo,
-          }
+          },
         );
-      }
+      },
     );
 
     /*
      * =======================================================
-     * RECEBER PERGUNTA
+     * PERGUNTA
      * =======================================================
      */
 
     socketInstance.on(
       "pergunta",
-      (data: PerguntaSocket) => {
+      (
+        data: PerguntaSocket,
+      ) => {
         console.log(
           "Pergunta recebida:",
-          data
+          data,
         );
 
         setRodadaAtual(
-          data.numeroRodada - 1
+          data.numeroRodada - 1,
         );
 
+        /*
+         * Guardar relógio oficial
+         * do servidor.
+         */
+
+        iniciadaEmRef.current =
+          data.iniciadaEm;
+
+        terminaEmRef.current =
+          data.terminaEm;
+
+        /*
+         * Calcular imediatamente
+         * quanto tempo realmente resta.
+         */
+
+        const restanteMs =
+          Math.max(
+            0,
+            data.terminaEm -
+              Date.now(),
+          );
+
         setTempoRestante(
-          data.rodada.tempoLimite
+          Math.ceil(
+            restanteMs / 1000,
+          ),
         );
 
         setAlternativaSelecionada(
-          null
+          null,
         );
 
         setResultadoResposta(
-          null
+          null,
         );
-      }
+      },
     );
 
     /*
      * =======================================================
-     * RESULTADO DA RESPOSTA
+     * PROGRESSO
+     * =======================================================
+     */
+
+    socketInstance.on(
+      "progresso_respostas",
+      (
+        data: ProgressoRespostas,
+      ) => {
+        console.log(
+          "Progresso das respostas:",
+          data,
+        );
+
+        setProgressoRespostas({
+          respondidos:
+            data.respondidos,
+
+          total:
+            data.total,
+        });
+      },
+    );
+
+    /*
+     * =======================================================
+     * RESULTADO
      * =======================================================
      */
 
     socketInstance.on(
       "resultado_resposta",
-      (data: ResultadoResposta) => {
+      (
+        data: ResultadoResposta,
+      ) => {
         console.log(
           "Resultado da resposta:",
-          data
+          data,
         );
 
         setResultadoResposta(
-          data.correta
+          data.correta,
         );
-      }
+      },
     );
 
     /*
@@ -490,32 +649,44 @@ export default function PartidaPage() {
 
     socketInstance.on(
       "jogador_eliminado",
-      (data: JogadorEliminado) => {
+      (
+        data: JogadorEliminado,
+      ) => {
         console.log(
           "Jogador eliminado:",
-          data
+          data,
         );
 
-        /*
-         * O jogador é eliminado
-         * imediatamente quando erra.
-         */
-
         if (
-          Number(usuarioId) ===
-          Number(data.usuarioId)
+          Number(
+            usuarioId,
+          ) ===
+          Number(
+            data.usuarioId,
+          )
         ) {
           setJogadorEliminado(
-            true
+            true,
           );
 
-          setClassificacaoEliminacao({
-            posicao: data.posicaoAtual,
-            acertos: data.acertos,
-            tempoTotal: data.tempoTotal,
-            totalRespostas: data.totalRespostas,
-            totalJogadores: data.totalJogadores,
-          });
+          setClassificacaoEliminacao(
+            {
+              posicao:
+                data.posicaoAtual,
+
+              acertos:
+                data.acertos,
+
+              tempoTotal:
+                data.tempoTotal,
+
+              totalRespostas:
+                data.totalRespostas,
+
+              totalJogadores:
+                data.totalJogadores,
+            },
+          );
 
           setMensagemEliminacao(
             data.mensagem ||
@@ -523,71 +694,82 @@ export default function PartidaPage() {
           );
 
           setMostrarFeedbackEliminacao(
-            true
+            true,
           );
 
           setAlternativaSelecionada(
-            null
+            null,
           );
 
           setResultadoResposta(
-            false
+            false,
           );
 
-          setTempoRestante(0);
+          setTempoRestante(
+            0,
+          );
 
-          window.setTimeout(() => {
-            setMostrarFeedbackEliminacao(false);
-          }, 2500);
+          terminaEmRef.current =
+            0;
+
+          window.setTimeout(
+            () => {
+              setMostrarFeedbackEliminacao(
+                false,
+              );
+            },
+            2500,
+          );
         }
-      }
+      },
     );
 
     /*
      * =======================================================
      * PARTIDA FINALIZADA
      * =======================================================
-     *
-     * O backend envia o ranking somente
-     * quando a partida realmente termina.
-     *
-     * O ranking já vem ordenado pelo backend:
-     *
-     * 1º quantidade de acertos
-     * 2º menor tempo total
-     *
      */
 
     socketInstance.on(
       "partida_finalizada",
-      (data: PartidaFinalizada) => {
+      (
+        data: PartidaFinalizada,
+      ) => {
         console.log(
           "Partida finalizada:",
-          data
+          data,
         );
 
         setRanking(
-          data.ranking
+          data.ranking,
         );
 
         setMostrarFeedbackEliminacao(
-          false
+          false,
         );
 
         setJogadorEliminado(
-          false
+          false,
         );
 
         setClassificacaoEliminacao(
-          null
+          null,
         );
 
         setPartidaFinalizada(
-          true
+          true,
         );
 
-        setTempoRestante(0);
-      }
+        setTempoRestante(
+          0,
+        );
+
+        terminaEmRef.current =
+          0;
+
+        iniciadaEmRef.current =
+          0;
+      },
     );
 
     /*
@@ -598,16 +780,36 @@ export default function PartidaPage() {
 
     socketInstance.on(
       "erro_resposta",
-      (data: ErroSocket) => {
+      (
+        data: ErroSocket,
+      ) => {
         console.error(
           "Erro ao responder:",
-          data.mensagem
+          data.mensagem,
         );
 
         setErro(
-          data.mensagem
+          data.mensagem,
         );
-      }
+
+        /*
+         * Caso a resposta tenha chegado
+         * depois do prazo, o servidor
+         * pode estar encerrando a rodada.
+         */
+
+        if (
+          data.mensagem
+            .toLowerCase()
+            .includes(
+              "tempo",
+            )
+        ) {
+          setTempoRestante(
+            0,
+          );
+        }
+      },
     );
 
     /*
@@ -618,16 +820,18 @@ export default function PartidaPage() {
 
     socketInstance.on(
       "erro_partida",
-      (data: ErroSocket) => {
+      (
+        data: ErroSocket,
+      ) => {
         console.error(
           "Erro da partida:",
-          data.mensagem
+          data.mensagem,
         );
 
         setErro(
-          data.mensagem
+          data.mensagem,
         );
-      }
+      },
     );
 
     /*
@@ -638,12 +842,14 @@ export default function PartidaPage() {
 
     socketInstance.on(
       "disconnect",
-      (reason) => {
+      (
+        reason,
+      ) => {
         console.log(
           "Desconectado do PartidaGateway:",
-          reason
+          reason,
         );
-      }
+      },
     );
 
     /*
@@ -654,7 +860,7 @@ export default function PartidaPage() {
 
     return () => {
       console.log(
-        "Encerrando conexão do PartidaGateway"
+        "Encerrando conexão do PartidaGateway",
       );
 
       socketInstance.removeAllListeners();
@@ -670,15 +876,84 @@ export default function PartidaPage() {
 
   /*
    * =========================================================
+   * TIMER SINCRONIZADO COM SERVIDOR
+   * =========================================================
+   */
+
+  useEffect(() => {
+    if (
+      jogadorEliminado ||
+      partidaFinalizada
+    ) {
+      return;
+    }
+
+    if (
+      terminaEmRef.current <=
+      0
+    ) {
+      return;
+    }
+
+    const atualizarTimer =
+      () => {
+        const restanteMs =
+          Math.max(
+            0,
+            terminaEmRef.current -
+              Date.now(),
+          );
+
+        const restanteSegundos =
+          Math.ceil(
+            restanteMs / 1000,
+          );
+
+        setTempoRestante(
+          restanteSegundos,
+        );
+      };
+
+    atualizarTimer();
+
+    /*
+     * Atualiza várias vezes por segundo.
+     * A interface continua mostrando
+     * somente segundos inteiros.
+     */
+
+    const intervalo =
+      window.setInterval(
+        atualizarTimer,
+        100,
+      );
+
+    return () => {
+      window.clearInterval(
+        intervalo,
+      );
+    };
+  }, [
+    jogadorEliminado,
+    partidaFinalizada,
+    rodadaAtual,
+  ]);
+
+  /*
+   * =========================================================
    * SOM DE NOVA PERGUNTA
    * =========================================================
    */
 
   useEffect(() => {
-    if (rodadaAtual > 0) {
+    if (
+      rodadaAtual > 0
+    ) {
       tocarSom("nova");
     }
-  }, [rodadaAtual]);
+  }, [
+    rodadaAtual,
+  ]);
 
   /*
    * =========================================================
@@ -688,28 +963,21 @@ export default function PartidaPage() {
 
   useEffect(() => {
     if (
-      resultadoResposta === true
+      resultadoResposta ===
+      true
     ) {
-      /*
-       * IMPORTANTE:
-       *
-       * Não existe mais:
-       *
-       * setPontuacao(... + 100)
-       *
-       * Acerto agora serve para
-       * determinar a posição final.
-       */
-
       tocarSom("acerto");
     }
 
     if (
-      resultadoResposta === false
+      resultadoResposta ===
+      false
     ) {
       tocarSom("erro");
     }
-  }, [resultadoResposta]);
+  }, [
+    resultadoResposta,
+  ]);
 
   /*
    * =========================================================
@@ -718,10 +986,16 @@ export default function PartidaPage() {
    */
 
   useEffect(() => {
-    if (partidaFinalizada) {
-      tocarSom("comemoracao");
+    if (
+      partidaFinalizada
+    ) {
+      tocarSom(
+        "comemoracao",
+      );
     }
-  }, [partidaFinalizada]);
+  }, [
+    partidaFinalizada,
+  ]);
 
   /*
    * =========================================================
@@ -729,86 +1003,32 @@ export default function PartidaPage() {
    * =========================================================
    */
 
-  const rodada = useMemo(() => {
-    if (!sala?.rodadas?.length) {
-      return null;
-    }
+  const rodada =
+    useMemo(() => {
+      if (
+        !sala?.rodadas?.length
+      ) {
+        return null;
+      }
 
-    const ordenadas = [
-      ...sala.rodadas,
-    ].sort(
-      (a, b) =>
-        (a.ordem ?? 0) -
-        (b.ordem ?? 0)
-    );
-
-    return (
-      ordenadas[rodadaAtual] ??
-      null
-    );
-  }, [
-    sala,
-    rodadaAtual,
-  ]);
-
-  /*
-   * =========================================================
-   * CRONÔMETRO
-   * =========================================================
-   */
-
-  useEffect(() => {
-    if (jogadorEliminado) {
-      return;
-    }
-
-    if (partidaFinalizada) {
-      return;
-    }
-
-    if (!rodada) {
-      return;
-    }
-
-    setTempoRestante(
-      rodada.tempoLimite
-    );
-
-    setAlternativaSelecionada(
-      null
-    );
-
-    setResultadoResposta(
-      null
-    );
-
-    const intervalo =
-      setInterval(() => {
-        setTempoRestante(
-          (tempo) => {
-            if (tempo <= 1) {
-              clearInterval(
-                intervalo
-              );
-
-              return 0;
-            }
-
-            return tempo - 1;
-          }
+      const ordenadas =
+        [
+          ...sala.rodadas,
+        ].sort(
+          (a, b) =>
+            (a.ordem ?? 0) -
+            (b.ordem ?? 0),
         );
-      }, 1000);
 
-    return () => {
-      clearInterval(
-        intervalo
+      return (
+        ordenadas[
+          rodadaAtual
+        ] ?? null
       );
-    };
-  }, [
-    rodada,
-    partidaFinalizada,
-    jogadorEliminado,
-  ]);
+    }, [
+      sala,
+      rodadaAtual,
+    ]);
 
   /*
    * =========================================================
@@ -817,30 +1037,25 @@ export default function PartidaPage() {
    */
 
   function selecionarAlternativa(
-    id: number
+    id: number,
   ) {
-    /*
-     * Jogador eliminado não pode
-     * responder novamente.
-     */
-
-    if (jogadorEliminado) {
+    if (
+      jogadorEliminado
+    ) {
       return;
     }
 
-    /*
-     * Não permite responder
-     * depois do tempo.
-     */
-
-    if (tempoRestante <= 0) {
+    if (
+      partidaFinalizada
+    ) {
       return;
     }
 
-    /*
-     * Não permite responder
-     * duas vezes.
-     */
+    if (
+      tempoRestante <= 0
+    ) {
+      return;
+    }
 
     if (
       alternativaSelecionada !==
@@ -849,33 +1064,21 @@ export default function PartidaPage() {
       return;
     }
 
-    /*
-     * Precisa existir uma rodada.
-     */
-
     if (!rodada) {
       return;
     }
 
-    /*
-     * Precisa estar conectado.
-     */
-
     if (!socket) {
       setErro(
-        "Não foi possível conectar ao servidor."
+        "Não foi possível conectar ao servidor.",
       );
 
       return;
     }
 
-    /*
-     * Precisa ter usuário logado.
-     */
-
     if (!usuarioId) {
       setErro(
-        "Usuário não identificado."
+        "Usuário não identificado.",
       );
 
       return;
@@ -884,50 +1087,53 @@ export default function PartidaPage() {
     tocarSom("clique");
 
     setAlternativaSelecionada(
-      id
+      id,
     );
 
     /*
-     * =======================================================
-     * TEMPO DA RESPOSTA
-     * =======================================================
-     *
-     * Exemplo:
-     *
-     * tempoLimite = 20
-     * tempoRestante = 13
-     *
-     * tempoResposta = 7 segundos
-     *
-     * O backend soma esse valor ao
-     * tempo total do jogador.
-     *
-     * Enviamos em milissegundos.
+     * O valor ainda é enviado por compatibilidade
+     * com o evento atual, mas o backend NÃO confia nele.
      */
 
     const tempoResposta =
-      (rodada.tempoLimite -
-        tempoRestante) *
-      1000;
+      Math.max(
+        0,
+        Math.min(
+          rodada.tempoLimite *
+            1000,
+          Date.now() -
+            iniciadaEmRef.current,
+        ),
+      );
 
     socket.emit(
       "responder",
       {
         codigo,
-        alternativaId: id,
-        rodadaId: rodada.id,
+
+        alternativaId:
+          id,
+
+        rodadaId:
+          rodada.id,
+
         tempoResposta,
-      }
+      },
     );
 
     console.log(
       "Resposta enviada:",
       {
         codigo,
-        alternativaId: id,
-        rodadaId: rodada.id,
+
+        alternativaId:
+          id,
+
+        rodadaId:
+          rodada.id,
+
         tempoResposta,
-      }
+      },
     );
   }
 
@@ -996,11 +1202,12 @@ export default function PartidaPage() {
    * =========================================================
    */
 
-  if (partidaFinalizada) {
+  if (
+    partidaFinalizada
+  ) {
     return (
       <main className="min-h-screen overflow-hidden bg-[#070711] text-white">
         <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-5 py-8 md:px-8">
-
           <header className="relative text-center">
             <div className="pointer-events-none absolute left-1/2 top-[-180px] h-[360px] w-[560px] -translate-x-1/2 rounded-full bg-yellow-500/10 blur-[120px]" />
 
@@ -1019,7 +1226,6 @@ export default function PartidaPage() {
 
           <section className="mt-10">
             <div className="overflow-hidden rounded-[2rem] border border-white/[0.09] bg-white/[0.045] shadow-2xl shadow-black/30 backdrop-blur-xl">
-
               <div className="border-b border-white/10 px-6 py-5 md:px-8">
                 <div className="flex items-center gap-3">
                   <Trophy className="h-5 w-5 text-yellow-300" />
@@ -1037,16 +1243,15 @@ export default function PartidaPage() {
                 </div>
               </div>
 
-              {/* =====================================================
-                  CABEÇALHO DA TABELA
-                 ===================================================== */}
-
               <div className="hidden grid-cols-[70px_minmax(180px,1fr)_120px_150px] gap-4 border-b border-white/10 bg-white/[0.025] px-6 py-4 text-[10px] font-black uppercase tracking-wider text-white/30 md:grid md:px-8">
                 <span>Pos.</span>
+
                 <span>Jogador</span>
+
                 <span className="text-center">
                   Acertos
                 </span>
+
                 <span className="text-center">
                   Tempo médio
                 </span>
@@ -1054,13 +1259,15 @@ export default function PartidaPage() {
 
               <div className="divide-y divide-white/5">
                 {ranking.map(
-                  (jogador) => {
+                  (
+                    jogador,
+                  ) => {
                     const souEu =
                       Number(
-                        usuarioId
+                        usuarioId,
                       ) ===
                       Number(
-                        jogador.usuarioId
+                        jogador.usuarioId,
                       );
 
                     return (
@@ -1075,9 +1282,6 @@ export default function PartidaPage() {
                         }`}
                       >
                         <div className="grid items-center gap-4 md:grid-cols-[70px_minmax(180px,1fr)_120px_150px]">
-
-                          {/* POSIÇÃO */}
-
                           <div className="flex items-center md:justify-start">
                             <div
                               className={`flex h-10 w-10 items-center justify-center rounded-xl ${
@@ -1100,13 +1304,12 @@ export default function PartidaPage() {
                                 <span className="text-sm font-black text-white/50">
                                   {
                                     jogador.posicao
-                                  }º
+                                  }
+                                  º
                                 </span>
                               )}
                             </div>
                           </div>
-
-                          {/* JOGADOR */}
 
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
@@ -1131,8 +1334,6 @@ export default function PartidaPage() {
                             </p>
                           </div>
 
-                          {/* ACERTOS */}
-
                           <div className="flex items-center justify-between md:block md:text-center">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-white/30 md:hidden">
                               Acertos
@@ -1144,11 +1345,8 @@ export default function PartidaPage() {
                                   jogador.acertos
                                 }
                               </span>
-
                             </div>
                           </div>
-
-                          {/* TEMPO */}
 
                           <div className="flex items-center justify-between md:block md:text-center">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-white/30 md:hidden">
@@ -1160,18 +1358,19 @@ export default function PartidaPage() {
 
                               <span className="text-sm font-black tabular-nums text-white/80">
                                 {formatarTempo(
-                                  jogador.totalRespostas > 0
-                                    ? jogador.tempoTotal / jogador.totalRespostas
-                                    : 0
+                                  jogador.totalRespostas >
+                                    0
+                                    ? jogador.tempoTotal /
+                                      jogador.totalRespostas
+                                    : 0,
                                 )}
                               </span>
                             </div>
                           </div>
-
                         </div>
                       </div>
                     );
-                  }
+                  },
                 )}
 
                 {ranking.length ===
@@ -1186,8 +1385,6 @@ export default function PartidaPage() {
             </div>
           </section>
 
-
-
           <div className="mt-8 flex justify-center">
             <button
               onClick={() =>
@@ -1196,6 +1393,7 @@ export default function PartidaPage() {
               className="flex cursor-pointer items-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 hover:bg-white/15"
             >
               <ArrowLeft className="h-4 w-4" />
+
               Voltar
             </button>
           </div>
@@ -1219,7 +1417,6 @@ export default function PartidaPage() {
         <div className="pointer-events-none fixed inset-0 bg-red-500/[0.03]" />
 
         <div className="relative w-full max-w-md rounded-[2rem] border border-red-400/20 bg-white/[0.045] p-8 text-center shadow-2xl shadow-red-950/20 backdrop-blur-xl">
-
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10">
             <XCircle className="h-10 w-10 text-red-400" />
           </div>
@@ -1230,7 +1427,9 @@ export default function PartidaPage() {
 
           <p className="mt-3 text-sm leading-relaxed text-white/40">
             {mensagemEliminacao}
+
             <br />
+
             Aguarde o fim da partida para conferir sua posição final.
           </p>
 
@@ -1251,6 +1450,7 @@ export default function PartidaPage() {
             className="mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 hover:bg-white/15"
           >
             <ArrowLeft className="h-4 w-4" />
+
             Voltar para o início
           </button>
         </div>
@@ -1262,10 +1462,6 @@ export default function PartidaPage() {
    * =========================================================
    * AGUARDANDO APÓS ELIMINAÇÃO
    * =========================================================
-   *
-   * Depois do feedback de erro, o jogador não deve voltar
-   * para a tela da pergunta. Ele fica aguardando a partida
-   * terminar e vê somente a própria classificação atual.
    */
 
   if (
@@ -1273,7 +1469,8 @@ export default function PartidaPage() {
     classificacaoEliminacao
   ) {
     const tempoMedio =
-      classificacaoEliminacao.totalRespostas > 0
+      classificacaoEliminacao.totalRespostas >
+      0
         ? classificacaoEliminacao.tempoTotal /
           classificacaoEliminacao.totalRespostas
         : 0;
@@ -1292,11 +1489,18 @@ export default function PartidaPage() {
           </p>
 
           <h1 className="mt-2 text-5xl font-black text-white">
-            {classificacaoEliminacao.posicao}º
+            {
+              classificacaoEliminacao.posicao
+            }
+            º
           </h1>
 
           <p className="mt-2 text-sm text-white/45">
-            de {classificacaoEliminacao.totalJogadores} jogadores
+            de{" "}
+            {
+              classificacaoEliminacao.totalJogadores
+            }{" "}
+            jogadores
           </p>
 
           <div className="mt-8 grid grid-cols-2 gap-3">
@@ -1304,8 +1508,11 @@ export default function PartidaPage() {
               <p className="text-[10px] font-bold uppercase tracking-wider text-white/25">
                 Acertos
               </p>
+
               <p className="mt-1 text-xl font-black text-emerald-300">
-                {classificacaoEliminacao.acertos}
+                {
+                  classificacaoEliminacao.acertos
+                }
               </p>
             </div>
 
@@ -1313,8 +1520,11 @@ export default function PartidaPage() {
               <p className="text-[10px] font-bold uppercase tracking-wider text-white/25">
                 Tempo médio
               </p>
+
               <p className="mt-1 text-xl font-black text-fuchsia-300">
-                {formatarTempo(tempoMedio)}
+                {formatarTempo(
+                  tempoMedio,
+                )}
               </p>
             </div>
           </div>
@@ -1323,6 +1533,7 @@ export default function PartidaPage() {
             <p className="text-sm font-bold text-white/75">
               Você foi eliminado desta partida.
             </p>
+
             <p className="mt-2 text-xs leading-relaxed text-white/35">
               Sua classificação atual já está registrada. Aguarde a partida terminar para ver a classificação final de todos os jogadores.
             </p>
@@ -1330,6 +1541,7 @@ export default function PartidaPage() {
 
           <div className="mt-6 flex items-center justify-center gap-2 text-xs font-bold text-white/30">
             <Loader2 className="h-4 w-4 animate-spin" />
+
             Aguardando resultado final...
           </div>
 
@@ -1340,6 +1552,7 @@ export default function PartidaPage() {
             className="mt-7 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 hover:bg-white/15"
           >
             <ArrowLeft className="h-4 w-4" />
+
             Voltar para o início
           </button>
         </div>
@@ -1353,7 +1566,10 @@ export default function PartidaPage() {
    * =========================================================
    */
 
-  if (!sala || !rodada) {
+  if (
+    !sala ||
+    !rodada
+  ) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#070711] px-6 text-white">
         <div className="text-center">
@@ -1373,7 +1589,7 @@ export default function PartidaPage() {
 
   /*
    * =========================================================
-   * PROGRESSO
+   * PROGRESSO DAS RODADAS
    * =========================================================
    */
 
@@ -1381,8 +1597,10 @@ export default function PartidaPage() {
     sala.rodadas.length;
 
   const progresso =
-    ((rodadaAtual + 1) /
-      totalRodadas) *
+    (
+      (rodadaAtual + 1) /
+      totalRodadas
+    ) *
     100;
 
   /*
@@ -1398,13 +1616,7 @@ export default function PartidaPage() {
       <div className="pointer-events-none fixed left-1/2 top-[-220px] h-[440px] w-[760px] -translate-x-1/2 rounded-full bg-fuchsia-600/10 blur-[140px]" />
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col px-5 py-6 md:px-8">
-
-        {/* =====================================================
-            HEADER
-           ===================================================== */}
-
         <header className="flex items-center justify-between rounded-3xl border border-white/[0.08] bg-white/[0.035] px-4 py-3 backdrop-blur-xl md:px-5">
-
           <div>
             <div className="flex items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-fuchsia-500/10 ring-1 ring-fuchsia-300/20">
@@ -1422,40 +1634,56 @@ export default function PartidaPage() {
             </p>
           </div>
 
-          {/* =================================================
-              CRONÔMETRO
-             ================================================= */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 shadow-lg backdrop-blur-xl">
+              <Users className="h-4 w-4 text-fuchsia-300" />
 
-          <div
-            className={`flex items-center gap-2 rounded-2xl border px-4 py-2.5 shadow-lg backdrop-blur-xl ${
-              tempoRestante <= 5
-                ? "border-red-400/30 bg-red-500/10 text-red-300"
-                : "border-white/10 bg-white/5 text-white"
-            }`}
-          >
-            <Clock3 className="h-5 w-5" />
+              <span className="text-sm font-black tabular-nums text-white">
+                {
+                  progressoRespostas.respondidos
+                }
+                /
+                {
+                  progressoRespostas.total
+                }
+              </span>
+            </div>
 
-            <span className="min-w-[32px] text-center text-lg font-black tabular-nums">
-              {tempoRestante}s
-            </span>
+            <div
+              className={`flex items-center gap-2 rounded-2xl border px-4 py-2.5 shadow-lg backdrop-blur-xl ${
+                tempoRestante <=
+                5
+                  ? "border-red-400/30 bg-red-500/10 text-red-300"
+                  : "border-white/10 bg-white/5 text-white"
+              }`}
+            >
+              <Clock3 className="h-5 w-5" />
+
+              <span className="min-w-[32px] text-center text-lg font-black tabular-nums">
+                {
+                  tempoRestante
+                }
+                s
+              </span>
+            </div>
           </div>
         </header>
-
-        {/* =====================================================
-            PROGRESSO
-           ===================================================== */}
 
         <div className="mt-8 rounded-2xl border border-white/[0.06] bg-black/10 p-4">
           <div className="mb-2 flex items-center justify-between text-xs">
             <span className="font-semibold text-white/50">
               Rodada{" "}
-              {rodadaAtual + 1} de{" "}
-              {totalRodadas}
+              {rodadaAtual +
+                1}{" "}
+              de{" "}
+              {
+                totalRodadas
+              }
             </span>
 
             <span className="text-white/30">
               {Math.round(
-                progresso
+                progresso,
               )}
               %
             </span>
@@ -1471,36 +1699,43 @@ export default function PartidaPage() {
           </div>
         </div>
 
-        {/* =====================================================
-            PERGUNTA
-           ===================================================== */}
-
         <section
           key={rodada.id}
           className="mt-10 animate-[quiz-question-in_550ms_cubic-bezier(.22,1,.36,1)]"
         >
           <div className="relative overflow-hidden rounded-[2rem] border border-white/[0.09] bg-white/[0.055] p-7 shadow-2xl shadow-black/30 backdrop-blur-xl md:p-10">
-
             <div className="pointer-events-none absolute right-[-100px] top-[-100px] h-64 w-64 rounded-full bg-fuchsia-500/10 blur-[90px]" />
 
-            {resultadoResposta === true && (
+            {resultadoResposta ===
+              true && (
               <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
                 {Array.from(
-                  { length: 24 },
-                  (_, index) => (
+                  {
+                    length: 24,
+                  },
+                  (
+                    _,
+                    index,
+                  ) => (
                     <span
-                      key={index}
+                      key={
+                        index
+                      }
                       className="absolute top-[42%] h-2 w-1.5 animate-[confetti-fall_1200ms_ease-out_both] rounded-sm"
                       style={{
                         left: `${
                           6 +
-                          ((index * 37) %
+                          ((index *
+                            37) %
                             88)
                         }%`,
+
                         animationDelay: `${
-                          (index % 8) *
+                          (index %
+                            8) *
                           45
                         }ms`,
+
                         backgroundColor:
                           [
                             "#f0abfc",
@@ -1509,36 +1744,51 @@ export default function PartidaPage() {
                             "#86efac",
                             "#67e8f9",
                           ][
-                            index % 5
+                            index %
+                              5
                           ],
                       }}
                     />
-                  )
+                  ),
                 )}
               </div>
             )}
 
-            <span className="inline-flex rounded-full border border-fuchsia-300/20 bg-fuchsia-500/10 px-3 py-1 text-xs font-black uppercase tracking-[0.2em] text-fuchsia-300">
-              Pergunta{" "}
-              {rodadaAtual + 1}
-            </span>
+            <div className="flex items-center justify-between gap-4">
+              <span className="inline-flex rounded-full border border-fuchsia-300/20 bg-fuchsia-500/10 px-3 py-1 text-xs font-black uppercase tracking-[0.2em] text-fuchsia-300">
+                Pergunta{" "}
+                {rodadaAtual +
+                  1}
+              </span>
+
+              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
+                <Users className="h-4 w-4 text-fuchsia-300/80" />
+
+                <span className="text-sm font-black tabular-nums text-white">
+                  {
+                    progressoRespostas.respondidos
+                  }
+                  /
+                  {
+                    progressoRespostas.total
+                  }
+                </span>
+              </div>
+            </div>
 
             <h2 className="relative mt-5 max-w-4xl text-2xl font-black leading-tight tracking-tight md:text-4xl">
               {
-                rodada.pergunta
+                rodada
+                  .pergunta
                   .enunciado
               }
             </h2>
-
-            {/* =================================================
-                ALTERNATIVAS
-               ================================================= */}
 
             <div className="relative mt-8 grid gap-4 md:grid-cols-2">
               {rodada.pergunta.alternativas.map(
                 (
                   alternativa,
-                  index
+                  index,
                 ) => {
                   const selecionada =
                     alternativaSelecionada ===
@@ -1546,7 +1796,9 @@ export default function PartidaPage() {
 
                   const desabilitada =
                     jogadorEliminado ||
-                    tempoRestante <= 0 ||
+                    partidaFinalizada ||
+                    tempoRestante <=
+                      0 ||
                     alternativaSelecionada !==
                       null;
 
@@ -1557,7 +1809,7 @@ export default function PartidaPage() {
                       }
                       onClick={() =>
                         selecionarAlternativa(
-                          alternativa.id
+                          alternativa.id,
                         )
                       }
                       disabled={
@@ -1565,7 +1817,8 @@ export default function PartidaPage() {
                       }
                       style={{
                         animationDelay: `${
-                          index * 70
+                          index *
+                          70
                         }ms`,
                       }}
                       className={`group flex min-h-[90px] animate-[quiz-option-in_450ms_ease-out_both] items-center gap-4 rounded-2xl border p-5 text-left transition-all duration-200 ${
@@ -1586,7 +1839,8 @@ export default function PartidaPage() {
                         }`}
                       >
                         {String.fromCharCode(
-                          65 + index
+                          65 +
+                            index,
                         )}
                       </span>
 
@@ -1601,16 +1855,11 @@ export default function PartidaPage() {
                       )}
                     </button>
                   );
-                }
+                },
               )}
             </div>
 
-            {/* =================================================
-                STATUS DA RESPOSTA
-               ================================================= */}
-
             <div className="mt-8 flex min-h-9 justify-center">
-
               {tempoRestante ===
               0 ? (
                 <span className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-300">
@@ -1620,12 +1869,14 @@ export default function PartidaPage() {
                 true ? (
                 <span className="flex items-center gap-2 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-2 text-xs font-bold text-emerald-300">
                   <CheckCircle2 className="h-4 w-4" />
+
                   Resposta correta!
                 </span>
               ) : resultadoResposta ===
                 false ? (
                 <span className="flex items-center gap-2 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-xs font-bold text-red-300">
                   <XCircle className="h-4 w-4" />
+
                   Resposta incorreta!
                 </span>
               ) : alternativaSelecionada !==
@@ -1642,20 +1893,18 @@ export default function PartidaPage() {
           </div>
         </section>
 
-        {/* =====================================================
-            ANIMAÇÕES
-           ===================================================== */}
-
         <style jsx global>{`
           @keyframes quiz-question-in {
             from {
               opacity: 0;
-              transform: translateY(18px) scale(0.985);
+              transform: translateY(18px)
+                scale(0.985);
             }
 
             to {
               opacity: 1;
-              transform: translateY(0) scale(1);
+              transform: translateY(0)
+                scale(1);
             }
           }
 
