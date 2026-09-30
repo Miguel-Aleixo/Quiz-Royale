@@ -235,6 +235,7 @@ export class PartidaGateway {
           posicaoAtual: classificacao.posicao,
           acertos: classificacao.acertos,
           tempoTotal: classificacao.tempoTotal,
+          totalRespostas: classificacao.totalRespostas,
           totalJogadores: classificacao.totalJogadores,
         });
 
@@ -782,6 +783,7 @@ export class PartidaGateway {
             posicaoAtual: classificacao.posicao,
             acertos: classificacao.acertos,
             tempoTotal: classificacao.tempoTotal,
+            totalRespostas: classificacao.totalRespostas,
             totalJogadores: classificacao.totalJogadores,
           },
         );
@@ -923,6 +925,7 @@ export class PartidaGateway {
           jogadorId: jogador.id,
           acertos,
           tempoTotal,
+          totalRespostas: jogador.respostas.length,
         };
       });
 
@@ -952,6 +955,7 @@ export class PartidaGateway {
       posicao: indice >= 0 ? indice + 1 : jogadoresComEstatisticas.length,
       acertos: jogador?.acertos ?? 0,
       tempoTotal: jogador?.tempoTotal ?? 0,
+      totalRespostas: jogador?.totalRespostas ?? 0,
       totalJogadores: jogadoresComEstatisticas.length,
     };
   }
@@ -1507,6 +1511,9 @@ export class PartidaGateway {
 
         tempoTotal:
           item.tempoTotal,
+
+        totalRespostas:
+          item.jogador.respostas.length,
 
         pontosGanhos,
 

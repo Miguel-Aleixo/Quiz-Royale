@@ -72,6 +72,7 @@ interface JogadorEliminado {
   posicaoAtual: number;
   acertos: number;
   tempoTotal: number;
+  totalRespostas: number;
   totalJogadores: number;
 }
 
@@ -83,11 +84,8 @@ interface RankingJogador {
 
   // Novo sistema de ranking
   acertos: number;
-  totalPerguntas: number;
   tempoTotal: number;
-
-  // Pontos recebidos de acordo com a posição
-  pontosGanhos: number;
+  totalRespostas: number;
 }
 
 interface PartidaFinalizada {
@@ -149,6 +147,7 @@ export default function PartidaPage() {
     posicao: number;
     acertos: number;
     tempoTotal: number;
+    totalRespostas: number;
     totalJogadores: number;
   } | null>(null);
 
@@ -507,6 +506,7 @@ export default function PartidaPage() {
             posicao: data.posicaoAtual,
             acertos: data.acertos,
             tempoTotal: data.tempoTotal,
+            totalRespostas: data.totalRespostas,
             totalJogadores: data.totalJogadores,
           });
 
@@ -1067,7 +1067,7 @@ export default function PartidaPage() {
 
                     <p className="mt-1 text-xs text-white/30">
                       Mais acertos e, em caso de empate,
-                      menor tempo total.
+                      menor tempo médio de resposta.
                     </p>
                   </div>
                 </div>
@@ -1077,17 +1077,14 @@ export default function PartidaPage() {
                   CABEÇALHO DA TABELA
                  ===================================================== */}
 
-              <div className="hidden grid-cols-[70px_minmax(180px,1fr)_120px_150px_110px] gap-4 border-b border-white/10 bg-white/[0.025] px-6 py-4 text-[10px] font-black uppercase tracking-wider text-white/30 md:grid md:px-8">
+              <div className="hidden grid-cols-[70px_minmax(180px,1fr)_120px_150px] gap-4 border-b border-white/10 bg-white/[0.025] px-6 py-4 text-[10px] font-black uppercase tracking-wider text-white/30 md:grid md:px-8">
                 <span>Pos.</span>
                 <span>Jogador</span>
                 <span className="text-center">
                   Acertos
                 </span>
                 <span className="text-center">
-                  Tempo
-                </span>
-                <span className="text-right">
-                  Pontos
+                  Tempo médio
                 </span>
               </div>
 
@@ -1113,7 +1110,7 @@ export default function PartidaPage() {
                             : "bg-transparent"
                         }`}
                       >
-                        <div className="grid items-center gap-4 md:grid-cols-[70px_minmax(180px,1fr)_120px_150px_110px]">
+                        <div className="grid items-center gap-4 md:grid-cols-[70px_minmax(180px,1fr)_120px_150px]">
 
                           {/* POSIÇÃO */}
 
@@ -1184,12 +1181,6 @@ export default function PartidaPage() {
                                 }
                               </span>
 
-                              <span className="text-sm font-semibold text-white/30">
-                                /
-                                {
-                                  jogador.totalPerguntas
-                                }
-                              </span>
                             </div>
                           </div>
 
@@ -1197,7 +1188,7 @@ export default function PartidaPage() {
 
                           <div className="flex items-center justify-between md:block md:text-center">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-white/30 md:hidden">
-                              Tempo
+                              Tempo médio
                             </span>
 
                             <div className="flex items-center justify-end gap-1.5 md:justify-center">
@@ -1205,31 +1196,14 @@ export default function PartidaPage() {
 
                               <span className="text-sm font-black tabular-nums text-white/80">
                                 {formatarTempo(
-                                  jogador.tempoTotal
+                                  jogador.totalRespostas > 0
+                                    ? jogador.tempoTotal / jogador.totalRespostas
+                                    : 0
                                 )}
                               </span>
                             </div>
                           </div>
 
-                          {/* PONTOS */}
-
-                          <div className="flex items-center justify-between md:block md:text-right">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-white/30 md:hidden">
-                              Pontos
-                            </span>
-
-                            <div>
-                              <span className="text-lg font-black text-amber-200">
-                                {
-                                  jogador.pontosGanhos
-                                }
-                              </span>
-
-                              <span className="ml-1 text-[10px] font-bold uppercase tracking-wider text-white/30">
-                                pts
-                              </span>
-                            </div>
-                          </div>
                         </div>
                       </div>
                     );
@@ -1248,49 +1222,7 @@ export default function PartidaPage() {
             </div>
           </section>
 
-          {/* =====================================================
-              EXPLICAÇÃO DOS PONTOS
-             ===================================================== */}
 
-          <section className="mt-6 rounded-[1.5rem] border border-white/[0.08] bg-white/[0.03] p-5">
-            <div className="flex items-center gap-3">
-              <Trophy className="h-4 w-4 text-amber-300" />
-
-              <p className="text-xs font-black uppercase tracking-wider text-white/50">
-                Pontuação por posição
-              </p>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
-              {[
-                ["1º", 100],
-                ["2º", 75],
-                ["3º", 50],
-                ["4º", 35],
-                ["5º", 25],
-                ["6º", 20],
-                ["7º", 15],
-                ["8º", 10],
-                ["9º", 5],
-                ["10º+", 2],
-              ].map(
-                ([posicao, pontos]) => (
-                  <div
-                    key={String(posicao)}
-                    className="rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2"
-                  >
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-white/25">
-                      {posicao}
-                    </p>
-
-                    <p className="mt-0.5 text-sm font-black text-amber-200">
-                      {pontos} pts
-                    </p>
-                  </div>
-                )
-              )}
-            </div>
-          </section>
 
           <div className="mt-8 flex justify-center">
             <button
@@ -1376,8 +1308,11 @@ export default function PartidaPage() {
     jogadorEliminado &&
     classificacaoEliminacao
   ) {
-    const tempoEmSegundos =
-      classificacaoEliminacao.tempoTotal / 1000;
+    const tempoMedio =
+      classificacaoEliminacao.totalRespostas > 0
+        ? classificacaoEliminacao.tempoTotal /
+          classificacaoEliminacao.totalRespostas
+        : 0;
 
     return (
       <main className="flex min-h-screen items-center justify-center overflow-hidden bg-[#070711] px-6 text-white">
@@ -1412,10 +1347,10 @@ export default function PartidaPage() {
 
             <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4">
               <p className="text-[10px] font-bold uppercase tracking-wider text-white/25">
-                Tempo total
+                Tempo médio
               </p>
               <p className="mt-1 text-xl font-black text-fuchsia-300">
-                {tempoEmSegundos.toFixed(1)}s
+                {formatarTempo(tempoMedio)}
               </p>
             </div>
           </div>
