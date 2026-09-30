@@ -1679,6 +1679,131 @@ export class PartidaGateway {
 
         select: {
           id: true,
+          usuarioId: true,
+        },
+      });
+
+    /*
+     * =====================================================
+     * ELIMINAR QUEM NÃO RESPONDEU
+     * =====================================================
+     *
+     * Quando o tempo da rodada acaba, todo jogador ativo
+     * que não registrou uma resposta para a pergunta atual
+     * é eliminado automaticamente.
+     */
+
+    const rodadaAtual =
+      rodadas[estado.rodadaAtual];
+
+    if (rodadaAtual && jogadoresAtivos.length > 0) {
+      const respostasDaRodada =
+        await this.prisma.resposta.findMany({
+          where: {
+            jogadorId: {
+              in: jogadoresAtivos.map(
+                (jogador) => jogador.id,
+              ),
+            },
+            alternativa: {
+              perguntaId: rodadaAtual.perguntaId,
+            },
+          },
+          select: {
+            jogadorId: true,
+          },
+        });
+
+      const jogadoresQueResponderam =
+        new Set(
+          respostasDaRodada.map(
+            (resposta) => resposta.jogadorId,
+          ),
+        );
+
+      const jogadoresSemResposta =
+        jogadoresAtivos.filter(
+          (jogador) =>
+            !jogadoresQueResponderam.has(
+              jogador.id,
+            ),
+        );
+
+      if (jogadoresSemResposta.length > 0) {
+        await this.prisma.jogador.updateMany({
+          where: {
+            id: {
+              in: jogadoresSemResposta.map(
+                (jogador) => jogador.id,
+              ),
+            },
+          },
+          data: {
+            eliminado: true,
+          },
+        });
+
+        const sockets =
+          await this.server
+            .in(`partida:${codigo}`)
+            .fetchSockets();
+
+        for (const jogador of jogadoresSemResposta) {
+          const classificacao =
+            await this.obterClassificacaoAtual(
+              jogador.id,
+              sala.id,
+            );
+
+          for (const socket of sockets) {
+            if (
+              Number(socket.data.usuarioId) ===
+              Number(jogador.usuarioId)
+            ) {
+              socket.emit(
+                'jogador_eliminado',
+                {
+                  mensagem:
+                    'Você não respondeu a pergunta dentro do tempo e foi eliminado!',
+                  jogadorId: jogador.id,
+                  usuarioId: jogador.usuarioId,
+                  codigo,
+                  posicaoAtual:
+                    classificacao.posicao,
+                  acertos:
+                    classificacao.acertos,
+                  tempoTotal:
+                    classificacao.tempoTotal,
+                  totalRespostas:
+                    classificacao.totalRespostas,
+                  totalJogadores:
+                    classificacao.totalJogadores,
+                },
+              );
+            }
+          }
+
+          console.log(
+            `Jogador ${jogador.id} foi eliminado por não responder a rodada ${rodadaAtual.id}.`,
+          );
+        }
+      }
+    }
+
+    /*
+     * Recarregar os jogadores ativos depois das eliminações
+     * por falta de resposta.
+     */
+
+    const jogadoresAtivosDepoisDaEliminacao =
+      await this.prisma.jogador.findMany({
+        where: {
+          salaId: sala.id,
+          eliminado: false,
+        },
+
+        select: {
+          id: true,
         },
       });
 
@@ -1688,7 +1813,7 @@ export class PartidaGateway {
      */
 
     if (
-      jogadoresAtivos.length === 0
+      jogadoresAtivosDepoisDaEliminacao.length === 0
     ) {
       console.log(
         `Todos os jogadores foram eliminados na partida ${codigo}.`,
@@ -1746,7 +1871,7 @@ export class PartidaGateway {
      */
 
     console.log(
-      `Partida ${codigo}: ${jogadoresAtivos.length} jogador(es) ativo(s).`,
+      `Partida ${codigo}: ${jogadoresAtivosDepoisDaEliminacao.length} jogador(es) ativo(s).`,
     );
 
     /*
