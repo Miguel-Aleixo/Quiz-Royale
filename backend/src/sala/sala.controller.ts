@@ -111,6 +111,18 @@ export class SalaController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Patch(':id/reabrir')
+  async reabrir(
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return await this.salaService.reabrir(
+      Number(id),
+      req.user.id,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id')
   async update(
     @Param('id') id: string,

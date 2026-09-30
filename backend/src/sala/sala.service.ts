@@ -235,7 +235,6 @@ export class SalaService {
           },
           data: {
             status: 'FECHADA',
-            criadorId: null,
           },
         }),
       ]);
@@ -257,6 +256,156 @@ export class SalaService {
       mensagem: 'Você saiu da sala',
       salaFechada: false,
     };
+  }
+
+  private gerarCodigo(): string {
+    const caracteres =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+    let codigo = '';
+
+    for (let i = 0; i < 6; i++) {
+      codigo += caracteres.charAt(
+        Math.floor(
+          Math.random() * caracteres.length,
+        ),
+      );
+    }
+
+    return codigo;
+  }
+
+  async reabrir(
+    salaId: number,
+    usuarioId: number,
+  ) {
+    const sala = await this.prisma.sala.findUnique({
+      where: {
+        id: salaId,
+      },
+    });
+
+    if (!sala) {
+      throw new NotFoundException(
+        'Sala não encontrada',
+      );
+    }
+
+    /*
+     * Somente o criador original
+     * pode reabrir a sala.
+     */
+    if (sala.criadorId !== usuarioId) {
+      throw new BadRequestException(
+        'Apenas o criador da sala pode reabri-la',
+      );
+    }
+
+    /*
+     * A sala já está aberta.
+     */
+    if (sala.status === 'ABERTA') {
+      throw new BadRequestException(
+        'Essa sala já está aberta',
+      );
+    }
+
+    /*
+     * Gerar um novo código.
+     */
+    let novoCodigo = this.gerarCodigo();
+
+    let codigoExistente =
+      await this.prisma.sala.findUnique({
+        where: {
+          codigo: novoCodigo,
+        },
+      });
+
+    /*
+     * Garante que o novo código não
+     * seja igual ao de outra sala.
+     */
+    while (codigoExistente) {
+      novoCodigo = this.gerarCodigo();
+
+      codigoExistente =
+        await this.prisma.sala.findUnique({
+          where: {
+            codigo: novoCodigo,
+          },
+        });
+    }
+
+    /*
+     * As respostas dependem dos jogadores.
+     *
+     * Primeiro removemos as respostas,
+     * depois os jogadores.
+     */
+    await this.prisma.$transaction(async (tx) => {
+      await tx.resposta.deleteMany({
+        where: {
+          jogador: {
+            salaId,
+          },
+        },
+      });
+
+      await tx.jogador.deleteMany({
+        where: {
+          salaId,
+        },
+      });
+
+      await tx.sala.update({
+        where: {
+          id: salaId,
+        },
+        data: {
+          codigo: novoCodigo,
+          status: 'ABERTA',
+          criadorId: usuarioId,
+        },
+      });
+    });
+
+    /*
+     * Buscar a sala novamente para retornar
+     * os dados completos.
+     */
+    return await this.prisma.sala.findUnique({
+      where: {
+        id: salaId,
+      },
+      include: {
+        criador: {
+          select: {
+            id: true,
+            nome: true,
+          },
+        },
+
+        jogadores: {
+          include: {
+            usuario: {
+              select: {
+                id: true,
+                nome: true,
+                email: true,
+              },
+            },
+          },
+        },
+
+        _count: {
+          select: {
+            jogadores: true,
+            rodadas: true,
+          },
+        },
+      },
+    });
   }
 
   async remove(id: number) {
