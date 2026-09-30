@@ -67,8 +67,12 @@ interface ErroSocket {
 interface JogadorEliminado {
   jogadorId: number;
   usuarioId: number;
-  codigo: string;
+  codigo?: string;
   mensagem: string;
+  posicaoAtual: number;
+  acertos: number;
+  tempoTotal: number;
+  totalJogadores: number;
 }
 
 interface RankingJogador {
@@ -137,6 +141,16 @@ export default function PartidaPage() {
     mostrarFeedbackEliminacao,
     setMostrarFeedbackEliminacao,
   ] = useState(false);
+
+  const [
+    classificacaoEliminacao,
+    setClassificacaoEliminacao,
+  ] = useState<{
+    posicao: number;
+    acertos: number;
+    tempoTotal: number;
+    totalJogadores: number;
+  } | null>(null);
 
   const [
     partidaFinalizada,
@@ -489,6 +503,13 @@ export default function PartidaPage() {
             true
           );
 
+          setClassificacaoEliminacao({
+            posicao: data.posicaoAtual,
+            acertos: data.acertos,
+            tempoTotal: data.tempoTotal,
+            totalJogadores: data.totalJogadores,
+          });
+
           setMostrarFeedbackEliminacao(
             true
           );
@@ -543,6 +564,10 @@ export default function PartidaPage() {
 
         setJogadorEliminado(
           false
+        );
+
+        setClassificacaoEliminacao(
+          null
         );
 
         setPartidaFinalizada(
@@ -955,37 +980,33 @@ export default function PartidaPage() {
 
   /*
    * =========================================================
-   * JOGADOR ELIMINADO
+   * JOGADOR ELIMINADO - AGUARDANDO PARTIDA
    * =========================================================
    */
 
-  if (
-    jogadorEliminado &&
-    mostrarFeedbackEliminacao
-  ) {
+  if (jogadorEliminado) {
     return (
       <main className="flex min-h-screen items-center justify-center overflow-hidden bg-[#070711] px-6 text-white">
-        <div className="pointer-events-none fixed inset-0 bg-red-500/[0.03]" />
+        <div className="pointer-events-none fixed inset-0 bg-fuchsia-500/[0.03]" />
 
-        <div className="relative w-full max-w-md rounded-[2rem] border border-red-400/20 bg-white/[0.045] p-8 text-center shadow-2xl shadow-red-950/20 backdrop-blur-xl">
-
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10">
-            <XCircle className="h-10 w-10 text-red-400" />
+        <div className="relative w-full max-w-md rounded-[2rem] border border-white/10 bg-white/[0.045] p-8 text-center shadow-2xl shadow-black/30 backdrop-blur-xl">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-fuchsia-300/20 bg-fuchsia-500/10">
+            <Loader2 className="h-10 w-10 animate-spin text-fuchsia-300" />
           </div>
 
           <h1 className="mt-6 text-3xl font-black">
-            Você foi eliminado!
+            Você foi eliminado
           </h1>
 
           <p className="mt-3 text-sm leading-relaxed text-white/40">
             Sua resposta estava incorreta.
-            Aguarde o fim da partida para
-            conferir sua posição final.
+            Aguarde os outros jogadores terminarem
+            a partida para conferir sua posição final.
           </p>
 
           <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.025] px-5 py-4">
             <p className="text-xs font-bold uppercase tracking-wider text-white/30">
-              Resultado
+              Status
             </p>
 
             <p className="mt-2 text-lg font-black text-fuchsia-300">
@@ -994,9 +1015,7 @@ export default function PartidaPage() {
           </div>
 
           <button
-            onClick={() =>
-              router.push("/")
-            }
+            onClick={() => router.push("/")}
             className="mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 hover:bg-white/15"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -1291,33 +1310,37 @@ export default function PartidaPage() {
 
   /*
    * =========================================================
-   * JOGADOR ELIMINADO - AGUARDANDO PARTIDA
+   * JOGADOR ELIMINADO
    * =========================================================
    */
 
-  if (jogadorEliminado) {
+  if (
+    jogadorEliminado &&
+    mostrarFeedbackEliminacao
+  ) {
     return (
       <main className="flex min-h-screen items-center justify-center overflow-hidden bg-[#070711] px-6 text-white">
-        <div className="pointer-events-none fixed inset-0 bg-fuchsia-500/[0.03]" />
+        <div className="pointer-events-none fixed inset-0 bg-red-500/[0.03]" />
 
-        <div className="relative w-full max-w-md rounded-[2rem] border border-white/10 bg-white/[0.045] p-8 text-center shadow-2xl shadow-black/30 backdrop-blur-xl">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-fuchsia-300/20 bg-fuchsia-500/10">
-            <Loader2 className="h-10 w-10 animate-spin text-fuchsia-300" />
+        <div className="relative w-full max-w-md rounded-[2rem] border border-red-400/20 bg-white/[0.045] p-8 text-center shadow-2xl shadow-red-950/20 backdrop-blur-xl">
+
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10">
+            <XCircle className="h-10 w-10 text-red-400" />
           </div>
 
           <h1 className="mt-6 text-3xl font-black">
-            Você foi eliminado
+            Você foi eliminado!
           </h1>
 
           <p className="mt-3 text-sm leading-relaxed text-white/40">
             Sua resposta estava incorreta.
-            Aguarde os outros jogadores terminarem
-            a partida para conferir sua posição final.
+            Aguarde o fim da partida para
+            conferir sua posição final.
           </p>
 
           <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.025] px-5 py-4">
             <p className="text-xs font-bold uppercase tracking-wider text-white/30">
-              Status
+              Resultado
             </p>
 
             <p className="mt-2 text-lg font-black text-fuchsia-300">
@@ -1326,8 +1349,96 @@ export default function PartidaPage() {
           </div>
 
           <button
-            onClick={() => router.push("/")}
+            onClick={() =>
+              router.push("/")
+            }
             className="mt-6 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 hover:bg-white/15"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar para o início
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  /*
+   * =========================================================
+   * AGUARDANDO APÓS ELIMINAÇÃO
+   * =========================================================
+   *
+   * Depois do feedback de erro, o jogador não deve voltar
+   * para a tela da pergunta. Ele fica aguardando a partida
+   * terminar e vê somente a própria classificação atual.
+   */
+
+  if (
+    jogadorEliminado &&
+    classificacaoEliminacao
+  ) {
+    const tempoEmSegundos =
+      classificacaoEliminacao.tempoTotal / 1000;
+
+    return (
+      <main className="flex min-h-screen items-center justify-center overflow-hidden bg-[#070711] px-6 text-white">
+        <div className="pointer-events-none fixed inset-0 bg-fuchsia-500/[0.025]" />
+
+        <div className="relative w-full max-w-md rounded-[2rem] border border-white/[0.08] bg-white/[0.045] p-8 text-center shadow-2xl backdrop-blur-xl">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10">
+            <Trophy className="h-10 w-10 text-fuchsia-300" />
+          </div>
+
+          <p className="mt-6 text-xs font-black uppercase tracking-[0.2em] text-white/30">
+            Sua classificação atual
+          </p>
+
+          <h1 className="mt-2 text-5xl font-black text-white">
+            {classificacaoEliminacao.posicao}º
+          </h1>
+
+          <p className="mt-2 text-sm text-white/45">
+            de {classificacaoEliminacao.totalJogadores} jogadores
+          </p>
+
+          <div className="mt-8 grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/25">
+                Acertos
+              </p>
+              <p className="mt-1 text-xl font-black text-emerald-300">
+                {classificacaoEliminacao.acertos}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-white/25">
+                Tempo total
+              </p>
+              <p className="mt-1 text-xl font-black text-fuchsia-300">
+                {tempoEmSegundos.toFixed(1)}s
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-white/[0.07] bg-white/[0.025] px-5 py-4">
+            <p className="text-sm font-bold text-white/75">
+              Você foi eliminado desta partida.
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-white/35">
+              Sua classificação atual já está registrada. Aguarde a partida terminar para ver a classificação final de todos os jogadores.
+            </p>
+          </div>
+
+          <div className="mt-6 flex items-center justify-center gap-2 text-xs font-bold text-white/30">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Aguardando resultado final...
+          </div>
+
+          <button
+            onClick={() =>
+              router.push("/")
+            }
+            className="mt-7 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 hover:bg-white/15"
           >
             <ArrowLeft className="h-4 w-4" />
             Voltar para o início

@@ -221,9 +221,21 @@ export class PartidaGateway {
       socket.join(`partida:${codigo}`);
 
       if (jogador.eliminado) {
+        const classificacao =
+          await this.obterClassificacaoAtual(
+            jogador.id,
+            sala.id,
+          );
+
         socket.emit('jogador_eliminado', {
           mensagem:
             'Você foi eliminado e não participa mais das rodadas.',
+          jogadorId: jogador.id,
+          usuarioId,
+          posicaoAtual: classificacao.posicao,
+          acertos: classificacao.acertos,
+          tempoTotal: classificacao.tempoTotal,
+          totalJogadores: classificacao.totalJogadores,
         });
 
         return;
@@ -754,11 +766,23 @@ export class PartidaGateway {
           },
         });
 
+        const classificacao =
+          await this.obterClassificacaoAtual(
+            jogador.id,
+            sala.id,
+          );
+
         socket.emit(
           'jogador_eliminado',
           {
             mensagem:
               'Você errou a pergunta e foi eliminado!',
+            jogadorId: jogador.id,
+            usuarioId,
+            posicaoAtual: classificacao.posicao,
+            acertos: classificacao.acertos,
+            tempoTotal: classificacao.tempoTotal,
+            totalJogadores: classificacao.totalJogadores,
           },
         );
 
@@ -844,6 +868,92 @@ export class PartidaGateway {
         },
       );
     }
+  }
+
+  /*
+   * =========================================================
+   * OBTER CLASSIFICAÇÃO ATUAL DO JOGADOR
+   * =========================================================
+   *
+   * Usada no momento em que o jogador é eliminado.
+   * A classificação é calculada com os dados disponíveis
+   * naquele instante, mas somente a posição do próprio
+   * jogador é enviada para ele.
+   */
+
+  private async obterClassificacaoAtual(
+    jogadorId: number,
+    salaId: number,
+  ) {
+    const jogadores =
+      await this.prisma.jogador.findMany({
+        where: {
+          salaId,
+        },
+
+        include: {
+          respostas: {
+            include: {
+              alternativa: {
+                select: {
+                  correta: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+    const jogadoresComEstatisticas =
+      jogadores.map((jogador) => {
+        const acertos =
+          jogador.respostas.filter(
+            (resposta) =>
+              resposta.alternativa.correta,
+          ).length;
+
+        const tempoTotal =
+          jogador.respostas.reduce(
+            (total, resposta) =>
+              total + resposta.tempoResposta,
+            0,
+          );
+
+        return {
+          jogadorId: jogador.id,
+          acertos,
+          tempoTotal,
+        };
+      });
+
+    jogadoresComEstatisticas.sort(
+      (a, b) => {
+        if (a.acertos !== b.acertos) {
+          return b.acertos - a.acertos;
+        }
+
+        if (a.tempoTotal !== b.tempoTotal) {
+          return a.tempoTotal - b.tempoTotal;
+        }
+
+        return a.jogadorId - b.jogadorId;
+      },
+    );
+
+    const indice =
+      jogadoresComEstatisticas.findIndex(
+        (item) => item.jogadorId === jogadorId,
+      );
+
+    const jogador =
+      jogadoresComEstatisticas[indice];
+
+    return {
+      posicao: indice >= 0 ? indice + 1 : jogadoresComEstatisticas.length,
+      acertos: jogador?.acertos ?? 0,
+      tempoTotal: jogador?.tempoTotal ?? 0,
+      totalJogadores: jogadoresComEstatisticas.length,
+    };
   }
 
   /*
