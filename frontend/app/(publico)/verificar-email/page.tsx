@@ -22,13 +22,15 @@ function VerificarEmailContent() {
   );
 
   useEffect(() => {
-    const token = searchParams.get("token");
+    const tokenParam = searchParams.get("token");
 
-    if (!token) {
+    if (!tokenParam) {
       setStatus("erro");
       setMensagem("Token de verificação não encontrado.");
       return;
     }
+
+    const token: string = tokenParam;
 
     async function verificarEmail() {
       try {
@@ -46,14 +48,14 @@ function VerificarEmailContent() {
         if (!res.ok) {
           throw new Error(
             data?.message ||
-              "Não foi possível verificar seu e-mail."
+            "Não foi possível verificar seu e-mail."
           );
         }
 
         setStatus("sucesso");
         setMensagem(
           data?.mensagem ||
-            "E-mail verificado com sucesso!"
+          "E-mail verificado com sucesso!"
         );
       } catch (error) {
         setStatus("erro");
