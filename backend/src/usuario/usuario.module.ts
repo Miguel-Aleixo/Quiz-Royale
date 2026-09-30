@@ -4,10 +4,11 @@ import { PassportModule } from '@nestjs/passport';
 import { UsuarioService } from './usuario.service';
 import { UsuarioController } from './usuario.controller';
 import { PrismaModule } from '../prisma/prisma.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
-    PrismaModule,
+    PrismaModule, EmailModule,
 
     PassportModule.register({
       defaultStrategy: 'jwt',

@@ -32,11 +32,22 @@ model Usuario {
   role      Role    @default(JOGADOR)
   patenteId Int?
   pontuacao Int     @default(0)
+  emailVerificado Boolean  @default(false)
  
   patente   Patente? @relation(fields: [patenteId], references: [id])
+  verificacaoEmail VerificacaoEmail?
 
   jogadores Jogador[]
   salas     Sala[]
+}
+
+model VerificacaoEmail {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  usuarioId Int      @unique
+  expiraEm  DateTime
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 }
 
 model Jogador {
