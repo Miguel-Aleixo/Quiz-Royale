@@ -41,7 +41,7 @@ export class PartidaGateway {
   constructor(
     private readonly prisma: PrismaService,
     private readonly usuarioService: UsuarioService,
-  ) {}
+  ) { }
 
   /*
    * =========================================================
@@ -280,7 +280,7 @@ export class PartidaGateway {
 
       const rodadaAtual =
         sala.rodadas[
-          estado.rodadaAtual
+        estado.rodadaAtual
         ];
 
       if (!rodadaAtual) {
@@ -301,8 +301,7 @@ export class PartidaGateway {
       );
 
       console.log(
-        `Jogador ${jogador.id} entrou na partida ${codigo} na rodada ${
-          estado.rodadaAtual + 1
+        `Jogador ${jogador.id} entrou na partida ${codigo} na rodada ${estado.rodadaAtual + 1
         }`,
       );
     } catch (error) {
@@ -334,7 +333,7 @@ export class PartidaGateway {
 
     const rodada =
       rodadas[
-        estado.rodadaAtual
+      estado.rodadaAtual
       ];
 
     if (!rodada) {
@@ -441,8 +440,7 @@ export class PartidaGateway {
     }
 
     console.log(
-      `Partida ${codigo} iniciou a rodada ${
-        estado.rodadaAtual + 1
+      `Partida ${codigo} iniciou a rodada ${estado.rodadaAtual + 1
       }`,
     );
 
@@ -648,7 +646,7 @@ export class PartidaGateway {
       if (
         !rodadaAtual ||
         rodadaAtual.id !==
-          rodada.id
+        rodada.id
       ) {
         throw new BadRequestException(
           'Essa não é a rodada atual.',
@@ -1211,10 +1209,22 @@ export class PartidaGateway {
     codigo: string,
     salaId: number,
   ) {
+    const sala = await this.prisma.sala.findUnique({
+      where: {
+        id: salaId,
+      },
+      select: {
+        criadorId: true,
+      },
+    });
+
+    if (!sala) {
+      return;
+    }
+
     /*
      * Buscar jogadores.
      */
-
     const jogadores =
       await this.prisma.jogador.findMany({
         where: {
@@ -1327,9 +1337,9 @@ export class PartidaGateway {
 
           if (
             a.jogador.posicaoFinal !=
-              null &&
+            null &&
             b.jogador.posicaoFinal !=
-              null
+            null
           ) {
             return (
               a.jogador.posicaoFinal -
@@ -1418,9 +1428,11 @@ export class PartidaGateway {
         index + 1;
 
       const pontosGanhos =
-        this.calcularPontosPosicao(
-          posicao,
-        );
+        sala.criadorId === jogador.usuario.id
+          ? 0
+          : this.calcularPontosPosicao(
+            posicao,
+          );
 
       /*
        * Adicionar os pontos da colocação
@@ -1469,7 +1481,7 @@ export class PartidaGateway {
       if (
         novaPatente &&
         novaPatente.id !==
-          usuarioAtualizado.patenteId
+        usuarioAtualizado.patenteId
       ) {
         await this.prisma.usuario.update({
           where: {
@@ -1886,7 +1898,7 @@ export class PartidaGateway {
 
     const proximaRodada =
       rodadas[
-        estado.rodadaAtual
+      estado.rodadaAtual
       ];
 
     if (!proximaRodada) {
@@ -1899,8 +1911,7 @@ export class PartidaGateway {
     }
 
     console.log(
-      `Partida ${codigo} avançando para a rodada ${
-        estado.rodadaAtual + 1
+      `Partida ${codigo} avançando para a rodada ${estado.rodadaAtual + 1
       }`,
     );
 

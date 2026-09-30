@@ -725,10 +725,6 @@ export default function PatentesPage() {
 
                                             <div className="mt-1 flex flex-wrap items-center gap-3">
 
-                                                <p className="text-[11px] font-bold tracking-widest text-purple-400">
-                                                    ID #{patente.id}
-                                                </p>
-
                                                 <span className="h-1 w-1 rounded-full bg-white/20" />
 
                                                 <p className="text-[11px] font-bold text-amber-400">

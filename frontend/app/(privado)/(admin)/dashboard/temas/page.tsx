@@ -617,10 +617,6 @@ export default function TemasPage() {
                         {tema.nome}
                       </p>
 
-                      <p className="mt-1 text-[11px] font-bold tracking-widest text-purple-400">
-                        ID #{tema.id}
-                      </p>
-
                     </div>
 
                   </div>
