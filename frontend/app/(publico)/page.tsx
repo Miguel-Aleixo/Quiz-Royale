@@ -4,7 +4,9 @@ import {
   ArrowRight,
   Crown,
   Gamepad2,
+  History,
   Plus,
+  RefreshCw,
   Search,
   Shield,
   Swords,
@@ -43,6 +45,7 @@ interface Sala {
   codigo: string;
   status: string;
   maxJogadores: number;
+  criadorId?: number | null;
   _count?: {
     jogadores: number;
     rodadas: number;
@@ -248,6 +251,19 @@ export default function Home() {
   }, [salas, busca]);
 
   /*
+   * MINHAS SALAS
+   */
+  const minhasSalas = useMemo(() => {
+    if (!usuario) {
+      return [];
+    }
+
+    return salas
+      .filter((sala) => Number(sala.criadorId) === Number(usuario.id))
+      .sort((a, b) => b.id - a.id);
+  }, [salas, usuario]);
+
+  /*
    * TOTAL DE JOGADORES
    */
   const jogadoresNasSalas = useMemo(
@@ -317,17 +333,72 @@ export default function Home() {
     }
   }
 
+  /*
+   * REABRIR SALA
+   *
+   * Espera o endpoint:
+   * PATCH /sala/:id/reabrir
+   */
+  async function reabrirSala(salaId: number) {
+    try {
+      setLoading(true);
+
+      const currentToken = Cookies.get("token");
+
+      if (!currentToken) {
+        router.push("/login");
+        return;
+      }
+
+      const res = await fetch(`${API}/sala/${salaId}/reabrir`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${currentToken}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          Array.isArray(data.message)
+            ? data.message.join(", ")
+            : data.message || "Não foi possível reabrir a sala."
+        );
+      }
+
+      toast.success("Sala reaberta! Um novo código foi gerado.");
+
+      await buscarSalas(currentToken);
+    } catch (error) {
+      console.error("Erro ao reabrir sala:", error);
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível reabrir a sala."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen overflow-hidden bg-[#070711] text-white selection:bg-fuchsia-400/30">
       <LoadingOverlay show={loading || loadingPerguntas || loadingSalas || loadingUsuario} />
 
       {/* BACKGROUND */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-48 -top-48 h-[34rem] w-[34rem] rounded-full bg-fuchsia-600/15 blur-[110px]" />
+        <div className="absolute -left-48 -top-48 h-[34rem] w-[34rem] rounded-full bg-fuchsia-600/20 blur-[110px]" />
 
-        <div className="absolute -right-40 top-1/4 h-[30rem] w-[30rem] rounded-full bg-fuchsia-600/10 blur-[120px]" />
+        <div className="absolute left-1/3 top-20 h-[24rem] w-[24rem] rounded-full bg-violet-600/12 blur-[120px]" />
 
-        <div className="absolute bottom-[-18rem] left-1/3 h-[34rem] w-[34rem] rounded-full bg-cyan-600/10 blur-[120px]" />
+        <div className="absolute -right-40 top-1/4 h-[30rem] w-[30rem] rounded-full bg-cyan-500/15 blur-[120px]" />
+
+        <div className="absolute right-1/4 bottom-[-14rem] h-[30rem] w-[30rem] rounded-full bg-pink-500/10 blur-[120px]" />
+
+        <div className="absolute bottom-[-18rem] left-1/3 h-[34rem] w-[34rem] rounded-full bg-blue-600/12 blur-[120px]" />
 
         <div className="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:48px_48px]" />
       </div>
@@ -466,7 +537,9 @@ export default function Home() {
         </div>
 
         {/* SALAS ABERTAS */}
-        <section className={`${glassCard} mt-6 rounded-[2rem] p-5 transition hover:border-violet-300/20 sm:p-7`}>
+        <section className="relative mt-6 overflow-hidden rounded-[2rem] border border-violet-300/15 bg-gradient-to-br from-violet-500/[0.08] via-fuchsia-500/[0.035] to-cyan-500/[0.05] p-5 shadow-[0_20px_80px_rgba(139,92,246,0.06)] backdrop-blur-xl transition hover:border-violet-300/25 sm:p-7">
+          <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-violet-500/10 blur-[70px]" />
+          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-48 w-48 rounded-full bg-cyan-400/[0.06] blur-[70px]" />
           <div className="mb-6 flex items-center justify-between gap-4 w-full">
             <div>
               <div className="flex items-center gap-2.5">
@@ -626,10 +699,184 @@ export default function Home() {
           )}
         </section>
 
+        {/* MINHAS SALAS */}
+        {estaLogado && (
+          <section className="mt-6 overflow-hidden rounded-[2rem] border border-cyan-300/15 bg-gradient-to-br from-cyan-500/[0.09] via-violet-500/[0.07] to-fuchsia-500/[0.06] p-5 shadow-[0_20px_80px_rgba(34,211,238,0.07)] backdrop-blur-xl transition hover:border-cyan-300/25 sm:p-7">
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400/20 to-violet-400/20 text-cyan-200 ring-1 ring-inset ring-cyan-300/15">
+                    <History size={19} />
+                  </div>
+
+                  <div>
+                    <h2 className="text-xl font-black tracking-tight">
+                      Minhas salas
+                    </h2>
+                    <p className="mt-0.5 text-xs text-white/35">
+                      Salas que você criou e pode abrir novamente.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <span className="w-fit rounded-xl border border-cyan-300/15 bg-cyan-400/[0.07] px-3 py-2 text-xs font-bold text-cyan-200/80">
+                {minhasSalas.length === 1
+                  ? "1 sala criada"
+                  : `${minhasSalas.length} salas criadas`}
+              </span>
+            </div>
+
+            {minhasSalas.length === 0 ? (
+              <div className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-dashed border-cyan-300/10 bg-white/[0.02] px-5 text-center">
+                <Crown size={20} className="text-cyan-200/45" />
+
+                <p className="mt-3 text-sm font-semibold text-white/45">
+                  Você ainda não criou nenhuma sala.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoading(true);
+                    router.push("/sala/criar");
+                  }}
+                  className="mt-4 cursor-pointer rounded-xl bg-gradient-to-r from-cyan-300/15 to-violet-300/15 px-4 py-2 text-xs font-bold text-cyan-100 ring-1 ring-inset ring-cyan-300/10 transition hover:-translate-y-0.5 hover:from-cyan-300/25 hover:to-violet-300/25"
+                >
+                  Criar minha primeira sala
+                </button>
+              </div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {minhasSalas.map((sala, index) => {
+                  const encerrada =
+                    sala.status === "FINALIZADA" ||
+                    sala.status === "ENCERRADA";
+
+                  const emAndamento =
+                    sala.status === "ANDAMENTO" ||
+                    sala.status === "EM_ANDAMENTO";
+
+                  return (
+                    <div
+                      key={sala.id}
+                      className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#10101b]/80 p-4 transition duration-300 hover:-translate-y-1 hover:border-cyan-300/25 hover:shadow-xl hover:shadow-cyan-950/20"
+                    >
+                      <div
+                        className={`absolute -right-10 -top-10 h-28 w-28 rounded-full blur-[45px] ${
+                          emAndamento
+                            ? "bg-amber-400/15"
+                            : encerrada
+                              ? "bg-fuchsia-400/15"
+                              : "bg-emerald-400/15"
+                        }`}
+                      />
+
+                      <div className="relative">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div
+                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                                emAndamento
+                                  ? "bg-amber-400/10 text-amber-200"
+                                  : encerrada
+                                    ? "bg-fuchsia-400/10 text-fuchsia-200"
+                                    : "bg-emerald-400/10 text-emerald-200"
+                              }`}
+                            >
+                              {emAndamento ? (
+                                <Zap size={18} />
+                              ) : (
+                                <Swords size={18} />
+                              )}
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-black text-white/90">
+                                {sala.nome}
+                              </p>
+
+                              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/25">
+                                Sala #{sala.id}
+                              </p>
+                            </div>
+                          </div>
+
+                          <span
+                            className={`shrink-0 rounded-lg px-2 py-1 text-[9px] font-black uppercase tracking-wider ${
+                              emAndamento
+                                ? "bg-amber-400/10 text-amber-200"
+                                : encerrada
+                                  ? "bg-fuchsia-400/10 text-fuchsia-200"
+                                  : "bg-emerald-400/10 text-emerald-200"
+                            }`}
+                          >
+                            {emAndamento
+                              ? "Em andamento"
+                              : encerrada
+                                ? "Finalizada"
+                                : "Aberta"}
+                          </span>
+                        </div>
+
+                        <div className="mt-5 flex items-center justify-between">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/25">
+                              Código
+                            </p>
+                            <p className="mt-1 font-mono text-sm font-black tracking-[0.2em] text-cyan-200">
+                              {sala.codigo}
+                            </p>
+                          </div>
+
+                          <div className="text-right">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/25">
+                              Jogadores
+                            </p>
+                            <p className="mt-1 flex items-center justify-end gap-1 text-sm font-bold text-white/65">
+                              <Users size={13} />
+                              {sala._count?.jogadores ?? 0}/{sala.maxJogadores}
+                            </p>
+                          </div>
+                        </div>
+
+                        {encerrada ? (
+                          <button
+                            type="button"
+                            onClick={() => reabrirSala(sala.id)}
+                            disabled={loading}
+                            className="mt-5 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300/15 via-violet-300/15 to-fuchsia-300/15 text-xs font-black text-cyan-100 ring-1 ring-inset ring-cyan-300/15 transition hover:-translate-y-0.5 hover:from-cyan-300/25 hover:via-violet-300/25 hover:to-fuchsia-300/25 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <RefreshCw size={14} />
+                            Abrir novamente
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setCodigo(sala.codigo)}
+                            className="mt-5 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/[0.04] text-xs font-black text-white/55 ring-1 ring-inset ring-white/[0.06] transition hover:bg-white/[0.08] hover:text-white"
+                          >
+                            <ArrowRight size={14} />
+                            {emAndamento ? "Continuar sala" : "Selecionar sala"}
+                          </button>
+                        )}
+
+                        {index === 0 && (
+                          <div className="pointer-events-none absolute inset-x-0 -bottom-4 mx-auto h-16 w-3/4 bg-cyan-400/[0.04] blur-2xl" />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
+
         {/* PARTE INFERIOR */}
         <div className="mt-6 grid gap-5 lg:grid-cols-[1.35fr_1fr]">
           {/* BANCO DE PERGUNTAS */}
-          <div className={`${glassCard} rounded-[2rem] p-6 sm:p-7`}>
+          <div className="rounded-[2rem] border border-cyan-300/10 bg-gradient-to-br from-cyan-500/[0.07] via-white/[0.025] to-violet-500/[0.06] p-6 shadow-[0_20px_70px_rgba(34,211,238,0.05)] backdrop-blur-xl transition hover:border-cyan-300/20 sm:p-7">
             <div className="flex items-center justify-between gap-5">
               <div>
                 <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.06] text-white/70">
@@ -664,7 +911,7 @@ export default function Home() {
               setLoading(true);
               router.push(estaLogado ? "/perfil" : "/login");
             }}
-            className="group relative cursor-pointer overflow-hidden rounded-[2rem] border border-amber-300/15 bg-gradient-to-br from-amber-400/10 via-[#18151b] to-[#11111c] p-6 text-left transition hover:-translate-y-1 hover:border-amber-300/35 sm:p-7"
+            className="group relative cursor-pointer overflow-hidden rounded-[2rem] border border-amber-300/15 bg-gradient-to-br from-amber-400/[0.13] via-pink-500/[0.06] to-violet-500/[0.08] p-6 text-left shadow-[0_20px_70px_rgba(251,191,36,0.05)] transition hover:-translate-y-1 hover:border-amber-300/35 sm:p-7"
           >
             <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-amber-400/10 blur-[55px]" />
 
