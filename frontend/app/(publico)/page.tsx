@@ -333,6 +333,55 @@ export default function Home() {
     }
   }
 
+  // Entrar na sala com duplo clique
+  async function entrarDiretoNaSala(sala: Sala) {
+    try {
+      setLoading(true);
+
+      const currentToken = Cookies.get("token");
+
+      if (!currentToken) {
+        router.push("/login");
+        return;
+      }
+
+      const res = await fetch(`${API}/sala/entrar`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${currentToken}`,
+        },
+        body: JSON.stringify({
+          codigo: sala.codigo,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          Array.isArray(data.message)
+            ? data.message.join(", ")
+            : data.message || "Erro ao entrar na sala."
+        );
+      }
+
+      toast.success("Você entrou na sala!");
+
+      router.push(`/sala/entrar?codigo=${sala.codigo}`);
+    } catch (error) {
+      console.error("Erro ao entrar na sala:", error);
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível entrar na sala."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
   /*
    * REABRIR SALA
    *
@@ -412,7 +461,7 @@ export default function Home() {
         {/* HERO */}
         <div className="mb-10 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
           <div className="max-w-2xl">
-           
+
 
             <h1 className="text-4xl font-black leading-[1.02] tracking-[-0.04em] sm:text-6xl">
               Pronto para
@@ -427,7 +476,7 @@ export default function Home() {
             </p>
           </div>
 
-          
+
         </div>
 
         {/* CARDS PRINCIPAIS */}
@@ -441,7 +490,7 @@ export default function Home() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-400/15 text-violet-200 ring-1 ring-inset ring-violet-300/15 shadow-lg shadow-violet-950/20">
                   <Gamepad2 size={23} />
                 </div>
-                
+
               </div>
 
               <h2 className="mt-8 text-2xl font-black tracking-tight">
@@ -485,7 +534,7 @@ export default function Home() {
                     setLoading(true);
                     router.push("/login");
                   }}
-                    className="mt-4 cursor-pointer text-xs font-bold text-fuchsia-200 transition hover:text-fuchsia-100"
+                  className="mt-4 cursor-pointer text-xs font-bold text-fuchsia-200 transition hover:text-fuchsia-100"
                 >
                   Entre para participar →
                 </button>
@@ -499,7 +548,7 @@ export default function Home() {
               setLoading(true);
               router.push(estaLogado ? "/sala/criar" : "/login");
             }}
-              className="group relative cursor-pointer overflow-hidden rounded-[2rem] border border-fuchsia-300/20 bg-gradient-to-br from-fuchsia-500/15 via-[#1b1428] to-[#11111c] p-6 text-left shadow-2xl shadow-fuchsia-950/10 transition duration-300 hover:-translate-y-1 hover:border-fuchsia-300/45 hover:shadow-fuchsia-950/30 sm:p-8"
+            className="group relative cursor-pointer overflow-hidden rounded-[2rem] border border-fuchsia-300/20 bg-gradient-to-br from-fuchsia-500/15 via-[#1b1428] to-[#11111c] p-6 text-left shadow-2xl shadow-fuchsia-950/10 transition duration-300 hover:-translate-y-1 hover:border-fuchsia-300/45 hover:shadow-fuchsia-950/30 sm:p-8"
           >
             <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-fuchsia-500/15 blur-[70px] transition group-hover:bg-fuchsia-400/25" />
 
@@ -672,6 +721,7 @@ export default function Home() {
               {salasAbertas.map((sala) => (
                 <button
                   key={sala.id}
+                  onDoubleClick={() => entrarDiretoNaSala(sala)}
                   onClick={() => setCodigo(sala.codigo)}
                   className="group cursor-pointer rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 text-left transition hover:-translate-y-1 hover:border-fuchsia-300/35 hover:bg-fuchsia-400/[0.06] hover:shadow-lg hover:shadow-fuchsia-950/15"
                 >
@@ -763,26 +813,24 @@ export default function Home() {
                       className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#10101b]/80 p-4 transition duration-300 hover:-translate-y-1 hover:border-cyan-300/25 hover:shadow-xl hover:shadow-cyan-950/20"
                     >
                       <div
-                        className={`absolute -right-10 -top-10 h-28 w-28 rounded-full blur-[45px] ${
-                          emAndamento
-                            ? "bg-amber-400/15"
-                            : encerrada
-                              ? "bg-fuchsia-400/15"
-                              : "bg-emerald-400/15"
-                        }`}
+                        className={`absolute -right-10 -top-10 h-28 w-28 rounded-full blur-[45px] ${emAndamento
+                          ? "bg-amber-400/15"
+                          : encerrada
+                            ? "bg-fuchsia-400/15"
+                            : "bg-emerald-400/15"
+                          }`}
                       />
 
                       <div className="relative">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
                             <div
-                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                                emAndamento
-                                  ? "bg-amber-400/10 text-amber-200"
-                                  : encerrada
-                                    ? "bg-fuchsia-400/10 text-fuchsia-200"
-                                    : "bg-emerald-400/10 text-emerald-200"
-                              }`}
+                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${emAndamento
+                                ? "bg-amber-400/10 text-amber-200"
+                                : encerrada
+                                  ? "bg-fuchsia-400/10 text-fuchsia-200"
+                                  : "bg-emerald-400/10 text-emerald-200"
+                                }`}
                             >
                               {emAndamento ? (
                                 <Zap size={18} />
@@ -803,13 +851,12 @@ export default function Home() {
                           </div>
 
                           <span
-                            className={`shrink-0 rounded-lg px-2 py-1 text-[9px] font-black uppercase tracking-wider ${
-                              emAndamento
-                                ? "bg-amber-400/10 text-amber-200"
-                                : encerrada
-                                  ? "bg-fuchsia-400/10 text-fuchsia-200"
-                                  : "bg-emerald-400/10 text-emerald-200"
-                            }`}
+                            className={`shrink-0 rounded-lg px-2 py-1 text-[9px] font-black uppercase tracking-wider ${emAndamento
+                              ? "bg-amber-400/10 text-amber-200"
+                              : encerrada
+                                ? "bg-fuchsia-400/10 text-fuchsia-200"
+                                : "bg-emerald-400/10 text-emerald-200"
+                              }`}
                           >
                             {emAndamento
                               ? "Em andamento"
