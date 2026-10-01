@@ -71,7 +71,7 @@ function VerificarEmailContent() {
           );
         }
 
-        Cookies.set("token", accessToken, {
+        Cookies.set("token", String(accessToken), {
           expires: 1,
           sameSite: "lax",
           secure: process.env.NODE_ENV === "production",
