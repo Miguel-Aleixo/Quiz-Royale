@@ -56,26 +56,22 @@ function VerificarEmailContent() {
         if (!res.ok) {
           throw new Error(
             data?.message ||
-              "Não foi possível verificar seu e-mail."
+            "Não foi possível verificar seu e-mail."
           );
         }
 
-        /*
-         * O backend retorna o JWT depois
-         * que o e-mail é verificado.
-         */
-        if (!data?.accessToken) {
+        const accessToken = data?.accessToken;
+
+        if (
+          typeof accessToken !== "string" ||
+          accessToken.length === 0
+        ) {
           throw new Error(
             "E-mail verificado, mas não foi possível iniciar sua sessão."
           );
         }
 
-        /*
-         * Login automático:
-         * salva o JWT exatamente no mesmo cookie
-         * utilizado pelo restante da aplicação.
-         */
-        Cookies.set("token", data.accessToken, {
+        Cookies.set("token", accessToken, {
           expires: 1,
           sameSite: "lax",
           secure: process.env.NODE_ENV === "production",
@@ -85,7 +81,7 @@ function VerificarEmailContent() {
 
         setMensagem(
           data?.mensagem ||
-            "E-mail verificado com sucesso!"
+          "E-mail verificado com sucesso!"
         );
       } catch (error) {
         console.error(
