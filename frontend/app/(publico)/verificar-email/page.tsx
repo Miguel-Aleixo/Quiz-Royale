@@ -24,13 +24,18 @@ function VerificarEmailContent() {
   );
 
   useEffect(() => {
-    const token = searchParams.get("token");
+    const tokenParam = searchParams.get("token");
 
-    if (!token) {
+    if (!tokenParam) {
       setStatus("erro");
-      setMensagem("Token de verificação não encontrado.");
+      setMensagem(
+        "Token de verificação não encontrado."
+      );
       return;
     }
+
+    // Depois da validação acima, garantimos que é string.
+    const token: string = tokenParam;
 
     async function verificarEmail() {
       try {
@@ -56,9 +61,18 @@ function VerificarEmailContent() {
         if (!res.ok) {
           throw new Error(
             data?.message ||
-            "Não foi possível verificar seu e-mail."
+              "Não foi possível verificar seu e-mail."
           );
         }
+
+        /*
+         * O backend precisa retornar:
+         * {
+         *   mensagem: "...",
+         *   emailVerificado: true,
+         *   accessToken: "..."
+         * }
+         */
 
         const accessToken = data?.accessToken;
 
@@ -71,17 +85,23 @@ function VerificarEmailContent() {
           );
         }
 
-        Cookies.set("token", String(accessToken), {
+        /*
+         * Login automático.
+         * O mesmo cookie é utilizado pelo restante
+         * da aplicação para identificar o usuário.
+         */
+        Cookies.set("token", accessToken, {
           expires: 1,
           sameSite: "lax",
-          secure: process.env.NODE_ENV === "production",
+          secure:
+            process.env.NODE_ENV === "production",
         });
 
         setStatus("sucesso");
 
         setMensagem(
           data?.mensagem ||
-          "E-mail verificado com sucesso!"
+            "E-mail verificado com sucesso!"
         );
       } catch (error) {
         console.error(
@@ -224,4 +244,5 @@ export default function VerificarEmailPage() {
     </Suspense>
   );
 }
+
 
