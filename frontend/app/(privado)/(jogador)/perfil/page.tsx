@@ -31,6 +31,7 @@ interface Usuario {
   id: number;
   nome: string;
   email: string;
+  emailVerificado: boolean;
   role: "ADMIN" | "JOGADOR";
   patenteId: number | null;
   pontuacao: number;
@@ -297,13 +298,41 @@ export default function PerfilPage() {
 
                 <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-white/30">
 
-                  <span className="flex items-center gap-2">
-                    <Mail size={14} />
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="flex items-center gap-2">
+                      <Mail size={14} />
 
-                    {loading
-                      ? "Carregando..."
-                      : usuario?.email ?? "-"}
-                  </span>
+                      {loading
+                        ? "Carregando..."
+                        : usuario?.email ?? "-"}
+                    </span>
+
+                    {!loading && usuario && (
+                      <>
+                        <span className="hidden text-white/10 sm:block">
+                          •
+                        </span>
+
+                        <span
+                          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${usuario.emailVerificado
+                              ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
+                              : "border-amber-400/20 bg-amber-400/10 text-amber-300"
+                            }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${usuario.emailVerificado
+                                ? "bg-emerald-400"
+                                : "bg-amber-400"
+                              }`}
+                          />
+
+                          {usuario.emailVerificado
+                            ? "E-mail verificado"
+                            : "E-mail não verificado"}
+                        </span>
+                      </>
+                    )}
+                  </div>
 
                   <span className="hidden text-white/10 sm:block">
                     •
