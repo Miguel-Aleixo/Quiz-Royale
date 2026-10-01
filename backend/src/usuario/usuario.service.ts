@@ -18,7 +18,7 @@ export class UsuarioService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly jwtService: JwtService,
-  ) { }
+  ) {}
 
   async create(createUsuarioDto: CreateUsuarioDto) {
     const senhaHash = await bcrypt.hash(
@@ -36,6 +36,7 @@ export class UsuarioService {
     });
 
     const token = randomBytes(32).toString('hex');
+    const sessaoToken = randomBytes(32).toString('hex');
 
     const expiraEm = new Date(
       Date.now() + 30 * 60 * 1000,
@@ -44,6 +45,7 @@ export class UsuarioService {
     await this.prisma.verificacaoEmail.create({
       data: {
         token,
+        sessaoToken,
         usuarioId: usuario.id,
         expiraEm,
       },
@@ -83,6 +85,7 @@ export class UsuarioService {
       nome: usuario.nome,
       email: usuario.email,
       emailVerificado: usuario.emailVerificado,
+      sessaoToken,
       mensagem:
         'Cadastro realizado. Verifique seu e-mail para poder jogar.',
     };
@@ -138,20 +141,20 @@ export class UsuarioService {
 
     const proximaPatente = usuario.patente
       ? await this.prisma.patente.findFirst({
-        where: {
-          pontos: {
-            gt: usuario.patente.pontos,
+          where: {
+            pontos: {
+              gt: usuario.patente.pontos,
+            },
           },
-        },
-        orderBy: {
-          pontos: 'asc',
-        },
-      })
+          orderBy: {
+            pontos: 'asc',
+          },
+        })
       : await this.prisma.patente.findFirst({
-        orderBy: {
-          pontos: 'asc',
-        },
-      });
+          orderBy: {
+            pontos: 'asc',
+          },
+        });
 
     let progresso = 0;
 
@@ -296,7 +299,9 @@ export class UsuarioService {
     };
   }
 
-  async verificarSessaoEmail(sessaoToken: string) {
+  async verificarSessaoEmail(
+    sessaoToken: string,
+  ) {
     const verificacao =
       await this.prisma.verificacaoEmail.findUnique({
         where: {
@@ -325,15 +330,20 @@ export class UsuarioService {
       );
     }
 
-    // O celular ainda não confirmou o e-mail.
+    /*
+     * O celular ainda não confirmou o e-mail.
+     */
     if (!verificacao.usuario.emailVerificado) {
       return {
         emailVerificado: false,
       };
     }
 
-    // O e-mail foi confirmado.
-    // Agora criamos o JWT para o PC.
+    /*
+     * O e-mail foi confirmado.
+     *
+     * Agora o PC recebe seu próprio JWT.
+     */
     const usuario = verificacao.usuario;
 
     const payload = {
@@ -346,7 +356,9 @@ export class UsuarioService {
     const accessToken =
       await this.jwtService.signAsync(payload);
 
-    // A sessão temporária não pode ser reutilizada.
+    /*
+     * A sessão temporária é de uso único.
+     */
     await this.prisma.verificacaoEmail.delete({
       where: {
         id: verificacao.id,
@@ -367,11 +379,12 @@ export class UsuarioService {
   }
 
   async reenviarVerificacao(email: string) {
-    const usuario = await this.prisma.usuario.findUnique({
-      where: {
-        email,
-      },
-    });
+    const usuario =
+      await this.prisma.usuario.findUnique({
+        where: {
+          email,
+        },
+      });
 
     if (!usuario) {
       throw new NotFoundException(
@@ -385,6 +398,9 @@ export class UsuarioService {
       };
     }
 
+    /*
+     * Remove a verificação anterior.
+     */
     await this.prisma.verificacaoEmail.deleteMany({
       where: {
         usuarioId: usuario.id,
@@ -392,6 +408,7 @@ export class UsuarioService {
     });
 
     const token = randomBytes(32).toString('hex');
+    const sessaoToken = randomBytes(32).toString('hex');
 
     const expiraEm = new Date(
       Date.now() + 30 * 60 * 1000,
@@ -400,6 +417,7 @@ export class UsuarioService {
     await this.prisma.verificacaoEmail.create({
       data: {
         token,
+        sessaoToken,
         usuarioId: usuario.id,
         expiraEm,
       },
@@ -414,6 +432,7 @@ export class UsuarioService {
     return {
       mensagem:
         'Um novo e-mail de verificação foi enviado.',
+      sessaoToken,
     };
   }
 
