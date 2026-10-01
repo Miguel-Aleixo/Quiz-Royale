@@ -1,18 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import Cookies from "js-cookie";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   ArrowUpRight,
   Check,
+  CheckCircle2,
   Eye,
   EyeOff,
   Lock,
   Mail,
   Sparkles,
   User,
-  CheckCircle2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import LoadingOverlay from "@/app/components/global/Loading";
@@ -30,9 +31,14 @@ export default function CadastroPage() {
 
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
   const [loading, setLoading] = useState(false);
-  const [cadastroRealizado, setCadastroRealizado] = useState(false);
+  const [cadastroRealizado, setCadastroRealizado] =
+    useState(false);
+
+  const [verificacaoSessaoToken, setVerificacaoSessaoToken] =
+    useState<string | null>(null);
 
   const router = useRouter();
 
@@ -41,6 +47,11 @@ export default function CadastroPage() {
 
     if (form.senha !== confirmarSenha) {
       toast.error("As senhas não coincidem.");
+      return;
+    }
+
+    if (!API) {
+      toast.error("API não configurada.");
       return;
     }
 
@@ -70,6 +81,30 @@ export default function CadastroPage() {
         return;
       }
 
+      const sessaoToken = data?.sessaoToken;
+
+      if (
+        typeof sessaoToken !== "string" ||
+        sessaoToken.length === 0
+      ) {
+        throw new Error(
+          "Cadastro realizado, mas não foi possível iniciar a verificação."
+        );
+      }
+
+      /*
+       * O sessaoToken fica somente no navegador
+       * onde o cadastro foi realizado.
+       *
+       * Ele NÃO é enviado no e-mail.
+       */
+      sessionStorage.setItem(
+        "verificacaoSessaoToken",
+        sessaoToken
+      );
+
+      setVerificacaoSessaoToken(sessaoToken);
+
       toast.success(
         "Conta criada! Verifique seu e-mail para continuar."
       );
@@ -87,6 +122,157 @@ export default function CadastroPage() {
       setLoading(false);
     }
   };
+
+  /*
+   * ==========================================================
+   * AGUARDA A VERIFICAÇÃO DO E-MAIL
+   * ==========================================================
+   *
+   * O PC consulta o backend a cada 3 segundos.
+   *
+   * Quando o celular verificar o e-mail:
+   *
+   * emailVerificado = true
+   *
+   * O backend então devolve um JWT para ESTE navegador.
+   */
+  useEffect(() => {
+    if (!cadastroRealizado) {
+      return;
+    }
+
+    const token =
+      verificacaoSessaoToken ??
+      sessionStorage.getItem(
+        "verificacaoSessaoToken"
+      );
+
+    if (!token) {
+      console.error(
+        "Token da sessão de verificação não encontrado."
+      );
+      return;
+    }
+
+    if (!API) {
+      console.error("API não configurada.");
+      return;
+    }
+
+    let ativo = true;
+
+    const verificarStatus = async () => {
+      try {
+        const response = await fetch(
+          `${API}/usuario/status-verificacao?token=${encodeURIComponent(
+            token
+          )}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error(
+            "Erro ao consultar verificação:",
+            data
+          );
+
+          return;
+        }
+
+        /*
+         * Ainda não verificou.
+         *
+         * O intervalo continua executando.
+         */
+        if (data?.emailVerificado !== true) {
+          return;
+        }
+
+        /*
+         * O backend só envia o accessToken
+         * depois que o e-mail foi confirmado.
+         */
+        if (
+          typeof data?.accessToken !== "string" ||
+          data.accessToken.length === 0
+        ) {
+          console.error(
+            "E-mail verificado, mas o backend não retornou um accessToken."
+          );
+
+          return;
+        }
+
+        if (!ativo) {
+          return;
+        }
+
+        /*
+         * Salva o JWT somente no PC.
+         */
+        Cookies.set(
+          "token",
+          data.accessToken,
+          {
+            expires: 1,
+            sameSite: "lax",
+            secure:
+              process.env.NODE_ENV === "production",
+          }
+        );
+
+        /*
+         * O sessaoToken não é mais necessário.
+         */
+        sessionStorage.removeItem(
+          "verificacaoSessaoToken"
+        );
+
+        toast.success(
+          "E-mail verificado! Sua conta está pronta."
+        );
+
+        /*
+         * O intervalo será destruído pelo cleanup
+         * quando a página mudar.
+         */
+        router.push("/");
+      } catch (error) {
+        console.error(
+          "Erro ao verificar status do e-mail:",
+          error
+        );
+      }
+    };
+
+    /*
+     * Faz uma consulta imediatamente.
+     */
+    verificarStatus();
+
+    /*
+     * Depois verifica a cada 3 segundos.
+     */
+    const intervalo = setInterval(
+      verificarStatus,
+      3000
+    );
+
+    return () => {
+      ativo = false;
+      clearInterval(intervalo);
+    };
+  }, [
+    cadastroRealizado,
+    verificacaoSessaoToken,
+    API,
+    router,
+  ]);
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#080812] text-white selection:bg-purple-400 selection:text-white">
@@ -122,7 +308,8 @@ export default function CadastroPage() {
                   </h1>
 
                   <p className="mt-3 text-sm leading-6 text-white/45">
-                    Cadastre-se para jogar, competir e conquistar o topo.
+                    Cadastre-se para jogar, competir e
+                    conquistar o topo.
                   </p>
                 </div>
 
@@ -202,7 +389,11 @@ export default function CadastroPage() {
                         />
 
                         <input
-                          type={showPassword ? "text" : "password"}
+                          type={
+                            showPassword
+                              ? "text"
+                              : "password"
+                          }
                           autoComplete="new-password"
                           value={form.senha}
                           onChange={(e) =>
@@ -220,7 +411,9 @@ export default function CadastroPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            setShowPassword((visible) => !visible)
+                            setShowPassword(
+                              (visible) => !visible
+                            )
                           }
                           aria-label={
                             showPassword
@@ -259,7 +452,9 @@ export default function CadastroPage() {
                           autoComplete="new-password"
                           value={confirmarSenha}
                           onChange={(e) =>
-                            setConfirmarSenha(e.target.value)
+                            setConfirmarSenha(
+                              e.target.value
+                            )
                           }
                           placeholder="Digite a senha novamente"
                           required
@@ -292,7 +487,8 @@ export default function CadastroPage() {
 
                     <button
                       type="submit"
-                      className="group mt-1 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 text-[13px] font-bold text-white shadow-lg shadow-purple-900/20 transition hover:-translate-y-0.5 hover:from-purple-500 hover:to-indigo-500 hover:shadow-purple-900/40 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-[#10101c]"
+                      disabled={loading}
+                      className="group mt-1 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 text-[13px] font-bold text-white shadow-lg shadow-purple-900/20 transition hover:-translate-y-0.5 hover:from-purple-500 hover:to-indigo-500 hover:shadow-purple-900/40 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-[#10101c] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       Criar conta
 
@@ -306,9 +502,11 @@ export default function CadastroPage() {
 
                 <div className="my-7 flex items-center gap-3">
                   <span className="h-px flex-1 bg-white/10" />
+
                   <span className="text-[10px] font-medium uppercase tracking-[.12em] text-white/30">
                     ou
                   </span>
+
                   <span className="h-px flex-1 bg-white/10" />
                 </div>
 
@@ -318,7 +516,9 @@ export default function CadastroPage() {
                   </p>
 
                   <button
-                    onClick={() => router.push("/login")}
+                    onClick={() =>
+                      router.push("/login")
+                    }
                     className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/15 text-xs font-bold transition hover:border-purple-400 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-purple-400"
                   >
                     Fazer login
@@ -361,8 +561,10 @@ export default function CadastroPage() {
                 </p>
 
                 <p className="mt-5 max-w-[450px] text-sm leading-7 text-white/45">
-                  Abra seu e-mail e clique no botão de verificação
-                  para ativar sua conta e poder jogar no Quiz Royale.
+                  Abra seu e-mail em qualquer dispositivo e
+                  clique no botão de verificação. Assim que o
+                  e-mail for confirmado, esta página será
+                  atualizada automaticamente.
                 </p>
 
                 <div className="mt-8 w-full rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left">
@@ -378,32 +580,36 @@ export default function CadastroPage() {
                       </p>
 
                       <p className="mt-1 text-xs leading-5 text-white/40">
-                        Verifique também a pasta de spam ou lixo
-                        eletrônico.
+                        Verifique também a pasta de spam ou
+                        lixo eletrônico.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => router.push("/login")}
-                  className="mt-8 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 text-[13px] font-bold text-white shadow-lg shadow-purple-900/20 transition hover:-translate-y-0.5 hover:from-purple-500 hover:to-indigo-500 hover:shadow-purple-900/40"
-                >
-                  Ir para o login
-                  <ArrowUpRight size={17} />
-                </button>
+                <div className="mt-8 flex items-center justify-center gap-2 text-xs text-white/35">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-purple-400" />
+                  Aguardando confirmação do e-mail...
+                </div>
 
                 <button
                   onClick={() => {
+                    sessionStorage.removeItem(
+                      "verificacaoSessaoToken"
+                    );
+
+                    setVerificacaoSessaoToken(null);
                     setCadastroRealizado(false);
+
                     setForm({
                       nome: "",
                       email: "",
                       senha: "",
                     });
+
                     setConfirmarSenha("");
                   }}
-                  className="mt-4 text-xs font-medium text-white/40 transition hover:text-white"
+                  className="mt-5 text-xs font-medium text-white/40 transition hover:text-white"
                 >
                   Voltar ao cadastro
                 </button>

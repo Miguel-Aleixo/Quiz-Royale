@@ -9,6 +9,7 @@ import {
   ConflictException,
   UseGuards,
   Query,
+  NotFoundException
 } from '@nestjs/common';
 
 import { UsuarioService } from './usuario.service';
@@ -21,7 +22,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 export class UsuarioController {
   constructor(
     private readonly usuarioService: UsuarioService,
-  ) {}
+  ) { }
 
   @Post()
   async create(
@@ -82,6 +83,14 @@ export class UsuarioController {
       email,
     );
   }
+
+  @Get('/status-verificacao')
+  async statusVerificacao(
+    @Query('token') token: string,
+  ) {
+    return this.usuarioService.verificarSessaoEmail(token);
+  }
+
 
   // =====================================================
   // USUÁRIOS

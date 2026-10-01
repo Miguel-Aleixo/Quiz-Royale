@@ -18,7 +18,7 @@ export class UsuarioService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   async create(createUsuarioDto: CreateUsuarioDto) {
     const senhaHash = await bcrypt.hash(
@@ -138,20 +138,20 @@ export class UsuarioService {
 
     const proximaPatente = usuario.patente
       ? await this.prisma.patente.findFirst({
-          where: {
-            pontos: {
-              gt: usuario.patente.pontos,
-            },
+        where: {
+          pontos: {
+            gt: usuario.patente.pontos,
           },
-          orderBy: {
-            pontos: 'asc',
-          },
-        })
+        },
+        orderBy: {
+          pontos: 'asc',
+        },
+      })
       : await this.prisma.patente.findFirst({
-          orderBy: {
-            pontos: 'asc',
-          },
-        });
+        orderBy: {
+          pontos: 'asc',
+        },
+      });
 
     let progresso = 0;
 
@@ -285,21 +285,6 @@ export class UsuarioService {
       },
     });
 
-    await this.prisma.verificacaoEmail.delete({
-      where: {
-        id: verificacao.id,
-      },
-    });
-
-    const payload = {
-      sub: usuario.id,
-      email: usuario.email,
-      role: usuario.role,
-    };
-
-    const accessToken =
-      await this.jwtService.signAsync(payload);
-
     console.log(
       'E-MAIL VERIFICADO:',
       usuario.email,
@@ -308,7 +293,76 @@ export class UsuarioService {
     return {
       mensagem: 'E-mail verificado com sucesso.',
       emailVerificado: true,
+    };
+  }
+
+  async verificarSessaoEmail(sessaoToken: string) {
+    const verificacao =
+      await this.prisma.verificacaoEmail.findUnique({
+        where: {
+          sessaoToken,
+        },
+        include: {
+          usuario: true,
+        },
+      });
+
+    if (!verificacao) {
+      throw new NotFoundException(
+        'Sessão de verificação inválida ou já utilizada.',
+      );
+    }
+
+    if (verificacao.expiraEm < new Date()) {
+      await this.prisma.verificacaoEmail.delete({
+        where: {
+          id: verificacao.id,
+        },
+      });
+
+      throw new NotFoundException(
+        'A sessão de verificação expirou.',
+      );
+    }
+
+    // O celular ainda não confirmou o e-mail.
+    if (!verificacao.usuario.emailVerificado) {
+      return {
+        emailVerificado: false,
+      };
+    }
+
+    // O e-mail foi confirmado.
+    // Agora criamos o JWT para o PC.
+    const usuario = verificacao.usuario;
+
+    const payload = {
+      sub: usuario.id,
+      email: usuario.email,
+      patenteId: usuario.patenteId,
+      role: usuario.role,
+    };
+
+    const accessToken =
+      await this.jwtService.signAsync(payload);
+
+    // A sessão temporária não pode ser reutilizada.
+    await this.prisma.verificacaoEmail.delete({
+      where: {
+        id: verificacao.id,
+      },
+    });
+
+    console.log(
+      'SESSÃO DE VERIFICAÇÃO CONVERTIDA EM LOGIN:',
+      usuario.email,
+    );
+
+    return {
+      emailVerificado: true,
       accessToken,
+      mensagem:
+        'E-mail verificado e sessão iniciada.',
     };
   }
 
