@@ -36,14 +36,23 @@ function VerificarEmailContent() {
       try {
         const API = process.env.NEXT_PUBLIC_API;
 
-        const res = await fetch(
-          `${API}/usuario/verificar-email?token=${encodeURIComponent(token)}`,
-          {
-            method: "GET",
-          }
-        );
+        console.log("API:", API);
+        console.log("TOKEN:", token);
+
+        const url =
+          `${API}/usuario/verificar-email?token=${encodeURIComponent(token)}`;
+
+        console.log("URL DE VERIFICAÇÃO:", url);
+
+        const res = await fetch(url, {
+          method: "GET",
+        });
+
+        console.log("STATUS DA VERIFICAÇÃO:", res.status);
 
         const data = await res.json();
+
+        console.log("RESPOSTA DO BACKEND:", data);
 
         if (!res.ok) {
           throw new Error(
@@ -58,6 +67,8 @@ function VerificarEmailContent() {
           "E-mail verificado com sucesso!"
         );
       } catch (error) {
+        console.error("ERRO AO VERIFICAR E-MAIL:", error);
+
         setStatus("erro");
 
         setMensagem(
