@@ -262,6 +262,11 @@ export class UsuarioService {
       );
     }
 
+    console.log(
+      'VERIFICAÇÃO ENCONTRADA:',
+      verificacao,
+    );
+
     if (verificacao.expiraEm < new Date()) {
       await this.prisma.verificacaoEmail.delete({
         where: {
@@ -282,6 +287,11 @@ export class UsuarioService {
         emailVerificado: true,
       },
     });
+
+    console.log(
+      'USUÁRIO APÓS VERIFICAÇÃO:',
+      usuario,
+    );
 
     await this.prisma.verificacaoEmail.delete({
       where: {
