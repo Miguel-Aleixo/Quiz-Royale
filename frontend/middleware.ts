@@ -17,6 +17,7 @@ export function middleware(request: NextRequest) {
     "/",
     "/login",
     "/cadastro",
+    "/verificar-email",
   ];
 
   const isRotaPublica = rotasPublicas.some(
@@ -58,6 +59,14 @@ export function middleware(request: NextRequest) {
       }
     }
 
+    /*
+     * /verificar-email é pública.
+     *
+     * O usuário chega aqui sem estar logado,
+     * pois o login automático acontece dentro
+     * da própria página depois que o token do
+     * e-mail é validado pelo backend.
+     */
     return NextResponse.next();
   }
 
@@ -90,7 +99,7 @@ export function middleware(request: NextRequest) {
     payload = getPayload(token);
   } catch {
     return NextResponse.redirect(
-      new URL("/auth/login", request.url)
+      new URL("/login", request.url)
     );
   }
 
