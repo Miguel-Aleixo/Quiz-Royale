@@ -1,17 +1,20 @@
 "use client";
 
+import Cookies from "js-cookie";
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   CheckCircle2,
   XCircle,
   Loader2,
   MailCheck,
+  ArrowRight,
 } from "lucide-react";
 
 function VerificarEmailContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [status, setStatus] = useState<
     "carregando" | "sucesso" | "erro"
@@ -36,38 +39,44 @@ function VerificarEmailContent() {
       try {
         const API = process.env.NEXT_PUBLIC_API;
 
-        console.log("API:", API);
-        console.log("TOKEN:", token);
-
-        const url =
-          `${API}/usuario/verificar-email?token=${encodeURIComponent(token)}`;
-
-        console.log("URL DE VERIFICAÇÃO:", url);
-
-        const res = await fetch(url, {
-          method: "GET",
-        });
-
-        console.log("STATUS DA VERIFICAÇÃO:", res.status);
+        const res = await fetch(
+          `${API}/usuario/verificar-email?token=${encodeURIComponent(token)}`,
+          {
+            method: "GET",
+          }
+        );
 
         const data = await res.json();
-
-        console.log("RESPOSTA DO BACKEND:", data);
 
         if (!res.ok) {
           throw new Error(
             data?.message ||
-            "Não foi possível verificar seu e-mail."
+              "Não foi possível verificar seu e-mail."
           );
         }
+
+        if (!data?.accessToken) {
+          throw new Error(
+            "E-mail verificado, mas não foi possível iniciar sua sessão."
+          );
+        }
+
+        Cookies.set("token", data.accessToken, {
+          expires: 1,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+        });
 
         setStatus("sucesso");
         setMensagem(
           data?.mensagem ||
-          "E-mail verificado com sucesso!"
+            "E-mail verificado com sucesso!"
         );
       } catch (error) {
-        console.error("ERRO AO VERIFICAR E-MAIL:", error);
+        console.error(
+          "ERRO AO VERIFICAR E-MAIL:",
+          error
+        );
 
         setStatus("erro");
 
@@ -83,16 +92,14 @@ function VerificarEmailContent() {
   }, [searchParams]);
 
   return (
-    <main className="min-h-screen bg-[#080812] flex items-center justify-center px-6">
+    <main className="flex min-h-screen items-center justify-center bg-[#080812] px-6">
       <div className="w-full max-w-md">
         <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-center shadow-2xl backdrop-blur-xl">
 
           {status === "carregando" && (
             <div className="flex flex-col items-center">
               <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-500/10">
-                <Loader2
-                  className="h-8 w-8 animate-spin text-purple-400"
-                />
+                <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
               </div>
 
               <h1 className="text-2xl font-bold text-white">
@@ -100,8 +107,8 @@ function VerificarEmailContent() {
               </h1>
 
               <p className="mt-3 text-sm text-gray-400">
-                Aguarde enquanto confirmamos seu endereço de
-                e-mail.
+                Aguarde enquanto confirmamos seu
+                endereço de e-mail.
               </p>
             </div>
           )}
@@ -124,15 +131,17 @@ function VerificarEmailContent() {
                 <MailCheck className="h-5 w-5 text-purple-400" />
 
                 <span className="text-sm text-gray-300">
-                  Sua conta já pode jogar.
+                  Sua conta foi ativada e você já está
+                  conectado.
                 </span>
               </div>
 
               <Link
-                href="/login"
-                className="mt-6 flex w-full items-center justify-center rounded-xl bg-purple-600 px-5 py-3 font-semibold text-white transition hover:bg-purple-500"
+                href="/"
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 py-3 font-semibold text-white transition hover:bg-purple-500"
               >
-                Ir para o login
+                Começar a jogar
+                <ArrowRight size={18} />
               </Link>
             </div>
           )}
@@ -170,7 +179,7 @@ export default function VerificarEmailPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-[#080812] flex items-center justify-center px-6">
+        <main className="flex min-h-screen items-center justify-center bg-[#080812] px-6">
           <div className="flex flex-col items-center text-center">
             <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
 
@@ -185,3 +194,4 @@ export default function VerificarEmailPage() {
     </Suspense>
   );
 }
+

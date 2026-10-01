@@ -5,6 +5,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
@@ -16,7 +17,8 @@ export class UsuarioService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
-  ) { }
+    private readonly jwtService: JwtService,
+  ) {}
 
   async create(createUsuarioDto: CreateUsuarioDto) {
     const senhaHash = await bcrypt.hash(
@@ -33,10 +35,8 @@ export class UsuarioService {
       },
     });
 
-    // Gera um token seguro para verificação
     const token = randomBytes(32).toString('hex');
 
-    // Token válido por 30 minutos
     const expiraEm = new Date(
       Date.now() + 30 * 60 * 1000,
     );
@@ -61,7 +61,6 @@ export class UsuarioService {
         error,
       );
 
-      // Remove usuário e token caso o envio falhe
       await this.prisma.verificacaoEmail.deleteMany({
         where: {
           usuarioId: usuario.id,
@@ -100,6 +99,7 @@ export class UsuarioService {
         ...createUsuarioDto,
         senha: senhaHash,
         role: 'ADMIN',
+        emailVerificado: true,
       },
     });
   }
@@ -122,7 +122,9 @@ export class UsuarioService {
 
   async findOne(id: number) {
     const usuario = await this.prisma.usuario.findUnique({
-      where: { id },
+      where: {
+        id,
+      },
       include: {
         patente: true,
       },
@@ -136,20 +138,20 @@ export class UsuarioService {
 
     const proximaPatente = usuario.patente
       ? await this.prisma.patente.findFirst({
-        where: {
-          pontos: {
-            gt: usuario.patente.pontos,
+          where: {
+            pontos: {
+              gt: usuario.patente.pontos,
+            },
           },
-        },
-        orderBy: {
-          pontos: 'asc',
-        },
-      })
+          orderBy: {
+            pontos: 'asc',
+          },
+        })
       : await this.prisma.patente.findFirst({
-        orderBy: {
-          pontos: 'asc',
-        },
-      });
+          orderBy: {
+            pontos: 'asc',
+          },
+        });
 
     let progresso = 0;
 
@@ -262,11 +264,6 @@ export class UsuarioService {
       );
     }
 
-    console.log(
-      'VERIFICAÇÃO ENCONTRADA:',
-      verificacao,
-    );
-
     if (verificacao.expiraEm < new Date()) {
       await this.prisma.verificacaoEmail.delete({
         where: {
@@ -288,20 +285,30 @@ export class UsuarioService {
       },
     });
 
-    console.log(
-      'USUÁRIO APÓS VERIFICAÇÃO:',
-      usuario,
-    );
-
     await this.prisma.verificacaoEmail.delete({
       where: {
         id: verificacao.id,
       },
     });
 
+    const payload = {
+      sub: usuario.id,
+      email: usuario.email,
+      role: usuario.role,
+    };
+
+    const accessToken =
+      await this.jwtService.signAsync(payload);
+
+    console.log(
+      'E-MAIL VERIFICADO:',
+      usuario.email,
+    );
+
     return {
       mensagem: 'E-mail verificado com sucesso.',
-      emailVerificado: usuario.emailVerificado,
+      emailVerificado: true,
+      accessToken,
     };
   }
 
@@ -364,3 +371,4 @@ export class UsuarioService {
     });
   }
 }
+
