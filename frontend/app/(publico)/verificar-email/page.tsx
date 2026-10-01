@@ -1,6 +1,5 @@
 "use client";
 
-import Cookies from "js-cookie";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -34,7 +33,6 @@ function VerificarEmailContent() {
       return;
     }
 
-    // Depois da validação acima, garantimos que é string.
     const token: string = tokenParam;
 
     async function verificarEmail() {
@@ -53,6 +51,7 @@ function VerificarEmailContent() {
           )}`,
           {
             method: "GET",
+            cache: "no-store",
           }
         );
 
@@ -66,36 +65,20 @@ function VerificarEmailContent() {
         }
 
         /*
-         * O backend precisa retornar:
-         * {
-         *   mensagem: "...",
-         *   emailVerificado: true,
-         *   accessToken: "..."
-         * }
+         * IMPORTANTE:
+         *
+         * O celular APENAS verifica o e-mail.
+         *
+         * Ele NÃO recebe accessToken.
+         * Ele NÃO cria cookie.
+         * Ele NÃO faz login.
+         *
+         * O PC que realizou o cadastro está
+         * consultando /status-verificacao.
+         *
+         * Quando detectar que o e-mail foi
+         * confirmado, o PC receberá seu próprio JWT.
          */
-
-        const accessToken = data?.accessToken;
-
-        if (
-          typeof accessToken !== "string" ||
-          accessToken.length === 0
-        ) {
-          throw new Error(
-            "E-mail verificado, mas não foi possível iniciar sua sessão."
-          );
-        }
-
-        /*
-         * Login automático.
-         * O mesmo cookie é utilizado pelo restante
-         * da aplicação para identificar o usuário.
-         */
-        Cookies.set("token", accessToken, {
-          expires: 1,
-          sameSite: "lax",
-          secure:
-            process.env.NODE_ENV === "production",
-        });
 
         setStatus("sucesso");
 
@@ -164,20 +147,38 @@ function VerificarEmailContent() {
                 />
               </div>
 
-              <h1 className="text-2xl font-bold text-white">
-                E-mail verificado!
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.15em] text-emerald-400">
+                <MailCheck size={15} />
+                E-mail confirmado
+              </div>
+
+              <h1 className="mt-4 text-2xl font-bold text-white">
+                Tudo certo!
               </h1>
 
               <p className="mt-3 text-sm leading-6 text-white/50">
                 {mensagem}
               </p>
 
-              <div className="mt-5 flex items-center gap-2 text-sm text-emerald-400">
-                <MailCheck size={17} />
+              <div className="mt-5 w-full rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left">
+                <div className="flex gap-3">
+                  <CheckCircle2
+                    size={18}
+                    className="mt-0.5 shrink-0 text-emerald-400"
+                  />
 
-                <span>
-                  Sua conta já está conectada.
-                </span>
+                  <div>
+                    <p className="text-sm font-semibold text-white">
+                      Sua conta foi verificada.
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-white/40">
+                      Volte para o computador onde você
+                      realizou o cadastro. O login será
+                      iniciado automaticamente por lá.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <Link
@@ -244,5 +245,4 @@ export default function VerificarEmailPage() {
     </Suspense>
   );
 }
-
 
