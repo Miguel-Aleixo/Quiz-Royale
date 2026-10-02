@@ -176,7 +176,7 @@ export default function Home() {
           Array.isArray(data.message)
             ? data.message.join(", ")
             : data.message ||
-              "Erro ao buscar usuário."
+            "Erro ao buscar usuário."
         );
       }
 
@@ -222,7 +222,7 @@ export default function Home() {
           Array.isArray(data.message)
             ? data.message.join(", ")
             : data.message ||
-              "Erro ao buscar salas."
+            "Erro ao buscar salas."
         );
       }
 
@@ -270,7 +270,7 @@ export default function Home() {
           Array.isArray(data.message)
             ? data.message.join(", ")
             : data.message ||
-              "Erro ao buscar perguntas."
+            "Erro ao buscar perguntas."
         );
       }
 
@@ -429,7 +429,7 @@ export default function Home() {
           Array.isArray(data.message)
             ? data.message.join(", ")
             : data.message ||
-              "Erro ao entrar na sala."
+            "Erro ao entrar na sala."
         );
       }
 
@@ -505,7 +505,7 @@ export default function Home() {
           Array.isArray(data.message)
             ? data.message.join(", ")
             : data.message ||
-              "Erro ao entrar na sala."
+            "Erro ao entrar na sala."
         );
       }
 
@@ -578,7 +578,7 @@ export default function Home() {
           Array.isArray(data.message)
             ? data.message.join(", ")
             : data.message ||
-              "Não foi possível reabrir a sala."
+            "Não foi possível reabrir a sala."
         );
       }
 
@@ -725,7 +725,7 @@ export default function Home() {
                       emailNaoVerificado)
                       ? false
                       : !codigo.trim() ||
-                        loading
+                      loading
                   }
                   aria-label={
                     !estaLogado
@@ -734,13 +734,12 @@ export default function Home() {
                         ? "Verificar e-mail"
                         : "Entrar na sala"
                   }
-                  className={`flex h-13 w-13 shrink-0 cursor-pointer items-center justify-center rounded-2xl transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed ${
-                    !estaLogado
+                  className={`flex h-13 w-13 shrink-0 cursor-pointer items-center justify-center rounded-2xl transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed ${!estaLogado
                       ? "bg-white/10 text-white/60 hover:bg-white/15"
                       : emailNaoVerificado
                         ? "bg-amber-400/10 text-amber-300 hover:bg-amber-400/20"
                         : "bg-gradient-to-br from-fuchsia-300 to-violet-400 text-[#171022] hover:shadow-fuchsia-500/20 disabled:opacity-30"
-                  }`}
+                    }`}
                 >
                   {!estaLogado ? (
                     <ArrowRight size={20} />
@@ -1092,45 +1091,15 @@ export default function Home() {
 
               <div className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-dashed border-cyan-300/10 bg-white/[0.02] px-5 text-center">
 
-                <Crown
-                  size={20}
-                  className="text-cyan-200/45"
-                />
-
                 <p className="mt-3 text-sm font-semibold text-white/45">
                   Você ainda não criou nenhuma sala.
                 </p>
 
-                <button
-                  type="button"
-                  onClick={() => {
-
-                    if (
-                      emailNaoVerificado &&
-                      usuario
-                    ) {
-                      setLoading(true);
-
-                      router.push(
-                        `/verificar-email?email=${encodeURIComponent(
-                          usuario.email
-                        )}`
-                      );
-
-                      return;
-                    }
-
-                    setLoading(true);
-                    router.push(
-                      "/sala/criar"
-                    );
-                  }}
-                  className="mt-4 cursor-pointer rounded-xl bg-gradient-to-r from-cyan-300/15 to-violet-300/15 px-4 py-2 text-xs font-bold text-cyan-100 ring-1 ring-inset ring-cyan-300/10 transition hover:-translate-y-0.5 hover:from-cyan-300/25 hover:to-violet-300/25"
-                >
+                <p className="mt-1 text-xs text-white/25">
                   {emailNaoVerificado
                     ? "Verificar e-mail"
                     : "Criar minha primeira sala"}
-                </button>
+                </p>
 
               </div>
 
@@ -1143,15 +1112,15 @@ export default function Home() {
 
                     const encerrada =
                       sala.status ===
-                        "FINALIZADA" ||
+                      "FINALIZADA" ||
                       sala.status ===
-                        "ENCERRADA";
+                      "ENCERRADA";
 
                     const emAndamento =
                       sala.status ===
-                        "ANDAMENTO" ||
+                      "ANDAMENTO" ||
                       sala.status ===
-                        "EM_ANDAMENTO";
+                      "EM_ANDAMENTO";
 
                     return (
 
@@ -1161,13 +1130,12 @@ export default function Home() {
                       >
 
                         <div
-                          className={`absolute -right-10 -top-10 h-28 w-28 rounded-full blur-[45px] ${
-                            emAndamento
+                          className={`absolute -right-10 -top-10 h-28 w-28 rounded-full blur-[45px] ${emAndamento
                               ? "bg-amber-400/15"
                               : encerrada
                                 ? "bg-fuchsia-400/15"
                                 : "bg-emerald-400/15"
-                          }`}
+                            }`}
                         />
 
                         <div className="relative">
@@ -1177,13 +1145,12 @@ export default function Home() {
                             <div className="flex min-w-0 items-center gap-3">
 
                               <div
-                                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                                  emAndamento
+                                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${emAndamento
                                     ? "bg-amber-400/10 text-amber-200"
                                     : encerrada
                                       ? "bg-fuchsia-400/10 text-fuchsia-200"
                                       : "bg-emerald-400/10 text-emerald-200"
-                                }`}
+                                  }`}
                               >
                                 {emAndamento ? (
                                   <Zap size={18} />
@@ -1207,13 +1174,12 @@ export default function Home() {
                             </div>
 
                             <span
-                              className={`shrink-0 rounded-lg px-2 py-1 text-[9px] font-black uppercase tracking-wider ${
-                                emAndamento
+                              className={`shrink-0 rounded-lg px-2 py-1 text-[9px] font-black uppercase tracking-wider ${emAndamento
                                   ? "bg-amber-400/10 text-amber-200"
                                   : encerrada
                                     ? "bg-fuchsia-400/10 text-fuchsia-200"
                                     : "bg-emerald-400/10 text-emerald-200"
-                              }`}
+                                }`}
                             >
                               {emAndamento
                                 ? "Em andamento"
@@ -1474,7 +1440,7 @@ export default function Home() {
                     {loadingUsuario
                       ? "Carregando..."
                       : usuario?.patente?.nome ??
-                        "Sem classificação"}
+                      "Sem classificação"}
                   </h2>
 
                   {!loadingUsuario &&
