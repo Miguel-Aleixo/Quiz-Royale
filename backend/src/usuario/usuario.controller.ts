@@ -9,14 +9,25 @@ import {
   ConflictException,
   UseGuards,
   Query,
+  Req,
   NotFoundException
 } from '@nestjs/common';
+
+import type { Request } from 'express';
 
 import { UsuarioService } from './usuario.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: number;
+    email: string;
+    role: string;
+  };
+}
 
 @Controller('usuario')
 export class UsuarioController {
@@ -75,12 +86,13 @@ export class UsuarioController {
     return this.usuarioService.verificarEmail(token);
   }
 
-  @Post('/reenviar-verificacao')
+  @UseGuards(JwtAuthGuard)
+  @Post('reenviar-verificacao')
   async reenviarVerificacao(
-    @Body('email') email: string,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.usuarioService.reenviarVerificacao(
-      email,
+    return this.usuarioService.reenviarVerificacaoPorId(
+      req.user.id,
     );
   }
 

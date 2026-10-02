@@ -18,7 +18,7 @@ export class UsuarioService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   async create(createUsuarioDto: CreateUsuarioDto) {
     const senhaHash = await bcrypt.hash(
@@ -141,20 +141,20 @@ export class UsuarioService {
 
     const proximaPatente = usuario.patente
       ? await this.prisma.patente.findFirst({
-          where: {
-            pontos: {
-              gt: usuario.patente.pontos,
-            },
+        where: {
+          pontos: {
+            gt: usuario.patente.pontos,
           },
-          orderBy: {
-            pontos: 'asc',
-          },
-        })
+        },
+        orderBy: {
+          pontos: 'asc',
+        },
+      })
       : await this.prisma.patente.findFirst({
-          orderBy: {
-            pontos: 'asc',
-          },
-        });
+        orderBy: {
+          pontos: 'asc',
+        },
+      });
 
     let progresso = 0;
 
@@ -378,11 +378,11 @@ export class UsuarioService {
     };
   }
 
-  async reenviarVerificacao(email: string) {
+  async reenviarVerificacaoPorId(usuarioId: number) {
     const usuario =
       await this.prisma.usuario.findUnique({
         where: {
-          email,
+          id: usuarioId,
         },
       });
 
@@ -398,9 +398,6 @@ export class UsuarioService {
       };
     }
 
-    /*
-     * Remove a verificação anterior.
-     */
     await this.prisma.verificacaoEmail.deleteMany({
       where: {
         usuarioId: usuario.id,
