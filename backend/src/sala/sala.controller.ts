@@ -19,6 +19,7 @@ import { EntrarSalaDto } from './dto/entrar-sala.dto';
 
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EmailVerificadoGuard } from '../auth/guards/email-verificado.guard';
 
 interface AuthenticatedRequest extends Request {
   user: {
@@ -30,7 +31,7 @@ interface AuthenticatedRequest extends Request {
 
 @Controller('sala')
 export class SalaController {
-  constructor(private readonly salaService: SalaService) { }
+  constructor(private readonly salaService: SalaService) {}
 
   private gerarCodigo(): string {
     const caracteres =
@@ -47,7 +48,11 @@ export class SalaController {
     return codigo;
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+    EmailVerificadoGuard,
+  )
   @Post()
   async create(
     @Body() createSalaDto: CreateSalaDto,
@@ -64,7 +69,11 @@ export class SalaController {
     );
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+    EmailVerificadoGuard,
+  )
   @Post('entrar')
   async entrar(
     @Body() entrarSalaDto: EntrarSalaDto,
@@ -78,15 +87,23 @@ export class SalaController {
     );
   }
 
+  @UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+    EmailVerificadoGuard,
+  )
   @Get('codigo/:codigo')
-  @UseGuards(JwtAuthGuard, RolesGuard)
   async buscarPorCodigo(
     @Param('codigo') codigo: string,
   ) {
     return await this.salaService.buscarPorCodigo(codigo);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+    EmailVerificadoGuard,
+  )
   @Delete('sair/:codigo')
   async sairDaSala(
     @Param('codigo') codigo: string,
@@ -98,19 +115,31 @@ export class SalaController {
     );
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+    EmailVerificadoGuard,
+  )
   @Get()
   async findAll() {
     return await this.salaService.findAll();
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+    EmailVerificadoGuard,
+  )
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return await this.salaService.findOne(Number(id));
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+    EmailVerificadoGuard,
+  )
   @Patch(':id/reabrir')
   async reabrir(
     @Param('id') id: string,
@@ -122,7 +151,11 @@ export class SalaController {
     );
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+    EmailVerificadoGuard,
+  )
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -134,9 +167,14 @@ export class SalaController {
     );
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(
+    JwtAuthGuard,
+    RolesGuard,
+    EmailVerificadoGuard,
+  )
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return await this.salaService.remove(Number(id));
   }
 }
+

@@ -56,7 +56,7 @@ export class PartidaGateway {
   constructor(
     private readonly prisma: PrismaService,
     private readonly usuarioService: UsuarioService,
-  ) {}
+  ) { }
 
   /*
    * =========================================================
@@ -72,7 +72,7 @@ export class PartidaGateway {
    * =========================================================
    */
 
-  handleConnection(socket: Socket) {
+  async handleConnection(socket: Socket) {
     try {
       const token = socket.handshake.auth?.token;
 
@@ -110,12 +110,72 @@ export class PartidaGateway {
         );
       }
 
-      socket.data.usuarioId = Number(
-        decoded.sub,
-      );
+      const usuarioId = Number(decoded.sub);
+
+      if (!usuarioId) {
+        throw new UnauthorizedException(
+          'Usuário inválido.',
+        );
+      }
+
+      /*
+       * =====================================================
+       * BUSCAR USUÁRIO
+       * =====================================================
+       */
+
+      const usuario =
+        await this.prisma.usuario.findUnique({
+          where: {
+            id: usuarioId,
+          },
+
+          select: {
+            id: true,
+            emailVerificado: true,
+          },
+        });
+
+      if (!usuario) {
+        socket.emit('erro_partida', {
+          mensagem: 'Usuário não encontrado.',
+        });
+
+        socket.disconnect();
+
+        return;
+      }
+
+      /*
+       * =====================================================
+       * E-MAIL NÃO VERIFICADO
+       * =====================================================
+       */
+
+      if (!usuario.emailVerificado) {
+        socket.emit('erro_partida', {
+          mensagem:
+            'Você precisa verificar seu e-mail para jogar.',
+        });
+
+        socket.disconnect();
+
+        return;
+      }
+
+      /*
+       * =====================================================
+       * SOCKET AUTORIZADO
+       * =====================================================
+       */
+
+      socket.data.usuarioId = usuario.id;
+
+      socket.data.emailVerificado =
+        usuario.emailVerificado;
 
       console.log(
-        `Socket autenticado - Usuario: ${socket.data.usuarioId}`,
+        `Socket autenticado - Usuario: ${usuario.id}`,
       );
     } catch (error) {
       console.error(
@@ -341,7 +401,7 @@ export class PartidaGateway {
 
       const rodadaAtual =
         sala.rodadas[
-          estado.rodadaAtual
+        estado.rodadaAtual
         ];
 
       if (!rodadaAtual) {
@@ -401,14 +461,12 @@ export class PartidaGateway {
       );
 
       console.log(
-        `Jogador ${jogador.id} entrou na partida ${codigo} na rodada ${
-          estado.rodadaAtual + 1
-        }. Tempo restante: ${
-          Math.max(
-            0,
-            estado.terminaEm -
-              Date.now(),
-          )
+        `Jogador ${jogador.id} entrou na partida ${codigo} na rodada ${estado.rodadaAtual + 1
+        }. Tempo restante: ${Math.max(
+          0,
+          estado.terminaEm -
+          Date.now(),
+        )
         }ms`,
       );
     } catch (error) {
@@ -447,7 +505,7 @@ export class PartidaGateway {
 
     const rodada =
       rodadas[
-        estado.rodadaAtual
+      estado.rodadaAtual
       ];
 
     if (!rodada) {
@@ -627,8 +685,7 @@ export class PartidaGateway {
       );
 
     console.log(
-      `Partida ${codigo} iniciou a rodada ${
-        estado.rodadaAtual + 1
+      `Partida ${codigo} iniciou a rodada ${estado.rodadaAtual + 1
       }.`,
     );
 
@@ -650,7 +707,7 @@ export class PartidaGateway {
       Math.max(
         0,
         estado.terminaEm -
-          Date.now(),
+        Date.now(),
       );
 
     estado.timer =
@@ -773,9 +830,9 @@ export class PartidaGateway {
           0,
           Math.min(
             agora -
-              estado.iniciadaEm,
+            estado.iniciadaEm,
             estado.terminaEm -
-              estado.iniciadaEm,
+            estado.iniciadaEm,
           ),
         );
 
@@ -889,7 +946,7 @@ export class PartidaGateway {
       if (
         !rodadaAtual ||
         rodadaAtual.id !==
-          rodada.id
+        rodada.id
       ) {
         throw new BadRequestException(
           'Essa não é a rodada atual.',
@@ -1213,7 +1270,7 @@ export class PartidaGateway {
 
     const jogador =
       jogadoresComEstatisticas[
-        indice
+      indice
       ];
 
     return {
@@ -1633,7 +1690,7 @@ export class PartidaGateway {
     ) {
       const item =
         jogadoresComEstatisticas[
-          index
+        index
         ];
 
       const posicao =
@@ -1671,7 +1728,7 @@ export class PartidaGateway {
     ) {
       const item =
         jogadoresComEstatisticas[
-          index
+        index
         ];
 
       const jogador =
@@ -1687,11 +1744,11 @@ export class PartidaGateway {
 
       const pontosGanhos =
         sala.criadorId ===
-        jogador.usuario.id
+          jogador.usuario.id
           ? 0
           : this.calcularPontosPosicao(
-              posicao,
-            );
+            posicao,
+          );
 
       const usuarioAtualizado =
         await this.prisma.usuario.update({
@@ -1736,7 +1793,7 @@ export class PartidaGateway {
       if (
         novaPatente &&
         novaPatente.id !==
-          usuarioAtualizado.patenteId
+        usuarioAtualizado.patenteId
       ) {
         await this.prisma.usuario.update({
           where: {
@@ -1957,7 +2014,7 @@ export class PartidaGateway {
 
     const rodadaAtual =
       rodadas[
-        estado.rodadaAtual
+      estado.rodadaAtual
       ];
 
     if (
@@ -2179,7 +2236,7 @@ export class PartidaGateway {
 
     const proximaRodada =
       rodadas[
-        estado.rodadaAtual
+      estado.rodadaAtual
       ];
 
     if (!proximaRodada) {
@@ -2192,8 +2249,7 @@ export class PartidaGateway {
     }
 
     console.log(
-      `Partida ${codigo} avançando para a rodada ${
-        estado.rodadaAtual + 1
+      `Partida ${codigo} avançando para a rodada ${estado.rodadaAtual + 1
       }.`,
     );
 
