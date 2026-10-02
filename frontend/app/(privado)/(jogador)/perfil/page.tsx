@@ -12,8 +12,9 @@ import {
   Mail,
   User,
   CalendarDays,
-  Settings,
   ChevronRight,
+  CircleCheck,
+  MailWarning,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
@@ -36,12 +37,6 @@ interface Usuario {
   patenteId: number | null;
   pontuacao: number;
   patente: Patente | null;
-}
-
-interface PerfilData {
-  usuario: Usuario;
-  patenteAtual: Patente | null;
-  proximaPatente: Patente | null;
 }
 
 export default function PerfilPage() {
@@ -75,9 +70,6 @@ export default function PerfilPage() {
         throw new Error("Usuário não encontrado no token.");
       }
 
-      /*
-       * Busca o usuário
-       */
       const usuarioResponse = await fetch(
         `${API}/usuario/${usuarioId}`,
         {
@@ -96,9 +88,6 @@ export default function PerfilPage() {
 
       const usuarioData: Usuario = await usuarioResponse.json();
 
-      /*
-       * Busca todas as patentes cadastradas
-       */
       const patentesResponse = await fetch(`${API}/patente`, {
         method: "GET",
         headers: {
@@ -112,20 +101,15 @@ export default function PerfilPage() {
         throw new Error("Não foi possível buscar as patentes.");
       }
 
-      const patentesData: Patente[] = await patentesResponse.json();
+      const patentesData: Patente[] =
+        await patentesResponse.json();
 
-      /*
-       * Ordena as patentes pela quantidade de pontos
-       */
       const patentesOrdenadas = [...patentesData].sort(
         (a, b) => a.pontos - b.pontos
       );
 
       setUsuario(usuarioData);
       setPatentes(patentesOrdenadas);
-
-      console.log("USUÁRIO DO PERFIL:", usuarioData);
-      console.log("PATENTES:", patentesOrdenadas);
     } catch (error) {
       console.error("Erro ao carregar perfil:", error);
 
@@ -139,31 +123,23 @@ export default function PerfilPage() {
     }
   }
 
-  /*
-   * Patente atual.
-   */
   const patenteAtual =
     usuario?.patente ??
-    patentes.find((patente) => patente.id === usuario?.patenteId) ??
+    patentes.find(
+      (patente) => patente.id === usuario?.patenteId
+    ) ??
     null;
 
-  /*
-   * Próxima patente.
-   */
   const proximaPatente =
     patentes.find(
       (patente) =>
         patente.pontos > (usuario?.pontuacao ?? 0)
     ) ?? null;
 
-  /*
-   * Progresso para a próxima patente.
-   */
   let progresso = 0;
 
   if (usuario && proximaPatente) {
     const pontosAtuais = usuario.pontuacao;
-
     const pontosBase = patenteAtual?.pontos ?? 0;
 
     const intervalo =
@@ -175,12 +151,12 @@ export default function PerfilPage() {
     progresso =
       intervalo > 0
         ? Math.min(
-          100,
-          Math.max(
-            0,
-            (pontosDentroDaPatente / intervalo) * 100
+            100,
+            Math.max(
+              0,
+              (pontosDentroDaPatente / intervalo) * 100
+            )
           )
-        )
         : 0;
   } else if (usuario && patenteAtual) {
     progresso = 100;
@@ -189,9 +165,9 @@ export default function PerfilPage() {
   const pontosFaltantes =
     usuario && proximaPatente
       ? Math.max(
-        0,
-        proximaPatente.pontos - usuario.pontuacao
-      )
+          0,
+          proximaPatente.pontos - usuario.pontuacao
+        )
       : 0;
 
   return (
@@ -210,7 +186,7 @@ export default function PerfilPage() {
 
       {/* HEADER */}
       <header className="sticky left-0 right-0 top-0 z-50">
-        <div className="mx-auto max-w-6xl pt-5 px-5">
+        <div className="mx-auto max-w-6xl px-5 pt-5">
           <nav className="flex h-16 items-center justify-between rounded-3xl border border-white/10 bg-[#10101d]/75 px-5 shadow-2xl shadow-black/20 backdrop-blur-xl">
 
             <div className="flex items-center gap-4">
@@ -221,7 +197,7 @@ export default function PerfilPage() {
                 <ArrowLeft size={18} />
               </Link>
 
-              <h1 className="text-lg font-black whitespace-nowrap">
+              <h1 className="whitespace-nowrap text-lg font-black">
                 Meu perfil
               </h1>
             </div>
@@ -247,7 +223,6 @@ export default function PerfilPage() {
         </div>
       </header>
 
-
       {/* CONTEÚDO */}
       <section className="relative z-10 mx-auto max-w-6xl px-5 py-10">
 
@@ -255,6 +230,53 @@ export default function PerfilPage() {
         {erro && (
           <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-400">
             {erro}
+          </div>
+        )}
+
+        {/* AVISO DE E-MAIL */}
+        {!loading && usuario && !usuario.emailVerificado && (
+          <div className="mb-6 overflow-hidden rounded-[2rem] border border-amber-400/20 bg-amber-400/[0.05] shadow-xl shadow-black/20 backdrop-blur-xl">
+
+            <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between">
+
+              <div className="flex items-start gap-4">
+
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-300/15 bg-amber-400/10 text-amber-300">
+                  <MailWarning size={23} />
+                </div>
+
+                <div>
+                  <p className="text-sm font-black text-amber-200">
+                    E-mail ainda não verificado
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-white/35">
+                    Verifique seu e-mail para liberar o acesso às
+                    partidas.
+                  </p>
+
+                  <p className="mt-1 text-xs text-white/20">
+                    Enviaremos um novo link de verificação para:
+                  </p>
+
+                  <p className="mt-1 text-xs font-bold text-white/50">
+                    {usuario.email}
+                  </p>
+                </div>
+
+              </div>
+
+              <Link
+                href={`/verificar-email?email=${encodeURIComponent(
+                  usuario.email
+                )}`}
+                className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-300/20 bg-amber-400/10 px-5 text-xs font-black text-amber-200 transition hover:-translate-y-0.5 hover:bg-amber-400/15 hover:text-amber-100"
+              >
+                <Mail size={15} />
+                Verificar e-mail
+              </Link>
+
+            </div>
           </div>
         )}
 
@@ -314,16 +336,18 @@ export default function PerfilPage() {
                         </span>
 
                         <span
-                          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${usuario.emailVerificado
+                          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
+                            usuario.emailVerificado
                               ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
                               : "border-amber-400/20 bg-amber-400/10 text-amber-300"
-                            }`}
+                          }`}
                         >
                           <span
-                            className={`h-1.5 w-1.5 rounded-full ${usuario.emailVerificado
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              usuario.emailVerificado
                                 ? "bg-emerald-400"
                                 : "bg-amber-400"
-                              }`}
+                            }`}
                           />
 
                           {usuario.emailVerificado
@@ -340,7 +364,6 @@ export default function PerfilPage() {
 
                   <span className="flex items-center gap-2">
                     <CalendarDays size={14} />
-
                     Membro desde 2026
                   </span>
 
@@ -352,11 +375,11 @@ export default function PerfilPage() {
                 className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs font-bold text-white/50 transition hover:-translate-y-0.5 hover:border-fuchsia-300/25 hover:bg-fuchsia-500/10 hover:text-white"
               >
                 Editar perfil
-
                 <ChevronRight size={15} />
               </button>
 
             </div>
+
           </div>
         </div>
 
@@ -369,7 +392,6 @@ export default function PerfilPage() {
             <div className="flex items-start justify-between">
 
               <div>
-
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25">
                   Patente atual
                 </p>
@@ -379,7 +401,6 @@ export default function PerfilPage() {
                     ? "Carregando..."
                     : patenteAtual?.nome ?? "Sem classificação"}
                 </h3>
-
               </div>
 
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-200 ring-1 ring-amber-300/20 shadow-lg shadow-amber-950/20">
@@ -388,7 +409,6 @@ export default function PerfilPage() {
 
             </div>
 
-            {/* PONTUAÇÃO */}
             <div className="mt-6 flex items-end justify-between">
 
               <div>
@@ -417,7 +437,6 @@ export default function PerfilPage() {
 
             </div>
 
-            {/* PROGRESSO */}
             {proximaPatente ? (
               <div className="mt-8">
 
@@ -434,14 +453,12 @@ export default function PerfilPage() {
                 </div>
 
                 <div className="h-2 overflow-hidden rounded-full bg-white/5">
-
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-300 shadow-[0_0_16px_rgba(217,70,239,.55)] transition-all duration-700"
                     style={{
                       width: `${progresso}%`,
                     }}
                   />
-
                 </div>
 
                 <p className="mt-3 text-xs text-white/20">
@@ -478,7 +495,6 @@ export default function PerfilPage() {
               </div>
             )}
 
-            {/* PRÓXIMA PATENTE */}
             {proximaPatente && (
               <div className="mt-7 flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.02] p-4">
 
@@ -487,7 +503,6 @@ export default function PerfilPage() {
                 </div>
 
                 <div>
-
                   <p className="text-xs text-white/30">
                     Próxima patente
                   </p>
@@ -495,7 +510,6 @@ export default function PerfilPage() {
                   <p className="mt-1 text-sm font-bold">
                     {proximaPatente.nome}
                   </p>
-
                 </div>
 
               </div>
@@ -507,7 +521,6 @@ export default function PerfilPage() {
           <div className="rounded-[2rem] border border-white/[0.09] bg-white/[0.045] p-7 shadow-xl shadow-black/20 backdrop-blur-xl">
 
             <div className="mb-6">
-
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25">
                 Desempenho
               </p>
@@ -515,7 +528,6 @@ export default function PerfilPage() {
               <h3 className="mt-2 text-xl font-black">
                 Suas estatísticas
               </h3>
-
             </div>
 
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -560,7 +572,6 @@ export default function PerfilPage() {
           <div className="flex items-center justify-between border-b border-white/5 p-6">
 
             <div>
-
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25">
                 Histórico
               </p>
@@ -568,7 +579,6 @@ export default function PerfilPage() {
               <h3 className="mt-2 text-xl font-black">
                 Partidas recentes
               </h3>
-
             </div>
 
             <button className="cursor-pointer text-xs font-bold text-fuchsia-200 transition hover:text-fuchsia-100">
@@ -600,7 +610,6 @@ export default function PerfilPage() {
         <div className="mt-6">
 
           <div className="mb-5">
-
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/25">
               Conquistas
             </p>
@@ -608,7 +617,6 @@ export default function PerfilPage() {
             <h3 className="mt-2 text-xl font-black">
               Suas conquistas
             </h3>
-
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -642,7 +650,7 @@ export default function PerfilPage() {
         </div>
 
       </section>
-    </main >
+    </main>
   );
 }
 
@@ -691,17 +699,19 @@ function Achievement({
 }) {
   return (
     <div
-      className={`rounded-2xl border p-5 transition hover:-translate-y-0.5 ${unlocked
-        ? "border-fuchsia-300/20 bg-fuchsia-500/[0.07]"
-        : "border-white/5 bg-white/[0.02] opacity-40"
-        }`}
+      className={`rounded-2xl border p-5 transition hover:-translate-y-0.5 ${
+        unlocked
+          ? "border-fuchsia-300/20 bg-fuchsia-500/[0.07]"
+          : "border-white/5 bg-white/[0.02] opacity-40"
+      }`}
     >
 
       <div
-        className={`flex h-11 w-11 items-center justify-center rounded-xl ${unlocked
-          ? "bg-fuchsia-500/10 text-fuchsia-200"
-          : "bg-white/5 text-white/30"
-          }`}
+        className={`flex h-11 w-11 items-center justify-center rounded-xl ${
+          unlocked
+            ? "bg-fuchsia-500/10 text-fuchsia-200"
+            : "bg-white/5 text-white/30"
+        }`}
       >
         {icon}
       </div>

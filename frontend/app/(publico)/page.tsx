@@ -14,6 +14,7 @@ import {
   Trophy,
   Users,
   Zap,
+  Mail,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -33,6 +34,7 @@ interface Usuario {
   id: number;
   nome: string;
   email: string;
+  emailVerificado: boolean;
   pontuacao: number;
   patente?: Patente | null;
   proximaPatente?: Patente | null;
@@ -64,23 +66,72 @@ const glassCard =
 export default function Home() {
   const router = useRouter();
   const API = process.env.NEXT_PUBLIC_API;
-  const [busca, setBusca] = useState('')
 
-  const [token, setToken] = useState<string | undefined>(undefined);
+  const [busca, setBusca] = useState("");
+
+  const [token, setToken] = useState<string | undefined>(
+    undefined
+  );
   const [mounted, setMounted] = useState(false);
 
   const [loading, setLoading] = useState(false);
 
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [usuario, setUsuario] = useState<Usuario | null>(
+    null
+  );
   const [salas, setSalas] = useState<Sala[]>([]);
   const [perguntas, setPerguntas] = useState<Pergunta[]>([]);
   const [codigo, setCodigo] = useState("");
 
   const [loadingUsuario, setLoadingUsuario] = useState(false);
   const [loadingSalas, setLoadingSalas] = useState(false);
-  const [loadingPerguntas, setLoadingPerguntas] = useState(false);
+  const [loadingPerguntas, setLoadingPerguntas] =
+    useState(false);
 
+  /*
+   * ESTADO DE LOGIN
+   */
   const estaLogado = mounted && Boolean(token);
+
+  /*
+   * ESTADO DE VERIFICAÇÃO
+   */
+  const emailNaoVerificado =
+    estaLogado &&
+    usuario !== null &&
+    !usuario.emailVerificado;
+
+  /*
+   * FUNÇÃO CENTRAL DE ACESSO
+   *
+   * Não logado:
+   * -> login
+   *
+   * Logado sem e-mail verificado:
+   * -> verificar e-mail
+   *
+   * Logado + verificado:
+   * -> ação normal
+   */
+  function tratarAcesso() {
+    if (!estaLogado) {
+      setLoading(true);
+      router.push("/login");
+      return;
+    }
+
+    if (emailNaoVerificado && usuario) {
+      setLoading(true);
+
+      router.push(
+        `/verificar-email?email=${encodeURIComponent(
+          usuario.email
+        )}`
+      );
+
+      return;
+    }
+  }
 
   /*
    * BUSCAR USUÁRIO
@@ -95,19 +146,28 @@ export default function Home() {
         throw new Error("Token inválido.");
       }
 
-      const payload = JSON.parse(atob(partes[1]));
+      const payload = JSON.parse(
+        atob(partes[1])
+      );
+
       const id = payload.sub;
 
       if (!id) {
-        throw new Error("Usuário não encontrado no token.");
+        throw new Error(
+          "Usuário não encontrado no token."
+        );
       }
 
-      const res = await fetch(`${API}/usuario/${id}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${currentToken}`,
-        },
-      });
+      const res = await fetch(
+        `${API}/usuario/${id}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${currentToken}`,
+          },
+          cache: "no-store",
+        }
+      );
 
       const data = await res.json();
 
@@ -115,13 +175,17 @@ export default function Home() {
         throw new Error(
           Array.isArray(data.message)
             ? data.message.join(", ")
-            : data.message || "Erro ao buscar usuário."
+            : data.message ||
+              "Erro ao buscar usuário."
         );
       }
 
       setUsuario(data);
     } catch (error) {
-      console.error("Erro ao buscar usuário:", error);
+      console.error(
+        "Erro ao buscar usuário:",
+        error
+      );
 
       toast.error(
         error instanceof Error
@@ -140,12 +204,16 @@ export default function Home() {
     try {
       setLoadingSalas(true);
 
-      const res = await fetch(`${API}/sala`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${currentToken}`,
-        },
-      });
+      const res = await fetch(
+        `${API}/sala`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${currentToken}`,
+          },
+          cache: "no-store",
+        }
+      );
 
       const data = await res.json();
 
@@ -153,13 +221,17 @@ export default function Home() {
         throw new Error(
           Array.isArray(data.message)
             ? data.message.join(", ")
-            : data.message || "Erro ao buscar salas."
+            : data.message ||
+              "Erro ao buscar salas."
         );
       }
 
       setSalas(data);
     } catch (error) {
-      console.error("Erro ao buscar salas:", error);
+      console.error(
+        "Erro ao buscar salas:",
+        error
+      );
 
       toast.error(
         error instanceof Error
@@ -174,16 +246,22 @@ export default function Home() {
   /*
    * BUSCAR PERGUNTAS
    */
-  async function buscarPerguntas(currentToken: string) {
+  async function buscarPerguntas(
+    currentToken: string
+  ) {
     try {
       setLoadingPerguntas(true);
 
-      const res = await fetch(`${API}/pergunta`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${currentToken}`,
-        },
-      });
+      const res = await fetch(
+        `${API}/pergunta`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${currentToken}`,
+          },
+          cache: "no-store",
+        }
+      );
 
       const data = await res.json();
 
@@ -191,13 +269,17 @@ export default function Home() {
         throw new Error(
           Array.isArray(data.message)
             ? data.message.join(", ")
-            : data.message || "Erro ao buscar perguntas."
+            : data.message ||
+              "Erro ao buscar perguntas."
         );
       }
 
       setPerguntas(data);
     } catch (error) {
-      console.error("Erro ao buscar perguntas:", error);
+      console.error(
+        "Erro ao buscar perguntas:",
+        error
+      );
 
       toast.error(
         error instanceof Error
@@ -213,7 +295,8 @@ export default function Home() {
    * INICIALIZAÇÃO
    */
   useEffect(() => {
-    const currentToken = Cookies.get("token");
+    const currentToken =
+      Cookies.get("token");
 
     setToken(currentToken);
     setMounted(true);
@@ -231,7 +314,9 @@ export default function Home() {
    * SALAS ABERTAS
    */
   const salasAbertas = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
+    const termo = busca
+      .trim()
+      .toLowerCase();
 
     return salas.filter((sala) => {
       if (sala.status !== "ABERTA") {
@@ -243,8 +328,12 @@ export default function Home() {
       }
 
       return (
-        sala.nome.toLowerCase().includes(termo) ||
-        sala.codigo.toLowerCase().includes(termo) ||
+        sala.nome
+          .toLowerCase()
+          .includes(termo) ||
+        sala.codigo
+          .toLowerCase()
+          .includes(termo) ||
         String(sala.id).includes(termo)
       );
     });
@@ -259,8 +348,14 @@ export default function Home() {
     }
 
     return salas
-      .filter((sala) => Number(sala.criadorId) === Number(usuario.id))
-      .sort((a, b) => b.id - a.id);
+      .filter(
+        (sala) =>
+          Number(sala.criadorId) ===
+          Number(usuario.id)
+      )
+      .sort(
+        (a, b) => b.id - a.id
+      );
   }, [salas, usuario]);
 
   /*
@@ -269,7 +364,9 @@ export default function Home() {
   const jogadoresNasSalas = useMemo(
     () =>
       salas.reduce(
-        (total, sala) => total + (sala._count?.jogadores ?? 0),
+        (total, sala) =>
+          total +
+          (sala._count?.jogadores ?? 0),
         0
       ),
     [salas]
@@ -280,32 +377,50 @@ export default function Home() {
    */
   async function entrarNaSala() {
     try {
+      if (!estaLogado) {
+        tratarAcesso();
+        return;
+      }
+
+      if (emailNaoVerificado) {
+        tratarAcesso();
+        return;
+      }
+
       setLoading(true);
 
-      const currentToken = Cookies.get("token");
+      const currentToken =
+        Cookies.get("token");
 
       if (!currentToken) {
         router.push("/login");
         return;
       }
 
-      const codigoFormatado = codigo.trim().toUpperCase();
+      const codigoFormatado =
+        codigo.trim().toUpperCase();
 
       if (!codigoFormatado) {
-        toast.warning("Digite o código da sala.");
+        toast.warning(
+          "Digite o código da sala."
+        );
         return;
       }
 
-      const res = await fetch(`${API}/sala/entrar`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${currentToken}`,
-        },
-        body: JSON.stringify({
-          codigo: codigoFormatado,
-        }),
-      });
+      const res = await fetch(
+        `${API}/sala/entrar`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+            Authorization: `Bearer ${currentToken}`,
+          },
+          body: JSON.stringify({
+            codigo: codigoFormatado,
+          }),
+        }
+      );
 
       const data = await res.json();
 
@@ -313,15 +428,23 @@ export default function Home() {
         throw new Error(
           Array.isArray(data.message)
             ? data.message.join(", ")
-            : data.message || "Erro ao entrar na sala."
+            : data.message ||
+              "Erro ao entrar na sala."
         );
       }
 
-      toast.success("Você entrou na sala!");
+      toast.success(
+        "Você entrou na sala!"
+      );
 
-      router.push(`/sala/entrar?codigo=${codigoFormatado}`);
+      router.push(
+        `/sala/entrar?codigo=${codigoFormatado}`
+      );
     } catch (error) {
-      console.error("Erro ao entrar na sala:", error);
+      console.error(
+        "Erro ao entrar na sala:",
+        error
+      );
 
       toast.error(
         error instanceof Error
@@ -333,28 +456,47 @@ export default function Home() {
     }
   }
 
-  // Entrar na sala com duplo clique
-  async function entrarDiretoNaSala(sala: Sala) {
+  /*
+   * ENTRAR DIRETO NA SALA
+   */
+  async function entrarDiretoNaSala(
+    sala: Sala
+  ) {
     try {
+      if (!estaLogado) {
+        tratarAcesso();
+        return;
+      }
+
+      if (emailNaoVerificado) {
+        tratarAcesso();
+        return;
+      }
+
       setLoading(true);
 
-      const currentToken = Cookies.get("token");
+      const currentToken =
+        Cookies.get("token");
 
       if (!currentToken) {
         router.push("/login");
         return;
       }
 
-      const res = await fetch(`${API}/sala/entrar`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${currentToken}`,
-        },
-        body: JSON.stringify({
-          codigo: sala.codigo,
-        }),
-      });
+      const res = await fetch(
+        `${API}/sala/entrar`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+            Authorization: `Bearer ${currentToken}`,
+          },
+          body: JSON.stringify({
+            codigo: sala.codigo,
+          }),
+        }
+      );
 
       const data = await res.json();
 
@@ -362,15 +504,23 @@ export default function Home() {
         throw new Error(
           Array.isArray(data.message)
             ? data.message.join(", ")
-            : data.message || "Erro ao entrar na sala."
+            : data.message ||
+              "Erro ao entrar na sala."
         );
       }
 
-      toast.success("Você entrou na sala!");
+      toast.success(
+        "Você entrou na sala!"
+      );
 
-      router.push(`/sala/entrar?codigo=${sala.codigo}`);
+      router.push(
+        `/sala/entrar?codigo=${sala.codigo}`
+      );
     } catch (error) {
-      console.error("Erro ao entrar na sala:", error);
+      console.error(
+        "Erro ao entrar na sala:",
+        error
+      );
 
       toast.error(
         error instanceof Error
@@ -384,28 +534,42 @@ export default function Home() {
 
   /*
    * REABRIR SALA
-   *
-   * Espera o endpoint:
-   * PATCH /sala/:id/reabrir
    */
-  async function reabrirSala(salaId: number) {
+  async function reabrirSala(
+    salaId: number
+  ) {
     try {
+      if (!estaLogado) {
+        tratarAcesso();
+        return;
+      }
+
+      if (emailNaoVerificado) {
+        tratarAcesso();
+        return;
+      }
+
       setLoading(true);
 
-      const currentToken = Cookies.get("token");
+      const currentToken =
+        Cookies.get("token");
 
       if (!currentToken) {
         router.push("/login");
         return;
       }
 
-      const res = await fetch(`${API}/sala/${salaId}/reabrir`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${currentToken}`,
-        },
-      });
+      const res = await fetch(
+        `${API}/sala/${salaId}/reabrir`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type":
+              "application/json",
+            Authorization: `Bearer ${currentToken}`,
+          },
+        }
+      );
 
       const data = await res.json();
 
@@ -413,15 +577,23 @@ export default function Home() {
         throw new Error(
           Array.isArray(data.message)
             ? data.message.join(", ")
-            : data.message || "Não foi possível reabrir a sala."
+            : data.message ||
+              "Não foi possível reabrir a sala."
         );
       }
 
-      toast.success("Sala reaberta! Um novo código foi gerado.");
+      toast.success(
+        "Sala reaberta! Um novo código foi gerado."
+      );
 
-      await buscarSalas(currentToken);
+      await buscarSalas(
+        currentToken
+      );
     } catch (error) {
-      console.error("Erro ao reabrir sala:", error);
+      console.error(
+        "Erro ao reabrir sala:",
+        error
+      );
 
       toast.error(
         error instanceof Error
@@ -435,10 +607,19 @@ export default function Home() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#070711] text-white selection:bg-fuchsia-400/30">
-      <LoadingOverlay show={loading || loadingPerguntas || loadingSalas || loadingUsuario} />
+
+      <LoadingOverlay
+        show={
+          loading ||
+          loadingPerguntas ||
+          loadingSalas ||
+          loadingUsuario
+        }
+      />
 
       {/* BACKGROUND */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
+
         <div className="absolute -left-48 -top-48 h-[34rem] w-[34rem] rounded-full bg-fuchsia-600/20 blur-[110px]" />
 
         <div className="absolute left-1/3 top-20 h-[24rem] w-[24rem] rounded-full bg-violet-600/12 blur-[120px]" />
@@ -450,6 +631,7 @@ export default function Home() {
         <div className="absolute bottom-[-18rem] left-1/3 h-[34rem] w-[34rem] rounded-full bg-blue-600/12 blur-[120px]" />
 
         <div className="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:48px_48px]" />
+
       </div>
 
       <Header
@@ -458,10 +640,11 @@ export default function Home() {
       />
 
       <section className="relative z-10 mx-auto max-w-7xl px-5 pb-16 pt-28 sm:px-8 lg:pt-32">
+
         {/* HERO */}
         <div className="mb-10 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
-          <div className="max-w-2xl">
 
+          <div className="max-w-2xl">
 
             <h1 className="text-4xl font-black leading-[1.02] tracking-[-0.04em] sm:text-6xl">
               Pronto para
@@ -474,19 +657,23 @@ export default function Home() {
               Entre em uma batalha, desafie seus amigos e suba no ranking
               respondendo perguntas em tempo recorde.
             </p>
-          </div>
 
+          </div>
 
         </div>
 
         {/* CARDS PRINCIPAIS */}
         <div className="grid gap-5 lg:grid-cols-2">
+
           {/* ENTRAR EM SALA */}
           <div className="group relative overflow-hidden rounded-[2rem] border border-violet-300/20 bg-gradient-to-br from-violet-500/20 via-[#18152b] to-[#11111c] p-6 shadow-2xl shadow-violet-950/15 transition hover:-translate-y-1 hover:border-violet-300/40 sm:p-8">
+
             <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-violet-500/20 blur-[70px] transition duration-500 group-hover:bg-violet-400/30" />
 
             <div className="relative">
+
               <div className="flex items-start justify-between">
+
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-400/15 text-violet-200 ring-1 ring-inset ring-violet-300/15 shadow-lg shadow-violet-950/20">
                   <Gamepad2 size={23} />
                 </div>
@@ -502,10 +689,13 @@ export default function Home() {
               </p>
 
               <div className="mt-7 flex gap-3">
+
                 <input
                   value={codigo}
                   onChange={(e) =>
-                    setCodigo(e.target.value.toUpperCase())
+                    setCodigo(
+                      e.target.value.toUpperCase()
+                    )
                   }
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -519,41 +709,105 @@ export default function Home() {
                 />
 
                 <button
-                  onClick={entrarNaSala}
-                  disabled={!estaLogado || !codigo.trim() || loading}
-                  aria-label="Entrar na sala"
-                  className="flex h-13 w-13 shrink-0 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-300 to-violet-400 text-[#171022] transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-fuchsia-500/20 disabled:cursor-not-allowed disabled:opacity-30"
+                  onClick={() => {
+                    if (
+                      !estaLogado ||
+                      emailNaoVerificado
+                    ) {
+                      tratarAcesso();
+                      return;
+                    }
+
+                    entrarNaSala();
+                  }}
+                  disabled={
+                    (!estaLogado ||
+                      emailNaoVerificado)
+                      ? false
+                      : !codigo.trim() ||
+                        loading
+                  }
+                  aria-label={
+                    !estaLogado
+                      ? "Entrar"
+                      : emailNaoVerificado
+                        ? "Verificar e-mail"
+                        : "Entrar na sala"
+                  }
+                  className={`flex h-13 w-13 shrink-0 cursor-pointer items-center justify-center rounded-2xl transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed ${
+                    !estaLogado
+                      ? "bg-white/10 text-white/60 hover:bg-white/15"
+                      : emailNaoVerificado
+                        ? "bg-amber-400/10 text-amber-300 hover:bg-amber-400/20"
+                        : "bg-gradient-to-br from-fuchsia-300 to-violet-400 text-[#171022] hover:shadow-fuchsia-500/20 disabled:opacity-30"
+                  }`}
                 >
-                  <ArrowRight size={20} />
+                  {!estaLogado ? (
+                    <ArrowRight size={20} />
+                  ) : emailNaoVerificado ? (
+                    <Mail size={20} />
+                  ) : (
+                    <ArrowRight size={20} />
+                  )}
                 </button>
+
               </div>
 
-              {!estaLogado && (
+              {!estaLogado ? (
                 <button
-                  onClick={() => {
-                    setLoading(true);
-                    router.push("/login");
-                  }}
+                  onClick={tratarAcesso}
                   className="mt-4 cursor-pointer text-xs font-bold text-fuchsia-200 transition hover:text-fuchsia-100"
                 >
                   Entre para participar →
                 </button>
-              )}
+              ) : emailNaoVerificado ? (
+                <button
+                  onClick={tratarAcesso}
+                  className="mt-4 cursor-pointer text-xs font-bold text-amber-200 transition hover:text-amber-100"
+                >
+                  Verifique seu e-mail para participar →
+                </button>
+              ) : null}
+
             </div>
           </div>
 
           {/* CRIAR SALA */}
           <button
             onClick={() => {
+              if (!estaLogado) {
+                setLoading(true);
+                router.push("/login");
+                return;
+              }
+
+              if (
+                emailNaoVerificado &&
+                usuario
+              ) {
+                setLoading(true);
+
+                router.push(
+                  `/verificar-email?email=${encodeURIComponent(
+                    usuario.email
+                  )}`
+                );
+
+                return;
+              }
+
               setLoading(true);
-              router.push(estaLogado ? "/sala/criar" : "/login");
+              router.push("/sala/criar");
             }}
             className="group relative cursor-pointer overflow-hidden rounded-[2rem] border border-fuchsia-300/20 bg-gradient-to-br from-fuchsia-500/15 via-[#1b1428] to-[#11111c] p-6 text-left shadow-2xl shadow-fuchsia-950/10 transition duration-300 hover:-translate-y-1 hover:border-fuchsia-300/45 hover:shadow-fuchsia-950/30 sm:p-8"
           >
+
             <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-fuchsia-500/15 blur-[70px] transition group-hover:bg-fuchsia-400/25" />
 
             <div className="relative flex h-full flex-col">
+
               <div className="flex items-start justify-between">
+
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-fuchsia-400/15 text-fuchsia-200 ring-1 ring-inset ring-fuchsia-300/15">
                   <Plus size={23} />
                 </div>
@@ -562,36 +816,59 @@ export default function Home() {
                   size={21}
                   className="text-white/30 transition group-hover:translate-x-1 group-hover:text-fuchsia-200"
                 />
+
               </div>
 
               <h2 className="mt-8 text-2xl font-black tracking-tight">
-                {estaLogado ? "Criar uma sala" : "Entre para jogar"}
+                {!estaLogado
+                  ? "Entre para jogar"
+                  : emailNaoVerificado
+                    ? "Verifique seu e-mail"
+                    : "Criar uma sala"}
               </h2>
 
               <p className="mt-2 max-w-sm text-sm leading-6 text-white/45">
-                {estaLogado
-                  ? "Monte sua própria batalha, escolha os jogadores e defina o ritmo do jogo."
-                  : "Faça login para criar salas e participar das batalhas."}
+                {!estaLogado
+                  ? "Faça login para criar salas e participar das batalhas."
+                  : emailNaoVerificado
+                    ? "Confirme seu e-mail para poder criar e participar das batalhas."
+                    : "Monte sua própria batalha, escolha os jogadores e defina o ritmo do jogo."}
               </p>
 
               <div className="mt-auto flex items-center gap-2 pt-7 text-xs font-bold text-fuchsia-200">
-                <Crown size={14} />
 
-                {estaLogado
-                  ? "Montar nova batalha"
-                  : "Entrar agora"}
+                {emailNaoVerificado ? (
+                  <Mail size={14} />
+                ) : (
+                  <Crown size={14} />
+                )}
+
+                {!estaLogado
+                  ? "Entrar agora"
+                  : emailNaoVerificado
+                    ? "Verificar e-mail"
+                    : "Montar nova batalha"}
+
               </div>
+
             </div>
           </button>
+
         </div>
 
         {/* SALAS ABERTAS */}
         <section className="relative mt-6 overflow-hidden rounded-[2rem] border border-violet-300/15 bg-gradient-to-br from-violet-500/[0.08] via-fuchsia-500/[0.035] to-cyan-500/[0.05] p-5 shadow-[0_20px_80px_rgba(139,92,246,0.06)] backdrop-blur-xl transition hover:border-violet-300/25 sm:p-7">
+
           <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-violet-500/10 blur-[70px]" />
+
           <div className="pointer-events-none absolute -bottom-24 left-1/3 h-48 w-48 rounded-full bg-cyan-400/[0.06] blur-[70px]" />
-          <div className="mb-6 flex items-center justify-between gap-4 w-full">
+
+          <div className="mb-6 flex w-full items-center justify-between gap-4">
+
             <div>
+
               <div className="flex items-center gap-2.5">
+
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-400/10 text-violet-200">
                   <Swords size={18} />
                 </div>
@@ -599,16 +876,20 @@ export default function Home() {
                 <h2 className="text-xl font-black tracking-tight">
                   Salas abertas
                 </h2>
+
               </div>
 
               <p className="mt-2 text-sm text-white/35">
                 Partidas esperando novos competidores.
               </p>
+
             </div>
 
             {/* BUSCA */}
             <div className="flex w-full items-center gap-3 sm:w-auto">
+
               <div className="relative w-full sm:w-64">
+
                 <Search
                   size={16}
                   className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 transition-colors"
@@ -616,53 +897,27 @@ export default function Home() {
 
                 <input
                   value={busca}
-                  onChange={(event) => setBusca(event.target.value)}
+                  onChange={(event) =>
+                    setBusca(event.target.value)
+                  }
                   placeholder="Buscar por nome..."
-                  className="
-        h-10 w-full rounded-xl
-        border border-white/[0.08]
-        bg-white/[0.035]
-        pl-10 pr-4
-        text-sm font-medium text-white
-        outline-none
-        placeholder:text-white/20
-        transition-all duration-200
-        hover:border-white/[0.14]
-        hover:bg-white/[0.05]
-                  focus:border-fuchsia-400/40
-                  focus:bg-fuchsia-400/[0.04]
-                  focus:ring-4 focus:ring-fuchsia-400/[0.06]
-      "
+                  className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.035] pl-10 pr-4 text-sm font-medium text-white outline-none placeholder:text-white/20 transition-all duration-200 hover:border-white/[0.14] hover:bg-white/[0.05] focus:border-fuchsia-400/40 focus:bg-fuchsia-400/[0.04] focus:ring-4 focus:ring-fuchsia-400/[0.06]"
                 />
 
                 {busca && (
                   <button
                     type="button"
                     onClick={() => setBusca("")}
-                    className="cursor-pointer
-          absolute right-3 top-1/2
-          -translate-y-1/2
-          text-xs font-bold text-white/25
-          transition-colors
-          hover:text-white/60
-        "
+                    className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-xs font-bold text-white/25 transition-colors hover:text-white/60"
                   >
                     ×
                   </button>
                 )}
+
               </div>
 
-              <span
-                className="
-      shrink-0 rounded-xl
-      border border-violet-300/[0.12]
-      bg-violet-400/[0.07]
-      px-3 py-2
-      text-xs font-bold
-      text-violet-200/80
-      shadow-[0_0_20px_rgba(139,92,246,0.05)]
-    "
-              >
+              <span className="shrink-0 rounded-xl border border-violet-300/[0.12] bg-violet-400/[0.07] px-3 py-2 text-xs font-bold text-violet-200/80 shadow-[0_0_20px_rgba(139,92,246,0.05)]">
+
                 {!estaLogado
                   ? "—"
                   : loadingSalas
@@ -670,12 +925,15 @@ export default function Home() {
                     : salasAbertas.length === 1
                       ? "1 disponível"
                       : `${salasAbertas.length} disponíveis`}
+
               </span>
+
             </div>
 
           </div>
 
           {!estaLogado ? (
+
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.015] p-4 text-center">
 
               <p className="text-sm font-semibold text-white/45">
@@ -687,25 +945,31 @@ export default function Home() {
               </p>
 
               <button
-                onClick={() => {
-                  setLoading(true);
-                  router.push("/login");
-                }}
+                onClick={tratarAcesso}
                 className="mt-4 cursor-pointer rounded-xl bg-violet-400/10 px-4 py-2 text-xs font-bold text-violet-200 transition hover:bg-violet-400/20"
               >
                 Entrar agora
               </button>
+
             </div>
+
           ) : loadingSalas ? (
+
             <div className="grid gap-3 md:grid-cols-3">
-              {[1, 2, 3].map((item) => (
-                <div
-                  key={item}
-                  className="h-24 animate-pulse rounded-2xl bg-white/[0.04]"
-                />
-              ))}
+
+              {[1, 2, 3].map(
+                (item) => (
+                  <div
+                    key={item}
+                    className="h-24 animate-pulse rounded-2xl bg-white/[0.04]"
+                  />
+                )
+              )}
+
             </div>
+
           ) : salasAbertas.length === 0 ? (
+
             <div className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.015] px-5 text-center">
 
               <p className="text-sm font-semibold text-white/45">
@@ -715,59 +979,105 @@ export default function Home() {
               <p className="mt-1 text-xs text-white/25">
                 Crie uma sala e comece a primeira batalha.
               </p>
+
             </div>
+
           ) : (
+
             <div className="grid gap-3 md:grid-cols-3">
-              {salasAbertas.map((sala) => (
-                <button
-                  key={sala.id}
-                  onDoubleClick={() => entrarDiretoNaSala(sala)}
-                  onClick={() => setCodigo(sala.codigo)}
-                  className="group cursor-pointer rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 text-left transition hover:-translate-y-1 hover:border-fuchsia-300/35 hover:bg-fuchsia-400/[0.06] hover:shadow-lg hover:shadow-fuchsia-950/15"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="truncate text-sm font-bold text-white/85">
-                      {sala.nome}
-                    </span>
 
-                    <span className="flex h-2 w-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.7)]" />
-                  </div>
+              {salasAbertas.map(
+                (sala) => (
 
-                  <div className="mt-5 flex items-center justify-between">
-                    <span className="font-mono text-xs tracking-[0.18em] text-violet-200">
-                      {sala.codigo}
-                    </span>
+                  <button
+                    key={sala.id}
+                    onDoubleClick={() => {
 
-                    <span className="flex items-center gap-1 text-[11px] text-white/30">
-                      <Users size={12} />
-                      {sala._count?.jogadores ?? 0}/{sala.maxJogadores}
-                    </span>
-                  </div>
-                </button>
-              ))}
+                      if (
+                        !estaLogado ||
+                        emailNaoVerificado
+                      ) {
+                        tratarAcesso();
+                        return;
+                      }
+
+                      entrarDiretoNaSala(
+                        sala
+                      );
+                    }}
+                    onClick={() =>
+                      setCodigo(
+                        sala.codigo
+                      )
+                    }
+                    className="group cursor-pointer rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 text-left transition hover:-translate-y-1 hover:border-fuchsia-300/35 hover:bg-fuchsia-400/[0.06] hover:shadow-lg hover:shadow-fuchsia-950/15"
+                  >
+
+                    <div className="flex items-center justify-between gap-3">
+
+                      <span className="truncate text-sm font-bold text-white/85">
+                        {sala.nome}
+                      </span>
+
+                      <span className="flex h-2 w-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.7)]" />
+
+                    </div>
+
+                    <div className="mt-5 flex items-center justify-between">
+
+                      <span className="font-mono text-xs tracking-[0.18em] text-violet-200">
+                        {sala.codigo}
+                      </span>
+
+                      <span className="flex items-center gap-1 text-[11px] text-white/30">
+                        <Users size={12} />
+
+                        {sala._count?.jogadores ?? 0}/
+                        {sala.maxJogadores}
+                      </span>
+
+                    </div>
+
+                  </button>
+
+                )
+              )}
+
             </div>
+
           )}
+
         </section>
 
         {/* MINHAS SALAS */}
         {estaLogado && (
+
           <section className="mt-6 overflow-hidden rounded-[2rem] border border-cyan-300/15 bg-gradient-to-br from-cyan-500/[0.09] via-violet-500/[0.07] to-fuchsia-500/[0.06] p-5 shadow-[0_20px_80px_rgba(34,211,238,0.07)] backdrop-blur-xl transition hover:border-cyan-300/25 sm:p-7">
+
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
               <div>
+
                 <div className="flex items-center gap-2.5">
+
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400/20 to-violet-400/20 text-cyan-200 ring-1 ring-inset ring-cyan-300/15">
                     <History size={19} />
                   </div>
 
                   <div>
+
                     <h2 className="text-xl font-black tracking-tight">
                       Minhas salas
                     </h2>
+
                     <p className="mt-0.5 text-xs text-white/35">
                       Salas que você criou e pode abrir novamente.
                     </p>
+
                   </div>
+
                 </div>
+
               </div>
 
               <span className="w-fit rounded-xl border border-cyan-300/15 bg-cyan-400/[0.07] px-3 py-2 text-xs font-bold text-cyan-200/80">
@@ -775,11 +1085,17 @@ export default function Home() {
                   ? "1 sala criada"
                   : `${minhasSalas.length} salas criadas`}
               </span>
+
             </div>
 
             {minhasSalas.length === 0 ? (
+
               <div className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-dashed border-cyan-300/10 bg-white/[0.02] px-5 text-center">
-                <Crown size={20} className="text-cyan-200/45" />
+
+                <Crown
+                  size={20}
+                  className="text-cyan-200/45"
+                />
 
                 <p className="mt-3 text-sm font-semibold text-white/45">
                   Você ainda não criou nenhuma sala.
@@ -788,144 +1104,267 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => {
+
+                    if (
+                      emailNaoVerificado &&
+                      usuario
+                    ) {
+                      setLoading(true);
+
+                      router.push(
+                        `/verificar-email?email=${encodeURIComponent(
+                          usuario.email
+                        )}`
+                      );
+
+                      return;
+                    }
+
                     setLoading(true);
-                    router.push("/sala/criar");
+                    router.push(
+                      "/sala/criar"
+                    );
                   }}
                   className="mt-4 cursor-pointer rounded-xl bg-gradient-to-r from-cyan-300/15 to-violet-300/15 px-4 py-2 text-xs font-bold text-cyan-100 ring-1 ring-inset ring-cyan-300/10 transition hover:-translate-y-0.5 hover:from-cyan-300/25 hover:to-violet-300/25"
                 >
-                  Criar minha primeira sala
+                  {emailNaoVerificado
+                    ? "Verificar e-mail"
+                    : "Criar minha primeira sala"}
                 </button>
+
               </div>
+
             ) : (
+
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {minhasSalas.map((sala, index) => {
-                  const encerrada =
-                    sala.status === "FINALIZADA" ||
-                    sala.status === "ENCERRADA";
 
-                  const emAndamento =
-                    sala.status === "ANDAMENTO" ||
-                    sala.status === "EM_ANDAMENTO";
+                {minhasSalas.map(
+                  (sala, index) => {
 
-                  return (
-                    <div
-                      key={sala.id}
-                      className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#10101b]/80 p-4 transition duration-300 hover:-translate-y-1 hover:border-cyan-300/25 hover:shadow-xl hover:shadow-cyan-950/20"
-                    >
+                    const encerrada =
+                      sala.status ===
+                        "FINALIZADA" ||
+                      sala.status ===
+                        "ENCERRADA";
+
+                    const emAndamento =
+                      sala.status ===
+                        "ANDAMENTO" ||
+                      sala.status ===
+                        "EM_ANDAMENTO";
+
+                    return (
+
                       <div
-                        className={`absolute -right-10 -top-10 h-28 w-28 rounded-full blur-[45px] ${emAndamento
-                          ? "bg-amber-400/15"
-                          : encerrada
-                            ? "bg-fuchsia-400/15"
-                            : "bg-emerald-400/15"
+                        key={sala.id}
+                        className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#10101b]/80 p-4 transition duration-300 hover:-translate-y-1 hover:border-cyan-300/25 hover:shadow-xl hover:shadow-cyan-950/20"
+                      >
+
+                        <div
+                          className={`absolute -right-10 -top-10 h-28 w-28 rounded-full blur-[45px] ${
+                            emAndamento
+                              ? "bg-amber-400/15"
+                              : encerrada
+                                ? "bg-fuchsia-400/15"
+                                : "bg-emerald-400/15"
                           }`}
-                      />
+                        />
 
-                      <div className="relative">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <div
-                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${emAndamento
-                                ? "bg-amber-400/10 text-amber-200"
-                                : encerrada
-                                  ? "bg-fuchsia-400/10 text-fuchsia-200"
-                                  : "bg-emerald-400/10 text-emerald-200"
+                        <div className="relative">
+
+                          <div className="flex items-start justify-between gap-3">
+
+                            <div className="flex min-w-0 items-center gap-3">
+
+                              <div
+                                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                                  emAndamento
+                                    ? "bg-amber-400/10 text-amber-200"
+                                    : encerrada
+                                      ? "bg-fuchsia-400/10 text-fuchsia-200"
+                                      : "bg-emerald-400/10 text-emerald-200"
                                 }`}
-                            >
-                              {emAndamento ? (
-                                <Zap size={18} />
-                              ) : (
-                                <Swords size={18} />
-                              )}
+                              >
+                                {emAndamento ? (
+                                  <Zap size={18} />
+                                ) : (
+                                  <Swords size={18} />
+                                )}
+                              </div>
+
+                              <div className="min-w-0">
+
+                                <p className="truncate text-sm font-black text-white/90">
+                                  {sala.nome}
+                                </p>
+
+                                <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/25">
+                                  Sala #{sala.id}
+                                </p>
+
+                              </div>
+
                             </div>
 
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-black text-white/90">
-                                {sala.nome}
-                              </p>
-
-                              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/25">
-                                Sala #{sala.id}
-                              </p>
-                            </div>
-                          </div>
-
-                          <span
-                            className={`shrink-0 rounded-lg px-2 py-1 text-[9px] font-black uppercase tracking-wider ${emAndamento
-                              ? "bg-amber-400/10 text-amber-200"
-                              : encerrada
-                                ? "bg-fuchsia-400/10 text-fuchsia-200"
-                                : "bg-emerald-400/10 text-emerald-200"
+                            <span
+                              className={`shrink-0 rounded-lg px-2 py-1 text-[9px] font-black uppercase tracking-wider ${
+                                emAndamento
+                                  ? "bg-amber-400/10 text-amber-200"
+                                  : encerrada
+                                    ? "bg-fuchsia-400/10 text-fuchsia-200"
+                                    : "bg-emerald-400/10 text-emerald-200"
                               }`}
-                          >
-                            {emAndamento
-                              ? "Em andamento"
-                              : encerrada
-                                ? "Finalizada"
-                                : "Aberta"}
-                          </span>
-                        </div>
+                            >
+                              {emAndamento
+                                ? "Em andamento"
+                                : encerrada
+                                  ? "Finalizada"
+                                  : "Aberta"}
+                            </span>
 
-                        <div className="mt-5 flex items-center justify-between">
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/25">
-                              Código
-                            </p>
-                            <p className="mt-1 font-mono text-sm font-black tracking-[0.2em] text-cyan-200">
-                              {sala.codigo}
-                            </p>
                           </div>
 
-                          <div className="text-right">
-                            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/25">
-                              Jogadores
-                            </p>
-                            <p className="mt-1 flex items-center justify-end gap-1 text-sm font-bold text-white/65">
-                              <Users size={13} />
-                              {sala._count?.jogadores ?? 0}/{sala.maxJogadores}
-                            </p>
+                          <div className="mt-5 flex items-center justify-between">
+
+                            <div>
+
+                              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/25">
+                                Código
+                              </p>
+
+                              <p className="mt-1 font-mono text-sm font-black tracking-[0.2em] text-cyan-200">
+                                {sala.codigo}
+                              </p>
+
+                            </div>
+
+                            <div className="text-right">
+
+                              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/25">
+                                Jogadores
+                              </p>
+
+                              <p className="mt-1 flex items-center justify-end gap-1 text-sm font-bold text-white/65">
+
+                                <Users size={13} />
+
+                                {sala._count?.jogadores ?? 0}/
+                                {sala.maxJogadores}
+
+                              </p>
+
+                            </div>
+
                           </div>
+
+                          {encerrada ? (
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                reabrirSala(
+                                  sala.id
+                                )
+                              }
+                              disabled={
+                                loading
+                              }
+                              className="mt-5 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300/15 via-violet-300/15 to-fuchsia-300/15 text-xs font-black text-cyan-100 ring-1 ring-inset ring-cyan-300/15 transition hover:-translate-y-0.5 hover:from-cyan-300/25 hover:via-violet-300/25 hover:to-fuchsia-300/25 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+
+                              <RefreshCw
+                                size={14}
+                              />
+
+                              Abrir novamente
+
+                            </button>
+
+                          ) : (
+
+                            <button
+                              type="button"
+                              onClick={() => {
+
+                                if (
+                                  emailNaoVerificado &&
+                                  usuario
+                                ) {
+                                  setLoading(
+                                    true
+                                  );
+
+                                  router.push(
+                                    `/verificar-email?email=${encodeURIComponent(
+                                      usuario.email
+                                    )}`
+                                  );
+
+                                  return;
+                                }
+
+                                setCodigo(
+                                  sala.codigo
+                                );
+
+                              }}
+                              className="mt-5 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/[0.04] text-xs font-black text-white/55 ring-1 ring-inset ring-white/[0.06] transition hover:bg-white/[0.08] hover:text-white"
+                            >
+
+                              {emailNaoVerificado ? (
+                                <>
+                                  <Mail
+                                    size={14}
+                                  />
+
+                                  Verificar e-mail
+                                </>
+                              ) : (
+                                <>
+                                  <ArrowRight
+                                    size={14}
+                                  />
+
+                                  {emAndamento
+                                    ? "Continuar sala"
+                                    : "Selecionar sala"}
+                                </>
+                              )}
+
+                            </button>
+
+                          )}
+
+                          {index === 0 && (
+                            <div className="pointer-events-none absolute inset-x-0 -bottom-4 mx-auto h-16 w-3/4 bg-cyan-400/[0.04] blur-2xl" />
+                          )}
+
                         </div>
 
-                        {encerrada ? (
-                          <button
-                            type="button"
-                            onClick={() => reabrirSala(sala.id)}
-                            disabled={loading}
-                            className="mt-5 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300/15 via-violet-300/15 to-fuchsia-300/15 text-xs font-black text-cyan-100 ring-1 ring-inset ring-cyan-300/15 transition hover:-translate-y-0.5 hover:from-cyan-300/25 hover:via-violet-300/25 hover:to-fuchsia-300/25 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            <RefreshCw size={14} />
-                            Abrir novamente
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setCodigo(sala.codigo)}
-                            className="mt-5 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/[0.04] text-xs font-black text-white/55 ring-1 ring-inset ring-white/[0.06] transition hover:bg-white/[0.08] hover:text-white"
-                          >
-                            <ArrowRight size={14} />
-                            {emAndamento ? "Continuar sala" : "Selecionar sala"}
-                          </button>
-                        )}
-
-                        {index === 0 && (
-                          <div className="pointer-events-none absolute inset-x-0 -bottom-4 mx-auto h-16 w-3/4 bg-cyan-400/[0.04] blur-2xl" />
-                        )}
                       </div>
-                    </div>
-                  );
-                })}
+
+                    );
+                  }
+                )}
+
               </div>
+
             )}
+
           </section>
+
         )}
 
         {/* PARTE INFERIOR */}
         <div className="mt-6 grid gap-5 lg:grid-cols-[1.35fr_1fr]">
+
           {/* BANCO DE PERGUNTAS */}
           <div className="rounded-[2rem] border border-cyan-300/10 bg-gradient-to-br from-cyan-500/[0.07] via-white/[0.025] to-violet-500/[0.06] p-6 shadow-[0_20px_70px_rgba(34,211,238,0.05)] backdrop-blur-xl transition hover:border-cyan-300/20 sm:p-7">
+
             <div className="flex items-center justify-between gap-5">
+
               <div>
+
                 <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.06] text-white/70">
                   <Tags size={21} />
                 </div>
@@ -938,40 +1377,63 @@ export default function Home() {
                   Conteúdo disponível para criar rodadas mais variadas e
                   desafiadoras.
                 </p>
+
               </div>
 
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-fuchsia-300/15 bg-fuchsia-400/[0.07]">
+
                 <span className="text-2xl font-black text-fuchsia-200">
+
                   {!estaLogado
                     ? "—"
                     : loadingPerguntas
                       ? "—"
                       : perguntas.length}
+
                 </span>
+
               </div>
+
             </div>
+
           </div>
 
           {/* PATENTE */}
           <button
             onClick={() => {
+
+              if (!estaLogado) {
+                setLoading(true);
+                router.push("/login");
+                return;
+              }
+
               setLoading(true);
-              router.push(estaLogado ? "/perfil" : "/login");
+              router.push("/perfil");
+
             }}
             className="group relative cursor-pointer overflow-hidden rounded-[2rem] border border-amber-300/15 bg-gradient-to-br from-amber-400/[0.13] via-pink-500/[0.06] to-violet-500/[0.08] p-6 text-left shadow-[0_20px_70px_rgba(251,191,36,0.05)] transition hover:-translate-y-1 hover:border-amber-300/35 sm:p-7"
           >
+
             <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-amber-400/10 blur-[55px]" />
 
             <div className="relative">
+
               <div className="flex items-start justify-between">
+
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-400/10 text-amber-200">
                   <Trophy size={21} />
                 </div>
 
-                <Shield size={18} className="text-amber-200/30" />
+                <Shield
+                  size={18}
+                  className="text-amber-200/30"
+                />
+
               </div>
 
               {!estaLogado ? (
+
                 <>
                   <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
                     Sua patente
@@ -987,16 +1449,23 @@ export default function Home() {
                   </p>
 
                   <div className="mt-5 flex items-center gap-2 text-xs font-bold text-amber-200">
-                    <span>Entrar agora</span>
+
+                    <span>
+                      Entrar agora
+                    </span>
 
                     <ArrowRight
                       size={14}
                       className="transition-transform group-hover:translate-x-1"
                     />
+
                   </div>
                 </>
+
               ) : (
+
                 <>
+
                   <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
                     Sua patente
                   </p>
@@ -1004,58 +1473,92 @@ export default function Home() {
                   <h2 className="mt-1 text-xl font-black">
                     {loadingUsuario
                       ? "Carregando..."
-                      : usuario?.patente?.nome ?? "Sem classificação"}
+                      : usuario?.patente?.nome ??
+                        "Sem classificação"}
                   </h2>
 
-                  {!loadingUsuario && usuario?.patente && (
-                    <>
-                      <div className="mt-3 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
+                  {!loadingUsuario &&
+                    usuario?.patente && (
+                      <>
 
-                          <span className="text-xs font-semibold text-amber-200">
-                            {usuario.pontuacao.toLocaleString("pt-BR")} pontos
-                          </span>
+                        <div className="mt-3 flex items-center justify-between">
+
+                          <div className="flex items-center gap-2">
+
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
+
+                            <span className="text-xs font-semibold text-amber-200">
+                              {usuario.pontuacao.toLocaleString(
+                                "pt-BR"
+                              )}{" "}
+                              pontos
+                            </span>
+
+                          </div>
+
+                          {usuario.proximaPatente ? (
+
+                            <span className="text-[10px] font-semibold text-white/30">
+
+                              {usuario.proximaPatente.pontos.toLocaleString(
+                                "pt-BR"
+                              )}{" "}
+                              pts
+
+                            </span>
+
+                          ) : (
+
+                            <span className="text-[10px] font-semibold text-amber-200/60">
+                              MÁXIMO
+                            </span>
+
+                          )}
+
                         </div>
 
-                        {usuario.proximaPatente ? (
-                          <span className="text-[10px] font-semibold text-white/30">
-                            {usuario.proximaPatente.pontos.toLocaleString(
-                              "pt-BR"
-                            )}{" "}
-                            pts
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-semibold text-amber-200/60">
-                            MÁXIMO
-                          </span>
+                        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
+
+                          <div
+                            className="h-full rounded-full bg-amber-300 transition-all duration-700"
+                            style={{
+                              width: `${usuario.progresso}%`,
+                            }}
+                          />
+
+                        </div>
+
+                        {usuario.proximaPatente && (
+
+                          <div className="mt-2 flex justify-between text-[10px] text-white/25">
+
+                            <span>
+                              {usuario.patente.nome}
+                            </span>
+
+                            <span>
+                              {usuario.proximaPatente.nome}
+                            </span>
+
+                          </div>
+
                         )}
-                      </div>
 
-                      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
-                        <div
-                          className="h-full rounded-full bg-amber-300 transition-all duration-700"
-                          style={{
-                            width: `${usuario.progresso}%`,
-                          }}
-                        />
-                      </div>
+                      </>
+                    )}
 
-                      {usuario.proximaPatente && (
-                        <div className="mt-2 flex justify-between text-[10px] text-white/25">
-                          <span>{usuario.patente.nome}</span>
-
-                          <span>{usuario.proximaPatente.nome}</span>
-                        </div>
-                      )}
-                    </>
-                  )}
                 </>
+
               )}
+
             </div>
+
           </button>
+
         </div>
+
       </section>
+
     </main>
   );
 }
