@@ -338,12 +338,51 @@ export class SalaService {
     }
 
     /*
-     * As respostas dependem dos jogadores.
+     * Buscar as rodadas atuais da sala.
      *
-     * Primeiro removemos as respostas,
-     * depois os jogadores.
+     * As perguntas continuam sendo as mesmas,
+     * mas a ordem será embaralhada.
+     */
+    const rodadas =
+      await this.prisma.rodada.findMany({
+        where: {
+          salaId,
+        },
+        orderBy: {
+          ordem: 'asc',
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    /*
+     * Fisher-Yates Shuffle
+     *
+     * Embaralha as rodadas de forma aleatória.
+     */
+    for (let i = rodadas.length - 1; i > 0; i--) {
+      const j = Math.floor(
+        Math.random() * (i + 1),
+      );
+
+      [rodadas[i], rodadas[j]] = [
+        rodadas[j],
+        rodadas[i],
+      ];
+    }
+
+    /*
+     * Todas as operações precisam acontecer
+     * juntas para evitar que a sala fique em
+     * um estado intermediário.
      */
     await this.prisma.$transaction(async (tx) => {
+      /*
+       * As respostas dependem dos jogadores.
+       *
+       * Primeiro removemos as respostas.
+       */
       await tx.resposta.deleteMany({
         where: {
           jogador: {
@@ -352,12 +391,48 @@ export class SalaService {
         },
       });
 
+      /*
+       * Depois removemos os jogadores da partida anterior.
+       */
       await tx.jogador.deleteMany({
         where: {
           salaId,
         },
       });
 
+      /*
+       * Se existir alguma restrição de unicidade
+       * na ordem das rodadas, primeiro colocamos
+       * valores temporários negativos.
+       */
+      for (let i = 0; i < rodadas.length; i++) {
+        await tx.rodada.update({
+          where: {
+            id: rodadas[i].id,
+          },
+          data: {
+            ordem: -(i + 1),
+          },
+        });
+      }
+
+      /*
+       * Agora aplicamos a nova ordem aleatória.
+       */
+      for (let i = 0; i < rodadas.length; i++) {
+        await tx.rodada.update({
+          where: {
+            id: rodadas[i].id,
+          },
+          data: {
+            ordem: i + 1,
+          },
+        });
+      }
+
+      /*
+       * Reabre a sala com um novo código.
+       */
       await tx.sala.update({
         where: {
           id: salaId,
@@ -393,6 +468,26 @@ export class SalaService {
                 id: true,
                 nome: true,
                 email: true,
+              },
+            },
+          },
+        },
+
+        rodadas: {
+          orderBy: {
+            ordem: 'asc',
+          },
+          include: {
+            pergunta: {
+              select: {
+                id: true,
+                enunciado: true,
+                alternativas: {
+                  select: {
+                    id: true,
+                    texto: true,
+                  },
+                },
               },
             },
           },
