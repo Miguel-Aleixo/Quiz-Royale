@@ -25,20 +25,28 @@ model Patente {
 }
 
 model Usuario {
-  id        Int     @id @default(autoincrement())
-  nome      String
-  email     String  @unique
-  senha     String
-  role      Role    @default(JOGADOR)
-  patenteId Int?
-  pontuacao Int     @default(0)
-  emailVerificado Boolean  @default(false)
- 
-  patente   Patente? @relation(fields: [patenteId], references: [id])
-  verificacaoEmail VerificacaoEmail?
+  id                  Int     @id @default(autoincrement())
+  nome                String
+  email               String  @unique
+  senha               String
+  role                Role    @default(JOGADOR)
+  patenteId           Int?
+  pontuacao            Int     @default(0)
+  emailVerificado     Boolean @default(false)
 
-  jogadores Jogador[]
-  salas     Sala[]
+  patente             Patente?          @relation(fields: [patenteId], references: [id])
+  jogadores           Jogador[]
+  salas               Sala[]
+  verificacaoEmail    VerificacaoEmail?
+  recuperacoesSenha   RecuperacaoSenha[]
+}
+
+model RecuperacaoSenha {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  usuarioId Int
+  expiraEm  DateTime
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 }
 
 model VerificacaoEmail {

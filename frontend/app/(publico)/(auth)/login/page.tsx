@@ -108,7 +108,7 @@ export default function LoginPage() {
                 <label className="grid gap-2.5">
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-[11px] font-bold uppercase tracking-[.1em] text-white/70">Senha</span>
-                    <button type="button" className="text-[11px] font-medium text-purple-300 transition hover:text-purple-200 hover:underline">Esqueci minha senha</button>
+                    <Link href="/esqueci-senha" className="text-[11px] font-medium text-purple-300 transition hover:text-purple-200 hover:underline">Esqueci minha senha</Link>
                   </div>
                   <div className="relative">
                     <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />

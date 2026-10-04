@@ -518,6 +518,142 @@ export class UsuarioService {
     };
   }
 
+  async solicitarRecuperacaoSenha(email: string) {
+    const emailNormalizado = email
+      .trim()
+      .toLowerCase();
+
+    const usuario =
+      await this.prisma.usuario.findUnique({
+        where: {
+          email: emailNormalizado,
+        },
+      });
+
+    /*
+     * Não informamos se o e-mail existe.
+     * Isso evita descoberta de contas cadastradas.
+     */
+    if (!usuario) {
+      return {
+        mensagem:
+          'Se existir uma conta com este e-mail, enviaremos as instruções para redefinir sua senha.',
+      };
+    }
+
+    /*
+     * Remove solicitações anteriores.
+     */
+    await this.prisma.recuperacaoSenha.deleteMany({
+      where: {
+        usuarioId: usuario.id,
+      },
+    });
+
+    const token = randomBytes(32).toString('hex');
+
+    const expiraEm = new Date(
+      Date.now() + 30 * 60 * 1000,
+    );
+
+    await this.prisma.recuperacaoSenha.create({
+      data: {
+        token,
+        usuarioId: usuario.id,
+        expiraEm,
+      },
+    });
+
+    try {
+      await this.emailService.enviarRecuperacaoSenha(
+        usuario.email,
+        usuario.nome,
+        token,
+      );
+    } catch (error) {
+      console.error(
+        'Erro ao enviar recuperação de senha:',
+        error,
+      );
+
+      await this.prisma.recuperacaoSenha.deleteMany({
+        where: {
+          usuarioId: usuario.id,
+        },
+      });
+
+      throw new InternalServerErrorException(
+        'Não foi possível enviar o e-mail de recuperação.',
+      );
+    }
+
+    return {
+      mensagem:
+        'Se existir uma conta com este e-mail, enviaremos as instruções para redefinir sua senha.',
+    };
+  }
+
+  async redefinirSenha(
+    token: string,
+    novaSenha: string,
+  ) {
+    const recuperacao =
+      await this.prisma.recuperacaoSenha.findUnique({
+        where: {
+          token,
+        },
+        include: {
+          usuario: true,
+        },
+      });
+
+    if (!recuperacao) {
+      throw new NotFoundException(
+        'Link de recuperação inválido ou expirado.',
+      );
+    }
+
+    if (recuperacao.expiraEm < new Date()) {
+      await this.prisma.recuperacaoSenha.delete({
+        where: {
+          id: recuperacao.id,
+        },
+      });
+
+      throw new NotFoundException(
+        'O link de recuperação expirou.',
+      );
+    }
+
+    const senhaHash = await bcrypt.hash(
+      novaSenha,
+      10,
+    );
+
+    await this.prisma.usuario.update({
+      where: {
+        id: recuperacao.usuarioId,
+      },
+      data: {
+        senha: senhaHash,
+      },
+    });
+
+    /*
+     * Token de recuperação é de uso único.
+     */
+    await this.prisma.recuperacaoSenha.delete({
+      where: {
+        id: recuperacao.id,
+      },
+    });
+
+    return {
+      mensagem:
+        'Senha redefinida com sucesso.',
+    };
+  }
+
   async remove(id: number) {
     return await this.prisma.usuario.delete({
       where: {

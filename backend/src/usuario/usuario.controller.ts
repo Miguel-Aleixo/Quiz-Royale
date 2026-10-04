@@ -124,6 +124,26 @@ export class UsuarioController {
     );
   }
 
+  @Post('esquecer-senha')
+  async esquecerSenha(
+    @Body('email') email: string,
+  ) {
+    return this.usuarioService.solicitarRecuperacaoSenha(
+      email,
+    );
+  }
+
+  @Post('redefinir-senha')
+  async redefinirSenha(
+    @Body('token') token: string,
+    @Body('senha') senha: string,
+  ) {
+    return this.usuarioService.redefinirSenha(
+      token,
+      senha,
+    );
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id')
   async update(

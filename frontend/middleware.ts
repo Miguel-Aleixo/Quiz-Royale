@@ -18,8 +18,10 @@ export function middleware(request: NextRequest) {
     "/login",
     "/cadastro",
     "/verificar-email",
+    "/esqueci-senha",
+    "/redefinir-senha",
   ];
-
+  
   const isRotaPublica = rotasPublicas.some(
     (rota) =>
       pathname === rota ||

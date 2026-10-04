@@ -257,7 +257,7 @@ export default function PerfilPage() {
       }
 
       const response = await fetch(
-        `${API} /usuario/${usuario.id} `,
+        `${API}/usuario/${usuario.id} `,
         {
           method: "PATCH",
           headers: {
