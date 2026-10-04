@@ -646,25 +646,14 @@ export class PartidaGateway {
           usuarioId,
         )
       ) {
-        socket.emit(
-          'pergunta',
-          {
-            rodada,
-
-            numeroRodada:
-              estado.rodadaAtual +
-              1,
-
-            totalRodadas:
-              rodadas.length,
-
-            iniciadaEm:
-              estado.iniciadaEm,
-
-            terminaEm:
-              estado.terminaEm,
-          } satisfies PerguntaSocket,
-        );
+        socket.emit('pergunta', {
+          rodada,
+          numeroRodada: estado.rodadaAtual + 1,
+          totalRodadas: rodadas.length,
+          iniciadaEm: estado.iniciadaEm,
+          terminaEm: estado.terminaEm,
+          agoraServidor: Date.now(),
+        });
       }
     }
 
