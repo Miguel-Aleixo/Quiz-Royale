@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
   InternalServerErrorException,
+  ConflictException
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
@@ -186,12 +187,96 @@ export class UsuarioService {
     id: number,
     updateUsuarioDto: UpdateUsuarioDto,
   ) {
-    return await this.prisma.usuario.update({
+    const usuario = await this.prisma.usuario.findUnique({
       where: {
         id,
       },
-      data: updateUsuarioDto,
     });
+
+    if (!usuario) {
+      throw new NotFoundException(
+        'Usuário não encontrado.',
+      );
+    }
+
+    const emailMudou =
+      updateUsuarioDto.email !== undefined &&
+      updateUsuarioDto.email.toLowerCase() !==
+      usuario.email.toLowerCase();
+
+    if (emailMudou) {
+      const emailExistente =
+        await this.prisma.usuario.findFirst({
+          where: {
+            email: updateUsuarioDto.email,
+            NOT: {
+              id,
+            },
+          },
+        });
+
+      if (emailExistente) {
+        throw new ConflictException(
+          'Este e-mail já está sendo utilizado.',
+        );
+      }
+    }
+
+    const data: {
+      nome?: string;
+      email?: string;
+      senha?: string;
+      emailVerificado?: boolean;
+    } = {};
+
+    if (updateUsuarioDto.nome !== undefined) {
+      data.nome = updateUsuarioDto.nome;
+    }
+
+    if (updateUsuarioDto.email !== undefined) {
+      data.email =
+        updateUsuarioDto.email.toLowerCase();
+    }
+
+    if (updateUsuarioDto.senha !== undefined) {
+      data.senha = await bcrypt.hash(
+        updateUsuarioDto.senha,
+        10,
+      );
+    }
+
+    /*
+    
+    * Se o e-mail foi alterado,
+    * ele volta para "não verificado".
+      */
+    if (emailMudou) {
+      data.emailVerificado = false;
+    }
+
+    const usuarioAtualizado =
+      await this.prisma.usuario.update({
+        where: {
+          id,
+        },
+        data,
+        include: {
+          patente: true,
+        },
+      });
+
+    return {
+      id: usuarioAtualizado.id,
+      nome: usuarioAtualizado.nome,
+      email: usuarioAtualizado.email,
+      role: usuarioAtualizado.role,
+      patenteId: usuarioAtualizado.patenteId,
+      pontuacao: usuarioAtualizado.pontuacao,
+      emailVerificado:
+        usuarioAtualizado.emailVerificado,
+      patente: usuarioAtualizado.patente,
+      emailAlterado: emailMudou,
+    };
   }
 
   async atualizarPatente(usuarioId: number) {
