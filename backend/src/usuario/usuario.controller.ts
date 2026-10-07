@@ -124,6 +124,32 @@ export class UsuarioController {
     );
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('me/estatisticas')
+  async minhasEstatisticas(
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.usuarioService.obterEstatisticas(
+      req.user.id,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me/partidas-recentes')
+  async minhasPartidasRecentes(
+    @Req() req: AuthenticatedRequest,
+    @Query('limite') limite?: string,
+  ) {
+    const quantidade = limite
+      ? Number(limite)
+      : 5;
+
+    return this.usuarioService.obterPartidasRecentes(
+      req.user.id,
+      quantidade,
+    );
+  }
+
   @Post('esquecer-senha')
   async esquecerSenha(
     @Body('email') email: string,

@@ -78,6 +78,9 @@ model Sala {
   status       String @default("ABERTA")
   maxJogadores Int
 
+  criadaEm     DateTime  @default(now())
+  finalizadaEm DateTime?
+
   criadorId    Int?
   criador      Usuario? @relation(fields: [criadorId], references: [id])
 

@@ -654,6 +654,193 @@ export class UsuarioService {
     };
   }
 
+  async obterPartidasRecentes(
+    usuarioId: number,
+    limite = 5,
+  ) {
+    const jogadores =
+      await this.prisma.jogador.findMany({
+        where: {
+          usuarioId,
+          posicaoFinal: {
+            not: null,
+          },
+          sala: {
+            finalizadaEm: {
+              not: null,
+            },
+          },
+        },
+
+        orderBy: {
+          sala: {
+            finalizadaEm: 'desc',
+          },
+        },
+
+        take: Math.min(Math.max(limite, 1), 20),
+
+        include: {
+          sala: {
+            select: {
+              id: true,
+              nome: true,
+              codigo: true,
+              finalizadaEm: true,
+
+              _count: {
+                select: {
+                  jogadores: true,
+                },
+              },
+            },
+          },
+
+          respostas: {
+            include: {
+              alternativa: {
+                select: {
+                  correta: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+    return jogadores.map((jogador) => {
+      const respostas = jogador.respostas;
+
+      const acertos = respostas.filter(
+        (resposta) =>
+          resposta.alternativa.correta,
+      ).length;
+
+      const tempoTotal = respostas.reduce(
+        (total, resposta) =>
+          total + resposta.tempoResposta,
+        0,
+      );
+
+      const tempoMedio =
+        respostas.length > 0
+          ? tempoTotal / respostas.length
+          : 0;
+
+      return {
+        jogadorId: jogador.id,
+
+        salaId: jogador.sala.id,
+        nomeSala: jogador.sala.nome,
+        codigoSala: jogador.sala.codigo,
+
+        posicao: jogador.posicaoFinal,
+
+        acertos,
+        respostas: respostas.length,
+
+        tempoTotal,
+        tempoMedio: Math.round(tempoMedio),
+
+        jogadoresNaPartida:
+          jogador.sala._count.jogadores,
+
+        finalizadaEm:
+          jogador.sala.finalizadaEm,
+      };
+    });
+  }
+
+  async obterEstatisticas(usuarioId: number) {
+    const jogadores = await this.prisma.jogador.findMany({
+      where: {
+        usuarioId,
+        posicaoFinal: {
+          not: null,
+        },
+        sala: {
+          finalizadaEm: {
+            not: null,
+          },
+        },
+      },
+      include: {
+        respostas: {
+          include: {
+            alternativa: {
+              select: {
+                correta: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const partidasJogadas = jogadores.length;
+
+    const vitorias = jogadores.filter(
+      (jogador) => jogador.posicaoFinal === 1,
+    ).length;
+
+    const top3 = jogadores.filter(
+      (jogador) =>
+        jogador.posicaoFinal !== null &&
+        jogador.posicaoFinal <= 3,
+    ).length;
+
+    let respostasTotais = 0;
+    let acertosTotais = 0;
+    let tempoTotal = 0;
+
+    for (const jogador of jogadores) {
+      for (const resposta of jogador.respostas) {
+        respostasTotais++;
+
+        tempoTotal += resposta.tempoResposta;
+
+        if (resposta.alternativa.correta) {
+          acertosTotais++;
+        }
+      }
+    }
+
+    const taxaAcerto =
+      respostasTotais > 0
+        ? (acertosTotais / respostasTotais) * 100
+        : 0;
+
+    const tempoMedioResposta =
+      respostasTotais > 0
+        ? tempoTotal / respostasTotais
+        : 0;
+
+    const melhorPosicao =
+      jogadores.length > 0
+        ? Math.min(
+          ...jogadores
+            .map((jogador) => jogador.posicaoFinal)
+            .filter(
+              (posicao): posicao is number =>
+                posicao !== null,
+            ),
+        )
+        : null;
+
+    return {
+      partidasJogadas,
+      vitorias,
+      top3,
+      acertosTotais,
+      respostasTotais,
+      taxaAcerto: Number(taxaAcerto.toFixed(1)),
+      tempoMedioResposta: Number(
+        tempoMedioResposta.toFixed(0),
+      ),
+      melhorPosicao,
+    };
+  }
+
   async remove(id: number) {
     return await this.prisma.usuario.delete({
       where: {

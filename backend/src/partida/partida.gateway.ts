@@ -1847,6 +1847,7 @@ export class PartidaGateway {
       data: {
         status:
           'FINALIZADA',
+        finalizadaEm: new Date()
       },
     });
 
