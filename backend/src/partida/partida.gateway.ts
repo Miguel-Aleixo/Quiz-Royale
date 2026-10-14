@@ -20,6 +20,12 @@ import { UsuarioService } from '../usuario/usuario.service';
 interface RodadaState {
   rodadaAtual: number;
 
+  /** ID real da rodada ativa no banco. */
+  rodadaIdAtual: number | null;
+
+  /** Bloqueia dois envios simultâneos do mesmo usuário. */
+  respostasEmProcessamento: Set<number>;
+
   timer: NodeJS.Timeout | null;
 
   encerrando: boolean;
@@ -354,6 +360,8 @@ export class PartidaGateway {
       if (!estado) {
         estado = {
           rodadaAtual: 0,
+          rodadaIdAtual: null,
+          respostasEmProcessamento: new Set<number>(),
 
           timer: null,
 
@@ -399,10 +407,9 @@ export class PartidaGateway {
        * =====================================================
        */
 
-      const rodadaAtual =
-        sala.rodadas[
-        estado.rodadaAtual
-        ];
+      const rodadaAtual = estado.rodadaIdAtual !== null
+        ? sala.rodadas.find((rodada) => rodada.id === estado.rodadaIdAtual)
+        : null;
 
       if (!rodadaAtual) {
         throw new BadRequestException(
@@ -435,7 +442,7 @@ export class PartidaGateway {
             rodadaAtual,
 
           numeroRodada:
-            estado.rodadaAtual + 1,
+            sala.rodadas.findIndex((rodada) => rodada.id === rodadaAtual.id) + 1,
 
           totalRodadas:
             sala.rodadas.length,
@@ -516,6 +523,9 @@ export class PartidaGateway {
 
       return;
     }
+
+    // Não use índice/ordem para validar respostas: o ID do banco é a fonte oficial.
+    estado.rodadaIdAtual = rodada.id;
 
     /*
      * Limpar timer anterior.
@@ -736,6 +746,9 @@ export class PartidaGateway {
     @ConnectedSocket()
     socket: Socket,
   ) {
+    let codigoComBloqueio: string | null = null;
+    let usuarioComBloqueio: number | null = null;
+
     try {
       const usuarioId =
         socket.data.usuarioId;
@@ -782,12 +795,26 @@ export class PartidaGateway {
         );
       }
 
-      if (
-        estado.encerrando ||
-        estado.finalizando
-      ) {
+      if (estado.encerrando || estado.finalizando) {
         return;
       }
+
+      // Recusa eventos atrasados da pergunta anterior.
+      if (
+        estado.rodadaIdAtual === null ||
+        Number(data.rodadaId) !== estado.rodadaIdAtual
+      ) {
+        throw new BadRequestException('Essa não é a rodada atual.');
+      }
+
+      // Impede dois cliques/eventos simultâneos do mesmo usuário.
+      const usuarioIdNumerico = Number(usuarioId);
+      if (estado.respostasEmProcessamento.has(usuarioIdNumerico)) {
+        throw new BadRequestException('Sua resposta está sendo processada.');
+      }
+      estado.respostasEmProcessamento.add(usuarioIdNumerico);
+      codigoComBloqueio = codigo;
+      usuarioComBloqueio = usuarioIdNumerico;
 
       /*
        * =====================================================
@@ -918,28 +945,15 @@ export class PartidaGateway {
        * =====================================================
        */
 
-      const rodadaAtual =
-        await this.prisma.rodada.findFirst({
-          where: {
-            salaId: sala.id,
-          },
+      const rodadaAtual = await this.prisma.rodada.findFirst({
+        where: {
+          id: estado.rodadaIdAtual,
+          salaId: sala.id,
+        },
+      });
 
-          orderBy: {
-            ordem: 'asc',
-          },
-
-          skip:
-            estado.rodadaAtual,
-        });
-
-      if (
-        !rodadaAtual ||
-        rodadaAtual.id !==
-        rodada.id
-      ) {
-        throw new BadRequestException(
-          'Essa não é a rodada atual.',
-        );
+      if (!rodadaAtual || rodadaAtual.id !== rodada.id) {
+        throw new BadRequestException('Essa não é a rodada atual.');
       }
 
       /*
@@ -976,6 +990,10 @@ export class PartidaGateway {
        * =====================================================
        */
 
+      if (estado.jogadoresQueResponderam.has(jogador.id)) {
+        throw new BadRequestException('Você já respondeu essa pergunta.');
+      }
+
       const respostaExistente =
         await this.prisma.resposta.findFirst({
           where: {
@@ -1006,6 +1024,17 @@ export class PartidaGateway {
        * O servidor calcula o tempo.
        */
 
+      // Revalidar depois das consultas assíncronas para evitar gravar resposta
+      // se a rodada tiver avançado enquanto o evento estava sendo processado.
+      if (
+        estado.rodadaIdAtual !== rodada.id ||
+        estado.encerrando ||
+        estado.finalizando ||
+        Date.now() >= estado.terminaEm
+      ) {
+        throw new BadRequestException('O tempo da pergunta acabou ou a rodada mudou.');
+      }
+
       const resposta =
         await this.prisma.resposta.create({
           data: {
@@ -1030,6 +1059,9 @@ export class PartidaGateway {
             },
           },
         });
+
+      // Marca imediatamente para impedir resposta duplicada e atualizar progresso.
+      estado.jogadoresQueResponderam.add(jogador.id);
 
       const correta =
         resposta.alternativa.correta;
@@ -1155,6 +1187,12 @@ export class PartidaGateway {
               : 'Erro ao registrar resposta.',
         },
       );
+    } finally {
+      if (codigoComBloqueio && usuarioComBloqueio !== null) {
+        this.partidas
+          .get(codigoComBloqueio)
+          ?.respostasEmProcessamento.delete(usuarioComBloqueio);
+      }
     }
   }
 
@@ -1349,10 +1387,18 @@ export class PartidaGateway {
 
     if (
       estado.encerrando ||
-      estado.finalizando
+      estado.finalizando ||
+      estado.rodadaIdAtual !== rodadaId
     ) {
       return;
     }
+
+    const rodadaVerificada = await this.prisma.rodada.findFirst({
+      where: { id: rodadaId, salaId },
+      select: { perguntaId: true },
+    });
+
+    if (!rodadaVerificada) return;
 
     /*
      * Somente jogadores ativos contam.
@@ -1401,13 +1447,7 @@ export class PartidaGateway {
           },
 
           alternativa: {
-            pergunta: {
-              rodadas: {
-                some: {
-                  id: rodadaId,
-                },
-              },
-            },
+            perguntaId: rodadaVerificada.perguntaId,
           },
         },
 
@@ -1415,6 +1455,16 @@ export class PartidaGateway {
           jogadorId: true,
         },
       });
+
+    // A rodada pode ter avançado enquanto o banco respondia.
+    if (
+      this.partidas.get(codigo) !== estado ||
+      estado.rodadaIdAtual !== rodadaId ||
+      estado.encerrando ||
+      estado.finalizando
+    ) {
+      return;
+    }
 
     const jogadoresQueResponderam =
       new Set(
@@ -2216,6 +2266,7 @@ export class PartidaGateway {
      */
 
     estado.rodadaAtual++;
+    estado.rodadaIdAtual = null;
 
     estado.iniciadaEm = 0;
 
