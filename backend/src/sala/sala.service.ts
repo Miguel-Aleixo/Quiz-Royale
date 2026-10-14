@@ -220,73 +220,40 @@ export class SalaService {
       throw new NotFoundException('Você não está nessa sala');
     }
 
-    const criadorSaindo = sala.criadorId === usuarioId;
+    // Se o criador sair, fecha a sala
+    if (sala.criadorId === usuarioId) {
+      await this.prisma.$transaction([
+        this.prisma.jogador.deleteMany({
+          where: {
+            salaId: sala.id,
+          },
+        }),
 
-    await this.prisma.$transaction(async (tx) => {
-      // Uma partida que já começou precisa manter os jogadores e as respostas
-      // para preservar o histórico e não quebrar as relações do banco.
-      const partidaJaComecou = sala.status !== 'ABERTA';
+        this.prisma.sala.update({
+          where: {
+            id: sala.id,
+          },
+          data: {
+            status: 'FECHADA',
+          },
+        }),
+      ]);
 
-      if (criadorSaindo) {
-        if (!partidaJaComecou) {
-          // Em uma sala ainda no lobby, não há histórico de partida para manter.
-          await tx.jogador.deleteMany({
-            where: { salaId: sala.id },
-          });
-        }
-
-        // Fecha a sala sem apagar os registros de uma partida iniciada.
-        await tx.sala.update({
-          where: { id: sala.id },
-          data: { status: 'FECHADA' },
-        });
-
-        return;
-      }
-
-      if (partidaJaComecou) {
-        // Não exclui o jogador de uma partida iniciada: Resposta referencia Jogador.
-        // Se a partida ainda estiver acontecendo, sair equivale a ser eliminado.
-        if (sala.status === 'ANDAMENTO' && !jogador.eliminado) {
-          await tx.jogador.update({
-            where: { id: jogador.id },
-            data: { eliminado: true },
-          });
-        }
-
-        return;
-      }
-
-      // Em uma sala aberta, o jogador pode ser removido normalmente.
-      // Se houver respostas inesperadas, preservamos o registro para evitar FK RESTRICT.
-      const possuiRespostas = await tx.resposta.count({
-        where: { jogadorId: jogador.id },
-      });
-
-      if (possuiRespostas > 0) {
-        await tx.jogador.update({
-          where: { id: jogador.id },
-          data: { eliminado: true },
-        });
-      } else {
-        await tx.jogador.delete({
-          where: { id: jogador.id },
-        });
-      }
-    });
-
-    if (criadorSaindo) {
       return {
         mensagem: 'Você saiu e a sala foi fechada',
         salaFechada: true,
       };
     }
 
+    // Jogador normal apenas sai
+    await this.prisma.jogador.delete({
+      where: {
+        id: jogador.id,
+      },
+    });
+
     return {
-      mensagem:
-        sala.status === 'ABERTA'
-          ? 'Você saiu da sala'
-          : 'Você saiu da sala; seu registro foi mantido no histórico da partida',
+      mensagem: 'Você saiu da sala',
       salaFechada: false,
     };
   }
