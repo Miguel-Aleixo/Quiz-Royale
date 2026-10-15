@@ -39,6 +39,11 @@ const menuItems = [
     icon: Tags,
   },
   {
+    label: "Perguntas",
+    href: "/dashboard/perguntas",
+    icon: HelpCircle,
+  },
+  {
     label: "Jogadores",
     href: "/dashboard/jogadores",
     icon: Users,
