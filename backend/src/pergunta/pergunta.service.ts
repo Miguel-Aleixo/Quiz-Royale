@@ -15,8 +15,16 @@ export class PerguntaService {
   };
 
   async findAll() {
-    return await this.prisma.pergunta.findMany();
-  };
+    return await this.prisma.pergunta.findMany({
+      include: {
+        alternativas: true,
+        tema: true,
+      },
+      orderBy: {
+        id: 'desc',
+      },
+    });
+  }
 
   async findOne(id: number) {
     return await this.prisma.pergunta.findFirst({
