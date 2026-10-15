@@ -134,14 +134,24 @@ export default function PerguntasPage() {
     setForm({ enunciado: "", temaId: temas[0]?.id ?? 0, alternativas: alternativasVazias() });
   };
 
-  const alterarAlternativa = (index: number, campo: "texto" | "correta", valor: string | boolean) => {
+  const alterarAlternativa = (
+    index: number,
+    campo: "texto" | "correta",
+    valor: string | boolean,
+  ) => {
     setForm((atual) => ({
       ...atual,
-      alternativas: atual.alternativas.map((a, i) => ({
-        ...a,
-        [campo]: campo === "correta" ? i === index : valor,
-        ...(campo === "correta" && i !== index ? { correta: false } : {}),
-      })),
+      alternativas: atual.alternativas.map((alternativa, i) => {
+        // Ao digitar, altera somente o texto da alternativa selecionada.
+        if (campo === "texto") {
+          return i === index
+            ? { ...alternativa, texto: String(valor) }
+            : alternativa;
+        }
+
+        // A resposta correta é exclusiva: apenas uma alternativa pode ser marcada.
+        return { ...alternativa, correta: i === index };
+      }),
     }));
   };
 
