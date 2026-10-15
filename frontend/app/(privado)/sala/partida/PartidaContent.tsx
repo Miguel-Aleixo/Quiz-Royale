@@ -149,6 +149,11 @@ export default function PartidaPage() {
   const [rodadaAtual, setRodadaAtual] =
     useState(0);
 
+  // A rodada enviada pelo servidor é a fonte da verdade.
+  // Não dependemos apenas do índice local para escolher a pergunta.
+  const [rodadaRecebida, setRodadaRecebida] =
+    useState<Rodada | null>(null);
+
   const [tempoRestante, setTempoRestante] =
     useState(0);
 
@@ -556,6 +561,16 @@ export default function PartidaPage() {
           "Pergunta recebida:",
           data,
         );
+
+        // Sincroniza o índice e a rodada real com o servidor.
+        // Isso impede que o front continue enviando o ID da pergunta anterior.
+        if (data.rodada) {
+          setRodadaRecebida(data.rodada);
+        }
+
+        if (Number.isFinite(data.numeroRodada) && data.numeroRodada >= 1) {
+          setRodadaAtual(data.numeroRodada - 1);
+        }
 
         /*
          * =====================================================
@@ -1055,13 +1070,14 @@ export default function PartidaPage() {
         );
 
       return (
-        ordenadas[
-        rodadaAtual
-        ] ?? null
+        rodadaRecebida ??
+        ordenadas[rodadaAtual] ??
+        null
       );
     }, [
       sala,
       rodadaAtual,
+      rodadaRecebida,
     ]);
 
   /*
