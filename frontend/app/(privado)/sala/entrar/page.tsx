@@ -12,7 +12,9 @@ import {
   Gamepad2,
   Loader2,
   LogOut,
+  MessageCircle,
   Play,
+  Send,
   Users,
   Wifi,
   WifiOff,
@@ -70,6 +72,14 @@ interface SalaFechada {
   mensagem: string;
 }
 
+interface MensagemChat {
+  id: string;
+  usuarioId: number;
+  nome: string;
+  texto: string;
+  criadoEm: string;
+}
+
 function SalaEntrarContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -103,6 +113,14 @@ function SalaEntrarContent() {
     useState(false);
 
   const audioContextRef = useRef<AudioContext | null>(null);
+  const socketRef = useRef<Socket | null>(null);
+  const mensagensRef = useRef<HTMLDivElement | null>(null);
+
+  const [mensagensChat, setMensagensChat] =
+    useState<MensagemChat[]>([]);
+
+  const [textoChat, setTextoChat] =
+    useState("");
 
   function tocarSom(tipo: "conectado" | "copiado" | "inicio" | "erro") {
     if (typeof window === "undefined") return;
@@ -253,6 +271,39 @@ function SalaEntrarContent() {
         token,
       },
     });
+
+    socketRef.current = socketInstance;
+
+    // Histórico enviado pelo backend ao entrar na sala.
+    socketInstance.on(
+      "historico_chat",
+      (mensagens: MensagemChat[]) => {
+        setMensagensChat(
+          Array.isArray(mensagens) ? mensagens.slice(-100) : []
+        );
+      }
+    );
+
+    // Mensagens novas recebidas em tempo real.
+    socketInstance.on(
+      "nova_mensagem",
+      (mensagem: MensagemChat) => {
+        setMensagensChat((anteriores) => {
+          if (anteriores.some((item) => item.id === mensagem.id)) {
+            return anteriores;
+          }
+
+          return [...anteriores, mensagem].slice(-100);
+        });
+      }
+    );
+
+    socketInstance.on(
+      "erro_chat",
+      (data: ErroSocket) => {
+        toast.error(data?.mensagem || "Não foi possível enviar a mensagem.");
+      }
+    );
 
     /*
      * CONECTADO
@@ -408,12 +459,72 @@ function SalaEntrarContent() {
 
     return () => {
       socketInstance.disconnect();
+
+      if (socketRef.current === socketInstance) {
+        socketRef.current = null;
+      }
     };
   }, [
     API,
     codigoParam,
     router,
   ]);
+
+  /*
+   * =========================================================
+   * ROLAR CHAT PARA A ÚLTIMA MENSAGEM
+   * =========================================================
+   */
+
+  useEffect(() => {
+    const elemento = mensagensRef.current;
+
+    if (elemento) {
+      elemento.scrollTo({
+        top: elemento.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [mensagensChat]);
+
+  /*
+   * =========================================================
+   * ENVIAR MENSAGEM DO CHAT
+   * =========================================================
+   */
+
+  function enviarMensagemChat(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    const texto = textoChat.trim();
+    const socketAtual = socketRef.current;
+
+    if (!texto) return;
+
+    if (texto.length > 300) {
+      toast.error("A mensagem deve ter no máximo 300 caracteres.");
+      return;
+    }
+
+    if (!sala?.codigo) {
+      toast.error("Sala não encontrada.");
+      return;
+    }
+
+    if (!socketAtual?.connected || !conectado) {
+      toast.error("Você está desconectado da sala.");
+      return;
+    }
+
+    socketAtual.emit("enviar_mensagem", {
+      codigo: sala.codigo,
+      texto,
+    });
+
+    setTextoChat("");
+  }
 
   /*
    * =========================================================
@@ -985,6 +1096,112 @@ function SalaEntrarContent() {
                 </div>
               </div>
             </div>
+
+            {/* CHAT DA SALA */}
+
+            <section className="flex min-h-[420px] flex-col overflow-hidden rounded-[2rem] border border-fuchsia-400/15 bg-[#100e1b]/90 shadow-xl shadow-black/20">
+              <div className="flex items-center gap-3 border-b border-white/[0.07] px-5 py-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-500/10">
+                  <MessageCircle className="h-5 w-5 text-fuchsia-300" />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm font-black">Chat da sala</h3>
+                  <p className="text-[11px] text-white/35">
+                    Converse com os participantes
+                  </p>
+                </div>
+
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    conectado ? "bg-emerald-400" : "bg-yellow-400"
+                  }`}
+                />
+              </div>
+
+              <div
+                ref={mensagensRef}
+                aria-live="polite"
+                className="flex max-h-[360px] min-h-[220px] flex-1 flex-col gap-3 overflow-y-auto p-4"
+              >
+                {mensagensChat.length === 0 ? (
+                  <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
+                    <MessageCircle className="h-8 w-8 text-white/15" />
+                    <p className="mt-3 text-sm font-bold text-white/45">
+                      Nenhuma mensagem ainda
+                    </p>
+                    <p className="mt-1 text-xs text-white/25">
+                      Seja o primeiro a conversar!
+                    </p>
+                  </div>
+                ) : (
+                  mensagensChat.map((mensagem) => {
+                    const minhaMensagem =
+                      Number(mensagem.usuarioId) === Number(usuario?.sub);
+
+                    return (
+                      <div
+                        key={mensagem.id}
+                        className={`flex flex-col ${
+                          minhaMensagem ? "items-end" : "items-start"
+                        }`}
+                      >
+                        <span className="mb-1 max-w-[90%] truncate px-1 text-[10px] font-bold text-white/35">
+                          {minhaMensagem ? "Você" : mensagem.nome}
+                        </span>
+
+                        <div
+                          className={`max-w-[90%] break-words rounded-2xl px-3 py-2.5 text-sm ${
+                            minhaMensagem
+                              ? "rounded-br-sm bg-gradient-to-br from-fuchsia-600 to-violet-600 text-white"
+                              : "rounded-bl-sm border border-white/[0.07] bg-white/[0.05] text-white/85"
+                          }`}
+                        >
+                          {mensagem.texto}
+                        </div>
+
+                        <span className="mt-1 px-1 text-[9px] text-white/20">
+                          {new Date(mensagem.criadoEm).toLocaleTimeString(
+                            "pt-BR",
+                            { hour: "2-digit", minute: "2-digit" }
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <form
+                onSubmit={enviarMensagemChat}
+                className="border-t border-white/[0.07] p-3"
+              >
+                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/20 p-1.5 transition focus-within:border-fuchsia-400/40">
+                  <input
+                    value={textoChat}
+                    onChange={(event) => setTextoChat(event.target.value)}
+                    maxLength={300}
+                    placeholder="Digite uma mensagem..."
+                    aria-label="Mensagem do chat"
+                    disabled={!conectado}
+                    className="min-w-0 flex-1 bg-transparent px-2 py-2 text-sm text-white outline-none placeholder:text-white/25 disabled:opacity-50"
+                  />
+
+                  <button
+                    type="submit"
+                    disabled={!textoChat.trim() || !conectado}
+                    aria-label="Enviar mensagem"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-fuchsia-600 text-white transition hover:bg-fuchsia-500 disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    <Send className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <p className="mt-2 px-1 text-[10px] text-white/25">
+                  Máximo de 300 caracteres
+                </p>
+              </form>
+            </section>
 
             {/* INICIAR */}
 
