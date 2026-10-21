@@ -723,11 +723,7 @@ function SalaEntrarContent() {
 
   if (carregando) {
     return (
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080611] text-white">
-        <div className="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-purple-600/20 blur-3xl" />
-
-        <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-indigo-600/20 blur-3xl" />
-
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 text-white">
         <div className="relative flex flex-col items-center gap-5">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-purple-400/20 bg-purple-500/10 shadow-lg shadow-purple-950/30">
             <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
@@ -755,10 +751,10 @@ function SalaEntrarContent() {
 
   if (erro && !sala) {
     return (
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080611] px-6 text-white">
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-6 text-white">
         <div className="absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-red-600/10 blur-3xl" />
 
-        <div className="relative w-full max-w-md rounded-[2rem] border border-red-400/15 bg-white/[0.035] p-8 text-center shadow-2xl backdrop-blur-xl">
+        <div className="relative w-full max-w-md rounded-2xl border border-red-400/15 bg-white/[0.035] p-8 text-center shadow-2xl ">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10">
             <WifiOff className="h-8 w-8 text-red-400" />
           </div>
@@ -818,21 +814,15 @@ function SalaEntrarContent() {
    */
 
   return (
-      <main className="relative min-h-screen overflow-hidden bg-[#070711] text-white selection:bg-fuchsia-400/30">
+      <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white selection:bg-fuchsia-400/20">
 
       {/* BACKGROUND */}
 
-      <div className="pointer-events-none absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-fuchsia-600/12 blur-3xl" />
-
-      <div className="pointer-events-none absolute -bottom-60 -right-40 h-[500px] w-[500px] rounded-full bg-cyan-600/10 blur-3xl" />
-
-      <div className="pointer-events-none absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:44px_44px]" />
-
-      <div className="relative mx-auto min-h-screen w-full max-w-6xl px-5 py-6 md:px-8 md:py-10">
+      <div className="relative mx-auto min-h-screen w-full max-w-6xl px-4 py-5 md:px-6 md:py-7">
 
         {/* HEADER */}
 
-        <header className="flex items-center justify-between rounded-3xl border border-white/[0.08] bg-white/[0.035] px-4 py-3 backdrop-blur-xl md:px-5">
+        <header className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3  md:px-5">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-fuchsia-300/25 bg-gradient-to-br from-fuchsia-500/20 to-violet-500/10 shadow-lg shadow-fuchsia-950/20">
               <Gamepad2 className="h-5 w-5 text-fuchsia-200" />
@@ -884,11 +874,11 @@ function SalaEntrarContent() {
 
         {/* CONTEÚDO */}
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
 
           {/* CARD PRINCIPAL */}
 
-          <section className="rounded-[2rem] border border-white/[0.09] bg-white/[0.045] p-6 shadow-2xl shadow-black/30 backdrop-blur-xl md:p-8">
+          <section className="rounded-xl border border-white/10 bg-white/[0.03] p-5 md:p-7">
 
             {/* TOPO */}
 
@@ -920,7 +910,7 @@ function SalaEntrarContent() {
               <button
                 type="button"
                 onClick={copiarCodigo}
-                className="group relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-fuchsia-400/25 bg-gradient-to-r from-fuchsia-500/10 via-violet-500/5 to-cyan-500/10 px-5 py-5 shadow-lg shadow-fuchsia-950/10 transition hover:-translate-y-0.5 hover:border-fuchsia-300/50 hover:bg-fuchsia-500/10"
+                className="group relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-fuchsia-400/25 bg-white/[0.03] px-5 py-5  transition hover:-translate-y-0.5 hover:border-fuchsia-300/50 hover:bg-fuchsia-500/10"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent opacity-0 transition group-hover:opacity-100" />
 
@@ -944,7 +934,7 @@ function SalaEntrarContent() {
 
             {/* STATUS DOS JOGADORES */}
 
-            <div className="mt-9 rounded-2xl border border-white/10 bg-black/10 p-4">
+            <div className="mt-7 rounded-xl border border-white/10 bg-white/[0.02] p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-500/10 ring-1 ring-fuchsia-300/15">
@@ -975,7 +965,7 @@ function SalaEntrarContent() {
 
               <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/5">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-fuchsia-400 to-violet-500 shadow-[0_0_12px_rgba(217,70,239,.55)] transition-all duration-500"
+                  className="h-full rounded-full bg-fuchsia-500 transition-all duration-500"
                   style={{
                     width: `${percentualSala}%`,
                   }}
@@ -985,7 +975,7 @@ function SalaEntrarContent() {
 
             {/* JOGADORES */}
 
-            <div className="mt-6">
+            <div className="mt-5">
               {quantidadeJogadores > 0 ? (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {sala.jogadores.map(
@@ -997,7 +987,7 @@ function SalaEntrarContent() {
                       return (
                         <div
                           key={jogador.id}
-                          className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-3 transition hover:-translate-y-0.5 hover:border-fuchsia-400/20 hover:bg-white/[0.05]"
+                          className="group flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2.5 transition hover:border-fuchsia-400/25 hover:bg-white/[0.05]"
                         >
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500/25 to-violet-500/10 text-sm font-black text-fuchsia-200 ring-1 ring-fuchsia-300/15">
                             {jogador.usuario.nome
@@ -1027,7 +1017,7 @@ function SalaEntrarContent() {
                   )}
                 </div>
               ) : (
-                <div className="rounded-2xl border border-dashed border-white/10 px-5 py-8 text-center">
+                <div className="rounded-xl border border-dashed border-white/10 px-5 py-7 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5">
                     <Users className="h-5 w-5 text-white/20" />
                   </div>
@@ -1050,7 +1040,7 @@ function SalaEntrarContent() {
 
             {/* STATUS */}
 
-            <div className="rounded-[2rem] border border-white/[0.09] bg-white/[0.045] p-5 shadow-xl shadow-black/20 backdrop-blur-xl">
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10">
                   <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-400" />
@@ -1078,7 +1068,7 @@ function SalaEntrarContent() {
 
             {/* CRIADOR */}
 
-            <div className="rounded-[2rem] border border-yellow-400/15 bg-yellow-500/[0.045] p-5 shadow-lg shadow-yellow-950/10">
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-500/10">
                   <Crown className="h-5 w-5 text-yellow-300" />
@@ -1099,7 +1089,7 @@ function SalaEntrarContent() {
 
             {/* CHAT DA SALA */}
 
-            <section className="flex min-h-[420px] flex-col overflow-hidden rounded-[2rem] border border-fuchsia-400/15 bg-[#100e1b]/90 shadow-xl shadow-black/20">
+            <section className="flex min-h-[360px] flex-col overflow-hidden rounded-2xl border border-fuchsia-400/15 bg-slate-900/80 ">
               <div className="flex items-center gap-3 border-b border-white/[0.07] px-5 py-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-500/10">
                   <MessageCircle className="h-5 w-5 text-fuchsia-300" />
@@ -1122,7 +1112,7 @@ function SalaEntrarContent() {
               <div
                 ref={mensagensRef}
                 aria-live="polite"
-                className="flex max-h-[360px] min-h-[220px] flex-1 flex-col gap-3 overflow-y-auto p-4"
+                className="flex max-h-[300px] min-h-[180px] flex-1 flex-col gap-3 overflow-y-auto p-4"
               >
                 {mensagensChat.length === 0 ? (
                   <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
@@ -1153,7 +1143,7 @@ function SalaEntrarContent() {
                         <div
                           className={`max-w-[90%] break-words rounded-2xl px-3 py-2.5 text-sm ${
                             minhaMensagem
-                              ? "rounded-br-sm bg-gradient-to-br from-fuchsia-600 to-violet-600 text-white"
+                              ? "rounded-br-sm bg-fuchsia-600 text-white"
                               : "rounded-bl-sm border border-white/[0.07] bg-white/[0.05] text-white/85"
                           }`}
                         >
@@ -1213,7 +1203,7 @@ function SalaEntrarContent() {
                   iniciando ||
                   quantidadeJogadores === 0
                 }
-                className="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-violet-600 px-5 py-4 text-sm font-black shadow-lg shadow-fuchsia-950/30 transition hover:-translate-y-0.5 hover:from-fuchsia-400 hover:to-violet-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
+                className="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-fuchsia-600 px-5 py-4 text-sm font-black shadow-lg shadow-fuchsia-950/20 transition hover:-translate-y-0.5 hover:bg-fuchsia-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
               >
                 {iniciando ? (
                   <>
@@ -1244,7 +1234,7 @@ function SalaEntrarContent() {
               type="button"
               onClick={() => setModalSair(true)}
               disabled={saindo}
-              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.02] px-5 py-3.5 text-xs font-bold text-white/40 transition hover:border-red-400/20 hover:bg-red-500/5 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.02] px-5 py-3.5 text-xs font-bold text-white/40 transition hover:border-red-400/20 hover:bg-red-500/5 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <LogOut className="h-4 w-4" />
 
@@ -1276,7 +1266,7 @@ function SalaEntrarContent() {
           }}
         >
           <div
-            className="w-full max-w-md animate-[lobby-modal-in_260ms_cubic-bezier(.22,1,.36,1)] overflow-hidden rounded-[2rem] border border-white/10 bg-[#11101c] shadow-2xl shadow-black/50"
+            className="w-full max-w-md animate-[lobby-modal-in_260ms_cubic-bezier(.22,1,.36,1)] overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-2xl shadow-black/50"
             onMouseDown={(event) => {
               event.stopPropagation();
             }}
@@ -1412,7 +1402,7 @@ export default function Page() {
   return (
     <Suspense
       fallback={
-        <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080611] text-white">
+        <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 text-white">
           <div className="flex flex-col items-center gap-5">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-purple-400/20 bg-purple-500/10">
               <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
