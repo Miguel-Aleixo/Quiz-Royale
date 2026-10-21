@@ -814,15 +814,21 @@ function SalaEntrarContent() {
    */
 
   return (
-      <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white selection:bg-fuchsia-400/20">
+      <main className="relative h-screen overflow-hidden bg-[#070711] text-white selection:bg-fuchsia-400/20">
 
       {/* BACKGROUND */}
 
-      <div className="relative mx-auto min-h-screen w-full max-w-6xl px-4 py-5 md:px-6 md:py-7">
+      <div className="pointer-events-none absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-fuchsia-600/12 blur-3xl" />
+
+      <div className="pointer-events-none absolute -bottom-60 -right-40 h-[500px] w-[500px] rounded-full bg-cyan-600/10 blur-3xl" />
+
+      <div className="pointer-events-none absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:44px_44px]" />
+
+      <div className="relative mx-auto h-full w-full max-w-6xl overflow-hidden px-4 py-3 md:px-6 md:py-4">
 
         {/* HEADER */}
 
-        <header className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3  md:px-5">
+        <header className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.035] px-4 py-2.5 md:px-5">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-fuchsia-300/25 bg-gradient-to-br from-fuchsia-500/20 to-violet-500/10 shadow-lg shadow-fuchsia-950/20">
               <Gamepad2 className="h-5 w-5 text-fuchsia-200" />
@@ -867,23 +873,23 @@ function SalaEntrarContent() {
         {/* ERRO */}
 
         {erro && sala && (
-          <div className="mt-5 rounded-2xl border border-red-400/15 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="mt-3 rounded-xl border border-red-400/15 bg-red-500/10 px-4 py-2 text-sm text-red-300">
             {erro}
           </div>
         )}
 
         {/* CONTEÚDO */}
 
-        <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
 
           {/* CARD PRINCIPAL */}
 
-          <section className="rounded-xl border border-white/10 bg-white/[0.03] p-5 md:p-7">
+          <section className="rounded-2xl border border-white/[0.09] bg-white/[0.045] p-4 md:p-5">
 
             {/* TOPO */}
 
             <div className="flex flex-col items-center text-center">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-fuchsia-400/20 bg-fuchsia-500/10 px-3 py-1.5">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-fuchsia-400/20 bg-fuchsia-500/10 px-3 py-1.5">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-fuchsia-300 shadow-[0_0_12px_rgba(232,121,249,.9)]" />
 
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-fuchsia-200">
@@ -902,7 +908,7 @@ function SalaEntrarContent() {
 
             {/* CÓDIGO */}
 
-            <div className="mx-auto mt-8 max-w-lg">
+            <div className="mx-auto mt-4 max-w-lg">
               <p className="mb-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
                 Código da sala
               </p>
@@ -910,7 +916,7 @@ function SalaEntrarContent() {
               <button
                 type="button"
                 onClick={copiarCodigo}
-                className="group relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-fuchsia-400/25 bg-white/[0.03] px-5 py-5  transition hover:-translate-y-0.5 hover:border-fuchsia-300/50 hover:bg-fuchsia-500/10"
+                className="group relative flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-2xl border border-fuchsia-400/25 bg-white/[0.03] px-5 py-3.5 transition hover:-translate-y-0.5 hover:border-fuchsia-300/50 hover:bg-fuchsia-500/10"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent opacity-0 transition group-hover:opacity-100" />
 
@@ -934,7 +940,7 @@ function SalaEntrarContent() {
 
             {/* STATUS DOS JOGADORES */}
 
-            <div className="mt-7 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+            <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-500/10 ring-1 ring-fuchsia-300/15">
@@ -975,9 +981,9 @@ function SalaEntrarContent() {
 
             {/* JOGADORES */}
 
-            <div className="mt-5">
+            <div className="mt-3">
               {quantidadeJogadores > 0 ? (
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-1.5 sm:grid-cols-2">
                   {sala.jogadores.map(
                     (jogador) => {
                       const ehJogadorCriador =
@@ -987,7 +993,7 @@ function SalaEntrarContent() {
                       return (
                         <div
                           key={jogador.id}
-                          className="group flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2.5 transition hover:border-fuchsia-400/25 hover:bg-white/[0.05]"
+                          className="group flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2 transition hover:border-fuchsia-400/25 hover:bg-white/[0.05]"
                         >
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500/25 to-violet-500/10 text-sm font-black text-fuchsia-200 ring-1 ring-fuchsia-300/15">
                             {jogador.usuario.nome
@@ -1036,7 +1042,7 @@ function SalaEntrarContent() {
 
           {/* SIDEBAR */}
 
-          <aside className="flex flex-col gap-4">
+          <aside className="flex flex-col gap-2.5">
 
             {/* STATUS */}
 
@@ -1057,7 +1063,7 @@ function SalaEntrarContent() {
                 </div>
               </div>
 
-              <div className="mt-5 border-t border-white/5 pt-5">
+              <div className="mt-3 border-t border-white/5 pt-3">
                 <p className="text-xs leading-5 text-white/35">
                   {ehCriador
                     ? "Você é o criador desta sala. Quando estiver pronto, inicie a partida."
@@ -1089,7 +1095,7 @@ function SalaEntrarContent() {
 
             {/* CHAT DA SALA */}
 
-            <section className="flex min-h-[360px] flex-col overflow-hidden rounded-2xl border border-fuchsia-400/15 bg-slate-900/80 ">
+            <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-fuchsia-400/15 bg-slate-900/80 ">
               <div className="flex items-center gap-3 border-b border-white/[0.07] px-5 py-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-500/10">
                   <MessageCircle className="h-5 w-5 text-fuchsia-300" />
@@ -1112,7 +1118,7 @@ function SalaEntrarContent() {
               <div
                 ref={mensagensRef}
                 aria-live="polite"
-                className="flex max-h-[300px] min-h-[180px] flex-1 flex-col gap-3 overflow-y-auto p-4"
+                className="flex max-h-[220px] min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4"
               >
                 {mensagensChat.length === 0 ? (
                   <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
