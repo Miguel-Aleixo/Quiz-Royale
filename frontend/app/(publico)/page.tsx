@@ -836,18 +836,6 @@ export default function Home() {
 
               <div className="mt-auto flex items-center gap-2 pt-7 text-xs font-bold text-fuchsia-200">
 
-                {emailNaoVerificado ? (
-                  <Mail size={14} />
-                ) : (
-                  <Crown size={14} />
-                )}
-
-                {!estaLogado
-                  ? "Entrar agora"
-                  : emailNaoVerificado
-                    ? "Verificar e-mail"
-                    : "Montar nova batalha"}
-
               </div>
 
             </div>
