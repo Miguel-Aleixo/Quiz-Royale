@@ -35,6 +35,8 @@ export default function PatentesPage() {
     const [patentes, setPatentes] = useState<Patente[]>([]);
 
     const [busca, setBusca] = useState("");
+    const [paginaAtual, setPaginaAtual] = useState(1);
+    const ITENS_POR_PAGINA = 8;
 
     const [modalAberto, setModalAberto] = useState(false);
 
@@ -45,7 +47,7 @@ export default function PatentesPage() {
 
     const [form, setForm] = useState<FormPatente>({
         nome: "",
-        pontos: 0,
+        pontos: 1,
     });
 
     const [loading, setLoading] = useState(false);
@@ -126,8 +128,8 @@ export default function PatentesPage() {
             return;
         }
 
-        if (form.pontos < 0) {
-            toast.error("A pontuação não pode ser negativa.");
+        if (!Number.isInteger(form.pontos) || form.pontos <= 0) {
+            toast.error("A pontuação deve ser um número inteiro maior que zero.");
             return;
         }
 
@@ -200,8 +202,8 @@ export default function PatentesPage() {
             return;
         }
 
-        if (form.pontos < 0) {
-            toast.error("A pontuação não pode ser negativa.");
+        if (!Number.isInteger(form.pontos) || form.pontos <= 0) {
+            toast.error("A pontuação deve ser um número inteiro maior que zero.");
             return;
         }
 
@@ -339,21 +341,36 @@ export default function PatentesPage() {
                 .toLowerCase()
                 .includes(termo);
 
-            const correspondeId = patente.id
-                .toString()
-                .includes(termo);
-
             const correspondePontos = patente.pontos
                 .toString()
                 .includes(termo);
 
             return (
                 correspondeNome ||
-                correspondeId ||
                 correspondePontos
             );
         });
     }, [patentes, busca]);
+
+    const totalPaginas = Math.max(
+        1,
+        Math.ceil(patentesFiltradas.length / ITENS_POR_PAGINA)
+    );
+
+    const patentesPaginadas = useMemo(() => {
+        const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
+        return patentesFiltradas.slice(inicio, inicio + ITENS_POR_PAGINA);
+    }, [patentesFiltradas, paginaAtual]);
+
+    useEffect(() => {
+        setPaginaAtual(1);
+    }, [busca]);
+
+    useEffect(() => {
+        if (paginaAtual > totalPaginas) {
+            setPaginaAtual(totalPaginas);
+        }
+    }, [paginaAtual, totalPaginas]);
 
     /*
      * ============================
@@ -442,8 +459,8 @@ export default function PatentesPage() {
             return;
         }
 
-        if (form.pontos < 0) {
-            toast.error("A pontuação não pode ser negativa.");
+        if (!Number.isInteger(form.pontos) || form.pontos <= 0) {
+            toast.error("A pontuação deve ser um número inteiro maior que zero.");
             return;
         }
 
@@ -653,7 +670,7 @@ export default function PatentesPage() {
                                 onChange={(event) =>
                                     setBusca(event.target.value)
                                 }
-                                placeholder="Buscar por nome, ID ou pontos..."
+                                placeholder="Buscar por nome ou pontos..."
                                 className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.04] pl-9 pr-4 text-sm text-white outline-none placeholder:text-white/20 focus:border-purple-400/50 sm:w-72"
                             />
 
@@ -700,7 +717,7 @@ export default function PatentesPage() {
 
                         ) : (
 
-                            patentesFiltradas.map((patente) => (
+                            patentesPaginadas.map((patente) => (
 
                                 <div
                                     key={patente.id}
@@ -802,6 +819,60 @@ export default function PatentesPage() {
 
                     </div>
 
+                    {!loading && patentesFiltradas.length > 0 && (
+                        <div className="flex flex-col gap-3 border-t border-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+                            <p className="text-xs text-white/35">
+                                Página {paginaAtual} de {totalPaginas} ·{" "}
+                                {patentesFiltradas.length} patente(s)
+                            </p>
+
+                            <div className="flex items-center justify-end gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setPaginaAtual((pagina) => Math.max(1, pagina - 1))}
+                                    disabled={paginaAtual === 1}
+                                    className="cursor-pointer rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
+                                >
+                                    Anterior
+                                </button>
+
+                                {Array.from({ length: totalPaginas }, (_, indice) => indice + 1)
+                                    .filter((pagina) =>
+                                        pagina === 1 ||
+                                        pagina === totalPaginas ||
+                                        Math.abs(pagina - paginaAtual) <= 1
+                                    )
+                                    .map((pagina, indice, paginasVisiveis) => (
+                                        <span key={pagina} className="contents">
+                                            {indice > 0 && pagina - paginasVisiveis[indice - 1] > 1 && (
+                                                <span className="px-1 text-xs text-white/30">…</span>
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setPaginaAtual(pagina)}
+                                                aria-current={paginaAtual === pagina ? "page" : undefined}
+                                                className={`cursor-pointer h-9 min-w-9 rounded-lg px-3 text-xs font-bold transition ${
+                                                    paginaAtual === pagina
+                                                        ? "bg-purple-500 text-white"
+                                                        : "border border-white/10 text-white/60 hover:bg-white/5"
+                                                }`}
+                                            >
+                                                {pagina}
+                                            </button>
+                                        </span>
+                                    ))}
+                                <button
+                                    type="button"
+                                    onClick={() => setPaginaAtual((pagina) => Math.min(totalPaginas, pagina + 1))}
+                                    disabled={paginaAtual === totalPaginas}
+                                    className="cursor-pointer rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
+                                >
+                                    Próxima
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                 </section>
 
             </div>
@@ -863,30 +934,6 @@ export default function PatentesPage() {
 
                             <div className="space-y-5 p-6">
 
-                                {/* ID */}
-
-                                {patenteEditando && (
-
-                                    <div>
-
-                                        <label className="mb-2 block text-xs font-bold text-white/60">
-                                            ID
-                                        </label>
-
-                                        <input
-                                            disabled
-                                            value={patenteEditando.id}
-                                            className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.02] px-4 text-sm text-white/40 outline-none"
-                                        />
-
-                                        <p className="mt-2 text-[11px] text-white/20">
-                                            O ID não pode ser alterado.
-                                        </p>
-
-                                    </div>
-
-                                )}
-
                                 {/* NOME */}
 
                                 <div>
@@ -899,15 +946,19 @@ export default function PatentesPage() {
                                         required
                                         autoFocus
                                         value={form.nome}
+                                        maxLength={30}
                                         onChange={(event) =>
                                             atualizarCampo(
                                                 "nome",
-                                                event.target.value
+                                                event.target.value.slice(0, 30)
                                             )
                                         }
                                         placeholder="Ex: Mestre Supremo"
                                         className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none placeholder:text-white/20 focus:border-purple-400/60"
                                     />
+                                    <p className="mt-2 text-right text-[11px] text-white/30">
+                                        {form.nome.length}/30 caracteres
+                                    </p>
 
                                 </div>
 
@@ -924,12 +975,15 @@ export default function PatentesPage() {
                                         <input
                                             required
                                             type="number"
-                                            min={0}
+                                            min={1}
+                                            step={1}
                                             value={form.pontos}
                                             onChange={(event) =>
                                                 atualizarCampo(
                                                     "pontos",
-                                                    Number(event.target.value)
+                                                    event.target.value === ""
+                                                        ? 0
+                                                        : Number(event.target.value)
                                                 )
                                             }
                                             placeholder="Ex: 1000"
@@ -968,7 +1022,8 @@ export default function PatentesPage() {
                                     type="submit"
                                     disabled={
                                         !form.nome.trim() ||
-                                        form.pontos < 0
+                                        !Number.isInteger(form.pontos) ||
+                                        form.pontos <= 0
                                     }
                                     className="cursor-pointer h-11 rounded-xl bg-purple-500 px-5 text-sm font-bold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-40"
                                 >
