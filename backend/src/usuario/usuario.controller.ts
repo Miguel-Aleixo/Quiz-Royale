@@ -20,6 +20,7 @@ import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles } from '../auth/decorators/roles.decorators';
 
 interface AuthenticatedRequest extends Request {
   user: {
@@ -55,6 +56,8 @@ export class UsuarioController {
     );
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   @Post('/admin')
   async createAdmin(
     @Body() createUsuarioDto: CreateUsuarioDto,

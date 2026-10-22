@@ -5,6 +5,8 @@ import {
   Search,
   Users,
   Shield,
+  ShieldCheck,
+  ShieldOff,
   User,
 } from "lucide-react";
 import Cookies from "js-cookie";
@@ -34,6 +36,7 @@ export default function UsuariosPage() {
   const [busca, setBusca] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [alterandoRoleId, setAlterandoRoleId] = useState<number | null>(null);
 
   /*
    * ============================
@@ -82,6 +85,76 @@ export default function UsuariosPage() {
       toast.error("Não foi possível conectar ao servidor.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  /*
+   * ============================
+   * ALTERAR PERMISSÃO DO USUÁRIO
+   * ============================
+   * Requer no backend a rota PATCH /usuario/:id/role
+   * recebendo { role: "ADMIN" | "JOGADOR" }.
+   */
+  const alterarPermissao = async (usuario: Usuario) => {
+    const novoRole: Usuario["role"] =
+      usuario.role === "ADMIN" ? "JOGADOR" : "ADMIN";
+
+    const acao = novoRole === "ADMIN" ? "promover a administrador" : "remover o cargo de administrador";
+
+    if (!window.confirm(`Deseja ${acao} de ${usuario.nome}?`)) {
+      return;
+    }
+
+    const tokenAtual = Cookies.get("token");
+
+    if (!tokenAtual) {
+      toast.error("Sessão não encontrada. Faça login novamente.");
+      return;
+    }
+
+    if (!API) {
+      toast.error("API não configurada.");
+      return;
+    }
+
+    try {
+      setAlterandoRoleId(usuario.id);
+
+      const res = await fetch(`${API}/usuario/${usuario.id}/role`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tokenAtual}`,
+        },
+        body: JSON.stringify({ role: novoRole }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        const mensagem = Array.isArray(data?.message)
+          ? data.message.join(", ")
+          : data?.message || "Não foi possível alterar a permissão do usuário.";
+        toast.error(mensagem);
+        return;
+      }
+
+      setUsuarios((atuais) =>
+        atuais.map((item) =>
+          item.id === usuario.id ? { ...item, role: novoRole } : item
+        )
+      );
+
+      toast.success(
+        novoRole === "ADMIN"
+          ? `${usuario.nome} agora é administrador.`
+          : `O cargo de administrador de ${usuario.nome} foi removido.`
+      );
+    } catch (error) {
+      console.error("Erro ao alterar permissão:", error);
+      toast.error("Não foi possível conectar ao servidor.");
+    } finally {
+      setAlterandoRoleId(null);
     }
   };
 
@@ -377,6 +450,30 @@ export default function UsuariosPage() {
                         {usuario.role}
                       </p>
                     </div>
+
+                    {/* AÇÃO: PROMOVER / REMOVER ADMIN */}
+
+                    <button
+                      type="button"
+                      onClick={() => alterarPermissao(usuario)}
+                      disabled={alterandoRoleId !== null}
+                      className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                        usuario.role === "ADMIN"
+                          ? "border-red-400/20 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                          : "border-purple-400/20 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20"
+                      }`}
+                    >
+                      {usuario.role === "ADMIN" ? (
+                        <ShieldOff size={15} />
+                      ) : (
+                        <ShieldCheck size={15} />
+                      )}
+                      {alterandoRoleId === usuario.id
+                        ? "Salvando..."
+                        : usuario.role === "ADMIN"
+                          ? "Remover admin"
+                          : "Tornar admin"}
+                    </button>
 
                     {/* PATENTE */}
 
