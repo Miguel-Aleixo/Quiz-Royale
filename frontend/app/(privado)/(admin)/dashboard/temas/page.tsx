@@ -34,6 +34,8 @@ export default function TemasPage() {
 
   const [temas, setTemas] = useState<Tema[]>([]);
   const [busca, setBusca] = useState("");
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const ITENS_POR_PAGINA = 8;
 
   const [modalAberto, setModalAberto] = useState(false);
   const [menuAberto, setMenuAberto] = useState<number | null>(null);
@@ -114,8 +116,24 @@ export default function TemasPage() {
    */
 
   const criarTema = async () => {
-    if (!form.nome.trim()) {
+    const nomeNormalizado = form.nome.trim();
+
+    if (!nomeNormalizado) {
       toast.error("Digite o nome do tema.");
+      return;
+    }
+
+    if (nomeNormalizado.length > 30) {
+      toast.error("O nome do tema deve ter no máximo 30 caracteres.");
+      return;
+    }
+
+    const duplicado = temas.some(
+      (tema) => tema.nome.trim().toLocaleLowerCase("pt-BR") === nomeNormalizado.toLocaleLowerCase("pt-BR")
+    );
+
+    if (duplicado) {
+      toast.error("Já existe um tema com esse nome, independentemente de maiúsculas e minúsculas.");
       return;
     }
 
@@ -141,7 +159,7 @@ export default function TemasPage() {
           Authorization: `Bearer ${tokenAtual}`,
         },
         body: JSON.stringify({
-          nome: form.nome.trim(),
+          nome: nomeNormalizado,
         }),
       });
 
@@ -157,6 +175,7 @@ export default function TemasPage() {
       }
 
       fecharModal();
+      setPaginaAtual(1);
 
       toast.success("Tema criado com sucesso!");
 
@@ -181,8 +200,26 @@ export default function TemasPage() {
       return;
     }
 
-    if (!form.nome.trim()) {
+    const nomeNormalizado = form.nome.trim();
+
+    if (!nomeNormalizado) {
       toast.error("Digite o nome do tema.");
+      return;
+    }
+
+    if (nomeNormalizado.length > 30) {
+      toast.error("O nome do tema deve ter no máximo 30 caracteres.");
+      return;
+    }
+
+    const duplicado = temas.some(
+      (tema) =>
+        tema.id !== temaEditando.id &&
+        tema.nome.trim().toLocaleLowerCase("pt-BR") === nomeNormalizado.toLocaleLowerCase("pt-BR")
+    );
+
+    if (duplicado) {
+      toast.error("Já existe um tema com esse nome, independentemente de maiúsculas e minúsculas.");
       return;
     }
 
@@ -210,7 +247,7 @@ export default function TemasPage() {
             Authorization: `Bearer ${tokenAtual}`,
           },
           body: JSON.stringify({
-            nome: form.nome.trim(),
+            nome: nomeNormalizado,
           }),
         }
       );
@@ -308,24 +345,24 @@ export default function TemasPage() {
    */
 
   const temasFiltrados = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
+    const termo = busca.trim().toLocaleLowerCase("pt-BR");
 
-    if (!termo) {
-      return temas;
-    }
+    if (!termo) return temas;
 
-    return temas.filter((tema) => {
-      const correspondeNome = tema.nome
-        .toLowerCase()
-        .includes(termo);
-
-      const correspondeId = tema.id
-        .toString()
-        .includes(termo);
-
-      return correspondeNome || correspondeId;
-    });
+    return temas.filter((tema) =>
+      tema.nome.toLocaleLowerCase("pt-BR").includes(termo)
+    );
   }, [temas, busca]);
+
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(temasFiltrados.length / ITENS_POR_PAGINA)
+  );
+  const paginaSegura = Math.min(paginaAtual, totalPaginas);
+  const temasPaginados = temasFiltrados.slice(
+    (paginaSegura - 1) * ITENS_POR_PAGINA,
+    paginaSegura * ITENS_POR_PAGINA
+  );
 
   /*
    * ============================
@@ -546,10 +583,11 @@ export default function TemasPage() {
 
               <input
                 value={busca}
-                onChange={(event) =>
-                  setBusca(event.target.value)
-                }
-                placeholder="Buscar por nome ou ID..."
+                onChange={(event) => {
+                  setBusca(event.target.value);
+                  setPaginaAtual(1);
+                }}
+                placeholder="Buscar por nome..."
                 className="h-10 w-full rounded-xl border border-white/10 bg-white/[0.04] pl-9 pr-4 text-sm text-white outline-none placeholder:text-white/20 focus:border-purple-400/50 sm:w-64"
               />
 
@@ -596,7 +634,7 @@ export default function TemasPage() {
 
             ) : (
 
-              temasFiltrados.map((tema) => (
+              temasPaginados.map((tema) => (
 
                 <div
                   key={tema.id}
@@ -683,6 +721,43 @@ export default function TemasPage() {
 
           </div>
 
+          {!loading && temasFiltrados.length > 0 && (
+            <div className="flex flex-col gap-3 border-t border-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-white/35">
+                Página {paginaSegura} de {totalPaginas}
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaginaAtual((pagina) => Math.max(1, paginaSegura - 1))}
+                  disabled={paginaSegura === 1}
+                  className="rounded-lg border border-white/10 px-3 py-2 text-sm text-white/70 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  Anterior
+                </button>
+                {Array.from({ length: totalPaginas }, (_, index) => index + 1).map((pagina) => (
+                  <button
+                    key={pagina}
+                    type="button"
+                    onClick={() => setPaginaAtual(pagina)}
+                    aria-current={pagina === paginaSegura ? "page" : undefined}
+                    className={`h-9 min-w-9 rounded-lg px-3 text-sm font-semibold transition ${pagina === paginaSegura ? "bg-purple-500 text-white" : "border border-white/10 text-white/60 hover:bg-white/5"}`}
+                  >
+                    {pagina}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setPaginaAtual((pagina) => Math.min(totalPaginas, paginaSegura + 1))}
+                  disabled={paginaSegura === totalPaginas}
+                  className="rounded-lg border border-white/10 px-3 py-2 text-sm text-white/70 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  Próxima
+                </button>
+              </div>
+            </div>
+          )}
+
         </section>
 
       </div>
@@ -738,30 +813,6 @@ export default function TemasPage() {
 
               <div className="space-y-5 p-6">
 
-                {/* ID */}
-
-                {temaEditando && (
-
-                  <div>
-
-                    <label className="mb-2 block text-xs font-bold text-white/60">
-                      ID
-                    </label>
-
-                    <input
-                      disabled
-                      value={temaEditando.id}
-                      className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.02] px-4 text-sm text-white/40 outline-none"
-                    />
-
-                    <p className="mt-2 text-[11px] text-white/20">
-                      O ID não pode ser alterado.
-                    </p>
-
-                  </div>
-
-                )}
-
                 {/* NOME */}
 
                 <div>
@@ -773,6 +824,7 @@ export default function TemasPage() {
                   <input
                     required
                     autoFocus
+                    maxLength={30}
                     value={form.nome}
                     onChange={(event) =>
                       atualizarCampo(
@@ -783,6 +835,9 @@ export default function TemasPage() {
                     placeholder="Ex: Conhecimentos Gerais"
                     className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none placeholder:text-white/20 focus:border-purple-400/60"
                   />
+                  <p className="mt-2 text-right text-[11px] text-white/30">
+                    {form.nome.length}/30 caracteres
+                  </p>
 
                 </div>
 
