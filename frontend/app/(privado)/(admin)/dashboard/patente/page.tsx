@@ -667,6 +667,7 @@ export default function PatentesPage() {
 
                             <input
                                 value={busca}
+                                maxLength={30}
                                 onChange={(event) =>
                                     setBusca(event.target.value)
                                 }
@@ -742,10 +743,8 @@ export default function PatentesPage() {
 
                                             <div className="mt-1 flex flex-wrap items-center gap-3">
 
-                                                <span className="h-1 w-1 rounded-full bg-white/20" />
-
                                                 <p className="text-[11px] font-bold text-amber-400">
-                                                    {patente.pontos.toLocaleString("pt-BR")} pontos
+                                            {patente.pontos.toLocaleString("pt-BR")} pontos
                                                 </p>
 
                                             </div>
