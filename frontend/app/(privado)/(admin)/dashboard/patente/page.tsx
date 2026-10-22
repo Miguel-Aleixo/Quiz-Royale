@@ -974,7 +974,7 @@ export default function PatentesPage() {
 
                                         <input
                                             required
-                                            type="number"
+                                            type="text"
                                             min={1}
                                             step={1}
                                             value={form.pontos}
@@ -990,9 +990,6 @@ export default function PatentesPage() {
                                             className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 pr-20 text-sm text-white outline-none placeholder:text-white/20 focus:border-purple-400/60"
                                         />
 
-                                        <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-amber-400/70">
-                                            PONTOS
-                                        </span>
 
                                     </div>
 
