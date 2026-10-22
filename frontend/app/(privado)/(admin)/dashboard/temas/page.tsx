@@ -583,6 +583,7 @@ export default function TemasPage() {
 
               <input
                 value={busca}
+                maxLength={30}
                 onChange={(event) => {
                   setBusca(event.target.value);
                   setPaginaAtual(1);
