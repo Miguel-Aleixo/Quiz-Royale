@@ -61,7 +61,7 @@ interface Pergunta {
 }
 
 const glassCard =
-  "border border-white/[0.09] bg-white/[0.045] shadow-[0_20px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl";
+  "border border-white/10 bg-[#14172a]/90 shadow-[0_18px_55px_rgba(4,7,20,0.28)]";
 
 export default function Home() {
   const router = useRouter();
@@ -606,7 +606,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#070711] text-white selection:bg-fuchsia-400/30">
+    <main className="min-h-screen overflow-hidden bg-[#090b18] text-white selection:bg-fuchsia-300/30">
 
       <LoadingOverlay
         show={
@@ -624,11 +624,11 @@ export default function Home() {
 
         <div className="absolute left-1/3 top-20 h-[24rem] w-[24rem] rounded-full bg-violet-600/12 blur-[120px]" />
 
-        <div className="absolute -right-40 top-1/4 h-[30rem] w-[30rem] rounded-full bg-cyan-500/15 blur-[120px]" />
+        <div className="absolute -right-40 top-1/4 h-[30rem] w-[30rem] rounded-full bg-cyan-400/15 blur-[120px]" />
 
-        <div className="absolute right-1/4 bottom-[-14rem] h-[30rem] w-[30rem] rounded-full bg-pink-500/10 blur-[120px]" />
+        <div className="absolute right-1/4 bottom-[-14rem] h-[30rem] w-[30rem] rounded-full bg-orange-400/10 blur-[120px]" />
 
-        <div className="absolute bottom-[-18rem] left-1/3 h-[34rem] w-[34rem] rounded-full bg-blue-600/12 blur-[120px]" />
+        <div className="absolute bottom-[-18rem] left-1/3 h-[34rem] w-[34rem] rounded-full bg-indigo-500/12 blur-[120px]" />
 
         <div className="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:48px_48px]" />
 
@@ -639,21 +639,21 @@ export default function Home() {
         patente={usuario?.patente?.nome}
       />
 
-      <section className="relative z-10 mx-auto max-w-7xl px-5 pb-16 pt-28 sm:px-8 lg:pt-32">
+      <section className="relative z-10 mx-auto max-w-7xl px-5 pb-12 pt-24 sm:px-8 lg:pt-28">
 
         {/* HERO */}
-        <div className="mb-10 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
+        <div className="mb-8 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
 
           <div className="max-w-2xl">
 
-            <h1 className="text-4xl font-black leading-[1.02] tracking-[-0.04em] sm:text-6xl">
+            <h1 className="text-4xl font-black leading-[1.04] tracking-[-0.045em] sm:text-6xl">
               Pronto para
-              <span className="block bg-gradient-to-r from-fuchsia-200 via-violet-200 to-cyan-200 bg-clip-text text-transparent">
+              <span className="block bg-gradient-to-r from-fuchsia-200 via-orange-200 to-cyan-200 bg-clip-text text-transparent">
                 dominar a arena?
               </span>
             </h1>
 
-            <p className="mt-5 max-w-xl text-sm leading-7 text-white/45 sm:text-base">
+            <p className="mt-4 max-w-xl text-sm leading-7 text-white/45 sm:text-base">
               Entre em uma batalha, desafie seus amigos e suba no ranking
               respondendo perguntas em tempo recorde.
             </p>
@@ -663,24 +663,24 @@ export default function Home() {
         </div>
 
         {/* CARDS PRINCIPAIS */}
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-[1.08fr_.92fr]">
 
           {/* ENTRAR EM SALA */}
-          <div className="group relative overflow-hidden rounded-[2rem] border border-violet-300/20 bg-gradient-to-br from-violet-500/20 via-[#18152b] to-[#11111c] p-6 shadow-2xl shadow-violet-950/15 transition hover:-translate-y-1 hover:border-violet-300/40 sm:p-8">
+          <div className="group relative overflow-hidden rounded-[26px] border border-violet-300/25 bg-[#171936] p-5 shadow-[0_18px_50px_rgba(49,46,129,0.24)] transition hover:-translate-y-1 hover:border-violet-200/50 sm:p-7">
 
-            <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-violet-500/20 blur-[70px] transition duration-500 group-hover:bg-violet-400/30" />
+            <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-violet-500/15 blur-[80px] transition duration-500 group-hover:bg-violet-400/30" />
 
             <div className="relative">
 
               <div className="flex items-start justify-between">
 
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-400/15 text-violet-200 ring-1 ring-inset ring-violet-300/15 shadow-lg shadow-violet-950/20">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-400/20 text-violet-200 ring-1 ring-inset ring-violet-300/15 shadow-lg shadow-violet-950/20">
                   <Gamepad2 size={23} />
                 </div>
 
               </div>
 
-              <h2 className="mt-8 text-2xl font-black tracking-tight">
+              <h2 className="mt-6 text-2xl font-black tracking-tight">
                 Entrar em uma sala
               </h2>
 
@@ -688,7 +688,7 @@ export default function Home() {
                 Use o código compartilhado pelo criador da partida.
               </p>
 
-              <div className="mt-7 flex gap-3">
+              <div className="mt-6 flex gap-3">
 
                 <input
                   value={codigo}
@@ -705,7 +705,7 @@ export default function Home() {
                   placeholder="CÓDIGO DA SALA"
                   maxLength={6}
                   aria-label="Código da sala"
-                  className="h-13 min-w-0 flex-1 rounded-2xl border border-white/10 bg-black/25 px-4 text-sm font-bold tracking-[0.18em] text-white outline-none transition placeholder:text-white/20 focus:border-fuchsia-300/60 focus:bg-black/35 focus:ring-4 focus:ring-fuchsia-400/10"
+                  className="h-13 min-w-0 flex-1 rounded-xl border border-violet-100/10 bg-[#0c1022] px-4 text-sm font-bold tracking-[0.18em] text-white outline-none transition placeholder:text-white/20 focus:border-violet-300/70 focus:bg-[#11152b] focus:ring-4 focus:ring-violet-400/10"
                 />
 
                 <button
@@ -738,7 +738,7 @@ export default function Home() {
                       ? "bg-white/10 text-white/60 hover:bg-white/15"
                       : emailNaoVerificado
                         ? "bg-amber-400/10 text-amber-300 hover:bg-amber-400/20"
-                        : "bg-gradient-to-br from-fuchsia-300 to-violet-400 text-[#171022] hover:shadow-fuchsia-500/20 disabled:opacity-30"
+                        : "bg-fuchsia-300 text-[#171022] hover:bg-fuchsia-200 hover:shadow-fuchsia-500/20 disabled:opacity-30"
                     }`}
                 >
                   {!estaLogado ? (
@@ -751,22 +751,6 @@ export default function Home() {
                 </button>
 
               </div>
-
-              {!estaLogado ? (
-                <button
-                  onClick={tratarAcesso}
-                  className="mt-4 cursor-pointer text-xs font-bold text-fuchsia-200 transition hover:text-fuchsia-100"
-                >
-                  Entre para participar →
-                </button>
-              ) : emailNaoVerificado ? (
-                <button
-                  onClick={tratarAcesso}
-                  className="mt-4 cursor-pointer text-xs font-bold text-amber-200 transition hover:text-amber-100"
-                >
-                  Verifique seu e-mail para participar →
-                </button>
-              ) : null}
 
             </div>
           </div>
@@ -798,27 +782,27 @@ export default function Home() {
               setLoading(true);
               router.push("/sala/criar");
             }}
-            className="group relative cursor-pointer overflow-hidden rounded-[2rem] border border-fuchsia-300/20 bg-gradient-to-br from-fuchsia-500/15 via-[#1b1428] to-[#11111c] p-6 text-left shadow-2xl shadow-fuchsia-950/10 transition duration-300 hover:-translate-y-1 hover:border-fuchsia-300/45 hover:shadow-fuchsia-950/30 sm:p-8"
+            className="group relative cursor-pointer overflow-hidden rounded-[26px] border border-orange-300/25 bg-[#24182a] p-5 text-left shadow-[0_18px_50px_rgba(154,52,18,0.18)] transition duration-300 hover:-translate-y-1 hover:border-orange-200/50 sm:p-7"
           >
 
-            <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-fuchsia-500/15 blur-[70px] transition group-hover:bg-fuchsia-400/25" />
+            <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-orange-400/15 blur-[80px] transition group-hover:bg-fuchsia-400/25" />
 
             <div className="relative flex h-full flex-col">
 
               <div className="flex items-start justify-between">
 
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-fuchsia-400/15 text-fuchsia-200 ring-1 ring-inset ring-fuchsia-300/15">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-300/15 text-orange-100 ring-1 ring-inset ring-orange-200/15">
                   <Plus size={23} />
                 </div>
 
                 <ArrowRight
                   size={21}
-                  className="text-white/30 transition group-hover:translate-x-1 group-hover:text-fuchsia-200"
+                  className="text-white/30 transition group-hover:translate-x-1 group-hover:text-sky-100"
                 />
 
               </div>
 
-              <h2 className="mt-8 text-2xl font-black tracking-tight">
+              <h2 className="mt-6 text-2xl font-black tracking-tight">
                 {!estaLogado
                   ? "Entre para jogar"
                   : emailNaoVerificado
@@ -834,9 +818,7 @@ export default function Home() {
                     : "Monte sua própria batalha, escolha os jogadores e defina o ritmo do jogo."}
               </p>
 
-              <div className="mt-auto flex items-center gap-2 pt-7 text-xs font-bold text-fuchsia-200">
 
-              </div>
 
             </div>
           </button>
@@ -844,19 +826,19 @@ export default function Home() {
         </div>
 
         {/* SALAS ABERTAS */}
-        <section className="relative mt-6 overflow-hidden rounded-[2rem] border border-violet-300/15 bg-gradient-to-br from-violet-500/[0.08] via-fuchsia-500/[0.035] to-cyan-500/[0.05] p-5 shadow-[0_20px_80px_rgba(139,92,246,0.06)] backdrop-blur-xl transition hover:border-violet-300/25 sm:p-7">
+        <section className="relative mt-5 overflow-hidden rounded-[26px] border border-violet-200/15 bg-[#11152a]/90 p-5 shadow-[0_18px_55px_rgba(30,41,100,0.2)] transition hover:border-violet-200/35 sm:p-6">
 
-          <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-violet-500/10 blur-[70px]" />
+          <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-violet-500/12 blur-[80px]" />
 
-          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-48 w-48 rounded-full bg-cyan-400/[0.06] blur-[70px]" />
+          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-48 w-48 rounded-full bg-cyan-400/[0.05] blur-[80px]" />
 
-          <div className="mb-6 flex w-full items-center justify-between gap-4">
+          <div className="mb-5 flex w-full flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
 
             <div>
 
               <div className="flex items-center gap-2.5">
 
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-400/10 text-violet-200">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-400/15 text-violet-100">
                   <Swords size={18} />
                 </div>
 
@@ -888,7 +870,7 @@ export default function Home() {
                     setBusca(event.target.value)
                   }
                   placeholder="Buscar por nome..."
-                  className="h-10 w-full rounded-xl border border-white/[0.08] bg-white/[0.035] pl-10 pr-4 text-sm font-medium text-white outline-none placeholder:text-white/20 transition-all duration-200 hover:border-white/[0.14] hover:bg-white/[0.05] focus:border-fuchsia-400/40 focus:bg-fuchsia-400/[0.04] focus:ring-4 focus:ring-fuchsia-400/[0.06]"
+                  className="h-10 w-full rounded-xl border border-white/10 bg-[#0d1122] pl-10 pr-4 text-sm font-medium text-white outline-none placeholder:text-white/20 transition-all duration-200 hover:border-white/[0.14] hover:bg-white/[0.05] focus:border-violet-300/50 focus:bg-violet-400/[0.06] focus:ring-4 focus:ring-violet-400/[0.08]"
                 />
 
                 {busca && (
@@ -903,7 +885,7 @@ export default function Home() {
 
               </div>
 
-              <span className="shrink-0 rounded-xl border border-violet-300/[0.12] bg-violet-400/[0.07] px-3 py-2 text-xs font-bold text-violet-200/80 shadow-[0_0_20px_rgba(139,92,246,0.05)]">
+              <span className="shrink-0 rounded-xl border border-violet-300/[0.12] bg-violet-400/15 px-3 py-2 text-xs font-bold text-violet-100 shadow-[0_0_20px_rgba(139,92,246,0.05)]">
 
                 {!estaLogado
                   ? "—"
@@ -1010,7 +992,7 @@ export default function Home() {
 
                     </div>
 
-                    <div className="mt-5 flex items-center justify-between">
+                    <div className="mt-4 flex items-center justify-between">
 
                       <span className="font-mono text-xs tracking-[0.18em] text-violet-200">
                         {sala.codigo}
@@ -1039,7 +1021,7 @@ export default function Home() {
         {/* MINHAS SALAS */}
         {estaLogado && (
 
-          <section className="mt-6 overflow-hidden rounded-[2rem] border border-cyan-300/15 bg-gradient-to-br from-cyan-500/[0.09] via-violet-500/[0.07] to-fuchsia-500/[0.06] p-5 shadow-[0_20px_80px_rgba(34,211,238,0.07)] backdrop-blur-xl transition hover:border-cyan-300/25 sm:p-7">
+          <section className="mt-5 overflow-hidden rounded-[26px] border border-cyan-200/15 bg-[#101d2b]/95 p-5 shadow-[0_18px_55px_rgba(8,145,178,0.16)] transition hover:border-cyan-200/35 sm:p-6">
 
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
@@ -1047,7 +1029,7 @@ export default function Home() {
 
                 <div className="flex items-center gap-2.5">
 
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400/20 to-violet-400/20 text-cyan-200 ring-1 ring-inset ring-cyan-300/15">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-300/20 to-blue-400/20 text-cyan-200 ring-1 ring-inset ring-cyan-300/15">
                     <History size={19} />
                   </div>
 
@@ -1067,7 +1049,7 @@ export default function Home() {
 
               </div>
 
-              <span className="w-fit rounded-xl border border-cyan-300/15 bg-cyan-400/[0.07] px-3 py-2 text-xs font-bold text-cyan-200/80">
+              <span className="w-fit rounded-xl border border-cyan-200/15 bg-cyan-300/15 px-3 py-2 text-xs font-bold text-cyan-100">
                 {minhasSalas.length === 1
                   ? "1 sala criada"
                   : `${minhasSalas.length} salas criadas`}
@@ -1136,7 +1118,7 @@ export default function Home() {
                                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${emAndamento
                                     ? "bg-amber-400/10 text-amber-200"
                                     : encerrada
-                                      ? "bg-fuchsia-400/10 text-fuchsia-200"
+                                      ? "bg-fuchsia-400/10 text-sky-100"
                                       : "bg-emerald-400/10 text-emerald-200"
                                   }`}
                               >
@@ -1165,7 +1147,7 @@ export default function Home() {
                               className={`shrink-0 rounded-lg px-2 py-1 text-[9px] font-black uppercase tracking-wider ${emAndamento
                                   ? "bg-amber-400/10 text-amber-200"
                                   : encerrada
-                                    ? "bg-fuchsia-400/10 text-fuchsia-200"
+                                    ? "bg-fuchsia-400/10 text-sky-100"
                                     : "bg-emerald-400/10 text-emerald-200"
                                 }`}
                             >
@@ -1178,7 +1160,7 @@ export default function Home() {
 
                           </div>
 
-                          <div className="mt-5 flex items-center justify-between">
+                          <div className="mt-4 flex items-center justify-between">
 
                             <div>
 
@@ -1223,7 +1205,7 @@ export default function Home() {
                               disabled={
                                 loading
                               }
-                              className="mt-5 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300/15 via-violet-300/15 to-fuchsia-300/15 text-xs font-black text-cyan-100 ring-1 ring-inset ring-cyan-300/15 transition hover:-translate-y-0.5 hover:from-cyan-300/25 hover:via-violet-300/25 hover:to-fuchsia-300/25 disabled:cursor-not-allowed disabled:opacity-40"
+                              className="mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300/15 via-violet-300/15 to-fuchsia-300/15 text-xs font-black text-cyan-100 ring-1 ring-inset ring-cyan-300/15 transition hover:-translate-y-0.5 hover:from-cyan-300/25 hover:via-violet-300/25 hover:to-fuchsia-300/25 disabled:cursor-not-allowed disabled:opacity-40"
                             >
 
                               <RefreshCw
@@ -1262,7 +1244,7 @@ export default function Home() {
                                 );
 
                               }}
-                              className="mt-5 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/[0.04] text-xs font-black text-white/55 ring-1 ring-inset ring-white/[0.06] transition hover:bg-white/[0.08] hover:text-white"
+                              className="mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/[0.04] text-xs font-black text-white/55 ring-1 ring-inset ring-white/[0.06] transition hover:bg-white/[0.08] hover:text-white"
                             >
 
                               {emailNaoVerificado ? (
@@ -1310,16 +1292,16 @@ export default function Home() {
         )}
 
         {/* PARTE INFERIOR */}
-        <div className="mt-6 grid gap-5 lg:grid-cols-[1.35fr_1fr]">
+        <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
 
           {/* BANCO DE PERGUNTAS */}
-          <div className="rounded-[2rem] border border-cyan-300/10 bg-gradient-to-br from-cyan-500/[0.07] via-white/[0.025] to-violet-500/[0.06] p-6 shadow-[0_20px_70px_rgba(34,211,238,0.05)] backdrop-blur-xl transition hover:border-cyan-300/20 sm:p-7">
+          <div className="rounded-[26px] border border-sky-200/15 bg-[#111b2a] p-5 shadow-[0_18px_50px_rgba(14,116,144,0.14)] transition hover:border-sky-200/30 sm:p-6">
 
             <div className="flex items-center justify-between gap-5">
 
               <div>
 
-                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.06] text-white/70">
+                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-300/10 text-sky-100">
                   <Tags size={21} />
                 </div>
 
@@ -1334,9 +1316,9 @@ export default function Home() {
 
               </div>
 
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-fuchsia-300/15 bg-fuchsia-400/[0.07]">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-sky-200/15 bg-sky-300/10">
 
-                <span className="text-2xl font-black text-fuchsia-200">
+                <span className="text-2xl font-black text-sky-100">
 
                   {!estaLogado
                     ? "—"
@@ -1366,10 +1348,10 @@ export default function Home() {
               router.push("/perfil");
 
             }}
-            className="group relative cursor-pointer overflow-hidden rounded-[2rem] border border-amber-300/15 bg-gradient-to-br from-amber-400/[0.13] via-pink-500/[0.06] to-violet-500/[0.08] p-6 text-left shadow-[0_20px_70px_rgba(251,191,36,0.05)] transition hover:-translate-y-1 hover:border-amber-300/35 sm:p-7"
+            className="group relative cursor-pointer overflow-hidden rounded-[26px] border border-amber-200/20 bg-[#282033] p-5 text-left shadow-[0_18px_50px_rgba(180,83,9,0.15)] transition hover:-translate-y-1 hover:border-amber-200/40 sm:p-6"
           >
 
-            <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-amber-400/10 blur-[55px]" />
+            <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-amber-300/12 blur-[65px]" />
 
             <div className="relative">
 
@@ -1389,7 +1371,7 @@ export default function Home() {
               {!estaLogado ? (
 
                 <>
-                  <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
+                  <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
                     Sua patente
                   </p>
 
@@ -1420,7 +1402,7 @@ export default function Home() {
 
                 <>
 
-                  <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
+                  <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">
                     Sua patente
                   </p>
 
