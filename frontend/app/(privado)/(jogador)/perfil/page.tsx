@@ -299,7 +299,7 @@ export default function PerfilPage() {
   const taxaAcerto = estatisticas?.taxaAcerto ?? 0;
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#070711] text-white selection:bg-fuchsia-400/30">
+    <main className="relative min-h-screen  bg-[#070711] text-white selection:bg-fuchsia-400/30">
       <LoadingOverlay show={loading} />
 
       {/* Background alinhado à identidade visual da Home */}
@@ -312,7 +312,7 @@ export default function PerfilPage() {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-40 px-3 pt-3 sm:px-5 sm:pt-5">
+      <header className="sticky top-1 z-40 px-3 pt-3 sm:px-5 sm:pt-5">
         <div className="mx-auto max-w-[1320px]">
           <nav className="relative flex h-[68px] items-center justify-between overflow-hidden rounded-[22px] border border-white/[0.09] bg-[#101221]/85 px-3 shadow-[0_18px_55px_rgba(0,0,0,.28)] backdrop-blur-2xl sm:h-[74px] sm:rounded-3xl sm:px-5">
             <div aria-hidden="true" className="pointer-events-none absolute -left-12 -top-16 h-36 w-36 rounded-full bg-fuchsia-500/[0.12] blur-3xl" />
