@@ -325,9 +325,7 @@ export default function PerfilPage() {
                 <ArrowLeft size={18} />
               </Link>
               <div className="min-w-0">
-                <p className="text-[9px] font-extrabold uppercase tracking-[0.22em] text-cyan-100/45 sm:text-[10px]">
-                  Arena de conhecimento
-                </p>
+               
                 <h1 className="truncate text-base font-black tracking-tight sm:text-lg">Meu perfil</h1>
               </div>
             </div>
@@ -351,33 +349,7 @@ export default function PerfilPage() {
       </header>
 
       <section className="relative z-10 mx-auto max-w-[1320px] px-3 pb-16 pt-7 sm:px-5 sm:pt-10">
-        {/* Intro */}
-        <div className="mb-7 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-fuchsia-300/15 bg-fuchsia-300/[0.06] px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.18em] text-fuchsia-100/80">
-              <Sparkles size={12} />
-              Central do jogador
-            </div>
-            <h2 className="max-w-3xl text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
-              Seu progresso,{" "}
-              <span className="bg-gradient-to-r from-fuchsia-200 via-violet-200 to-cyan-200 bg-clip-text text-transparent">
-                suas conquistas.
-              </span>
-            </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/40 sm:text-base">
-              Acompanhe seu desempenho, evolua de patente e veja como você está avançando na arena.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void buscarDados()}
-            disabled={loading}
-            className="inline-flex h-10 shrink-0 cursor-pointer items-center justify-center gap-2 self-start rounded-xl border border-white/10 bg-white/[0.035] px-4 text-xs font-bold text-white/60 transition hover:border-cyan-200/20 hover:bg-cyan-200/[0.06] hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-40 sm:self-auto"
-          >
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-            Atualizar dados
-          </button>
-        </div>
+       
 
         {erro && (
           <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-red-400/20 bg-red-400/[0.06] p-4 text-sm text-red-200 sm:flex-row sm:items-center sm:justify-between">
