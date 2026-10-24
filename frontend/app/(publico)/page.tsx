@@ -993,46 +993,6 @@ export default function Home() {
         {/* PARTE INFERIOR */}
         <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
 
-          {/* BANCO DE PERGUNTAS */}
-          <div className="rounded-[26px] border border-sky-200/15 bg-[#111b2a] p-5 shadow-[0_18px_50px_rgba(14,116,144,0.14)] transition hover:border-sky-200/30 sm:p-6">
-
-            <div className="flex items-center justify-between gap-5">
-
-              <div>
-
-                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-300/10 text-sky-100">
-                  <Tags size={21} />
-                </div>
-
-                <h2 className="text-xl font-black tracking-tight">
-                  Banco de perguntas
-                </h2>
-
-                <p className="mt-2 max-w-md text-sm leading-6 text-white/35">
-                  Conteúdo disponível para criar rodadas mais variadas e
-                  desafiadoras.
-                </p>
-
-              </div>
-
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-sky-200/15 bg-sky-300/10">
-
-                <span className="text-2xl font-black text-sky-100">
-
-                  {!estaLogado
-                    ? "—"
-                    : loadingPerguntas
-                      ? "—"
-                      : perguntas.length}
-
-                </span>
-
-              </div>
-
-            </div>
-
-          </div>
-
           {/* PATENTE */}
           <button
             onClick={() => {
