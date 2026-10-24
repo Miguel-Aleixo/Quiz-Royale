@@ -2,9 +2,7 @@
 
 import {
   ArrowRight,
-  Crown,
   Gamepad2,
-  History,
   Plus,
   RefreshCw,
   Search,
@@ -60,14 +58,12 @@ interface Pergunta {
   temaId: number;
 }
 
-const glassCard =
-  "border border-white/10 bg-[#14172a]/90 shadow-[0_18px_55px_rgba(4,7,20,0.28)]";
-
 export default function Home() {
   const router = useRouter();
   const API = process.env.NEXT_PUBLIC_API;
 
   const [busca, setBusca] = useState("");
+  const [filtroSalas, setFiltroSalas] = useState<"TODAS" | "DISPONIVEIS" | "MINHAS">("TODAS");
 
   const [token, setToken] = useState<string | undefined>(
     undefined
@@ -311,52 +307,57 @@ export default function Home() {
   }, []);
 
   /*
-   * SALAS ABERTAS
+   * LISTAGEM UNIFICADA DE SALAS
+   * Todas: salas abertas + todas as salas criadas pelo usuário, sem duplicação.
+   * Disponíveis: salas abertas.
+   * Minhas salas: salas criadas pelo usuário autenticado.
    */
-  const salasAbertas = useMemo(() => {
-    const termo = busca
-      .trim()
-      .toLowerCase();
+  const minhasSalas = useMemo(() => {
+    if (!usuario) return [];
 
-    return salas.filter((sala) => {
-      if (sala.status !== "ABERTA") {
-        return false;
-      }
+    return salas
+      .filter((sala) => Number(sala.criadorId) === Number(usuario.id))
+      .sort((a, b) => b.id - a.id);
+  }, [salas, usuario]);
 
-      if (!termo) {
-        return true;
-      }
+  const salasAbertas = useMemo(
+    () => salas.filter((sala) => sala.status === "ABERTA"),
+    [salas]
+  );
 
+  const salasExibidas = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    const minhasIds = new Set(minhasSalas.map((sala) => sala.id));
+
+    let resultado: Sala[];
+
+    if (filtroSalas === "MINHAS") {
+      resultado = minhasSalas;
+    } else if (filtroSalas === "DISPONIVEIS") {
+      resultado = salasAbertas;
+    } else {
+      const unicas = new Map<number, Sala>();
+      salasAbertas.forEach((sala) => unicas.set(sala.id, sala));
+      minhasSalas.forEach((sala) => unicas.set(sala.id, sala));
+      resultado = Array.from(unicas.values()).sort((a, b) => b.id - a.id);
+    }
+
+    return resultado.filter((sala) => {
+      if (!termo) return true;
       return (
-        sala.nome
-          .toLowerCase()
-          .includes(termo) ||
-        sala.codigo
-          .toLowerCase()
-          .includes(termo) ||
+        sala.nome.toLowerCase().includes(termo) ||
+        sala.codigo.toLowerCase().includes(termo) ||
         String(sala.id).includes(termo)
       );
     });
-  }, [salas, busca]);
+  }, [salas, salasAbertas, minhasSalas, busca, filtroSalas]);
 
-  /*
-   * MINHAS SALAS
-   */
-  const minhasSalas = useMemo(() => {
-    if (!usuario) {
-      return [];
-    }
-
-    return salas
-      .filter(
-        (sala) =>
-          Number(sala.criadorId) ===
-          Number(usuario.id)
-      )
-      .sort(
-        (a, b) => b.id - a.id
-      );
-  }, [salas, usuario]);
+  const totalSalasUnicas = useMemo(() => {
+    const unicas = new Map<number, Sala>();
+    salasAbertas.forEach((sala) => unicas.set(sala.id, sala));
+    minhasSalas.forEach((sala) => unicas.set(sala.id, sala));
+    return unicas.size;
+  }, [salasAbertas, minhasSalas]);
 
   /*
    * TOTAL DE JOGADORES
@@ -825,471 +826,169 @@ export default function Home() {
 
         </div>
 
-        {/* SALAS ABERTAS */}
-        <section className="relative mt-5 overflow-hidden rounded-[26px] border border-violet-200/15 bg-[#11152a]/90 p-5 shadow-[0_18px_55px_rgba(30,41,100,0.2)] transition hover:border-violet-200/35 sm:p-6">
+        {/* SALAS — LISTAGEM UNIFICADA */}
+        <section className="relative mt-5 overflow-hidden rounded-[26px] border border-white/10 bg-[#11152a]/90 p-5 shadow-[0_18px_55px_rgba(30,41,100,0.18)] sm:p-6">
+          <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-violet-500/10 blur-[80px]" />
 
-          <div className="pointer-events-none absolute -right-20 -top-24 h-52 w-52 rounded-full bg-violet-500/12 blur-[80px]" />
-
-          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-48 w-48 rounded-full bg-cyan-400/[0.05] blur-[80px]" />
-
-          <div className="mb-5 flex w-full flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-
+          <div className="relative mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-
               <div className="flex items-center gap-2.5">
-
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-400/15 text-violet-100">
                   <Swords size={18} />
                 </div>
-
-                <h2 className="text-xl font-black tracking-tight">
-                  Salas abertas
-                </h2>
-
+                <h2 className="text-xl font-black tracking-tight">Salas</h2>
+                <span className="rounded-lg bg-white/[0.06] px-2 py-1 text-xs font-bold text-white/60">
+                  {estaLogado ? totalSalasUnicas : "—"}
+                </span>
               </div>
-
-              <p className="mt-2 text-sm text-white/35">
-                Partidas esperando novos competidores.
+              <p className="mt-2 text-sm text-white/40">
+                Encontre uma partida ou gerencie suas próprias batalhas.
               </p>
-
             </div>
 
-            {/* BUSCA */}
-            <div className="flex w-full items-center gap-3 sm:w-auto">
-
-              <div className="relative w-full sm:w-64">
-
-                <Search
-                  size={16}
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 transition-colors"
-                />
-
+            <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
+              <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
+                <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
                 <input
                   value={busca}
-                  onChange={(event) =>
-                    setBusca(event.target.value)
-                  }
-                  placeholder="Buscar por nome..."
-                  className="h-10 w-full rounded-xl border border-white/10 bg-[#0d1122] pl-10 pr-4 text-sm font-medium text-white outline-none placeholder:text-white/20 transition-all duration-200 hover:border-white/[0.14] hover:bg-white/[0.05] focus:border-violet-300/50 focus:bg-violet-400/[0.06] focus:ring-4 focus:ring-violet-400/[0.08]"
+                  onChange={(event) => setBusca(event.target.value)}
+                  placeholder="Buscar nome, código ou ID..."
+                  aria-label="Buscar salas por nome, código ou identificador"
+                  className="h-10 w-full rounded-xl border border-white/10 bg-[#0d1122] pl-10 pr-10 text-sm font-medium text-white outline-none placeholder:text-white/25 transition focus:border-violet-300/50 focus:ring-4 focus:ring-violet-400/[0.08]"
                 />
-
                 {busca && (
                   <button
                     type="button"
                     onClick={() => setBusca("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-xs font-bold text-white/25 transition-colors hover:text-white/60"
+                    aria-label="Limpar pesquisa"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-white/40 transition hover:text-white"
                   >
                     ×
                   </button>
                 )}
-
               </div>
-
-              <span className="shrink-0 rounded-xl border border-violet-300/[0.12] bg-violet-400/15 px-3 py-2 text-xs font-bold text-violet-100 shadow-[0_0_20px_rgba(139,92,246,0.05)]">
-
-                {!estaLogado
-                  ? "—"
-                  : loadingSalas
-                    ? "—"
-                    : salasAbertas.length === 1
-                      ? "1 disponível"
-                      : `${salasAbertas.length} disponíveis`}
-
-              </span>
-
             </div>
+          </div>
 
+          <div className="relative mb-5 flex flex-wrap items-center gap-2 border-b border-white/[0.07] pb-4">
+            {([
+              { id: "TODAS", label: "Todas", count: totalSalasUnicas },
+              { id: "DISPONIVEIS", label: "Disponíveis", count: salasAbertas.length },
+              ...(estaLogado ? [{ id: "MINHAS", label: "Minhas salas", count: minhasSalas.length }] : []),
+            ] as { id: "TODAS" | "DISPONIVEIS" | "MINHAS"; label: string; count: number }[]).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setFiltroSalas(item.id)}
+                className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-bold transition ${filtroSalas === item.id ? "bg-violet-300/15 text-violet-100 ring-1 ring-inset ring-violet-300/25" : "text-white/45 hover:bg-white/[0.05] hover:text-white/80"}`}
+              >
+                {item.label}
+                <span className={`text-xs ${filtroSalas === item.id ? "text-violet-200" : "text-white/30"}`}>{item.count}</span>
+              </button>
+            ))}
           </div>
 
           {!estaLogado ? (
-
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.015] p-4 text-center">
-
-              <p className="text-sm font-semibold text-white/45">
-                Entre para visualizar as salas.
-              </p>
-
-              <p className="mt-1 text-xs text-white/25">
-                Faça login para entrar em uma batalha.
-              </p>
-
-              <button
-                onClick={tratarAcesso}
-                className="mt-4 cursor-pointer rounded-xl bg-violet-400/10 px-4 py-2 text-xs font-bold text-violet-200 transition hover:bg-violet-400/20"
-              >
+            <div className="relative flex min-h-32 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.015] px-5 py-7 text-center">
+              <p className="text-sm font-semibold text-white/65">Entre para visualizar as salas.</p>
+              <p className="mt-1 text-xs text-white/35">Faça login para encontrar partidas e gerenciar suas salas.</p>
+              <button onClick={tratarAcesso} className="mt-4 rounded-xl bg-violet-300/15 px-4 py-2 text-xs font-bold text-violet-100 transition hover:bg-violet-300/25">
                 Entrar agora
               </button>
-
             </div>
-
           ) : loadingSalas ? (
-
-            <div className="grid gap-3 md:grid-cols-3">
-
-              {[1, 2, 3].map(
-                (item) => (
-                  <div
-                    key={item}
-                    className="h-24 animate-pulse rounded-2xl bg-white/[0.04]"
-                  />
-                )
+            <div className="relative grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {[1, 2, 3].map((item) => <div key={item} className="h-32 animate-pulse rounded-2xl bg-white/[0.04]" />)}
+            </div>
+          ) : salasExibidas.length === 0 ? (
+            <div className="relative flex min-h-32 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.015] px-5 py-7 text-center">
+              <p className="text-sm font-semibold text-white/65">
+                {busca ? "Nenhuma sala corresponde à sua pesquisa." : filtroSalas === "MINHAS" ? "Você ainda não criou nenhuma sala." : filtroSalas === "DISPONIVEIS" ? "Nenhuma sala aberta no momento." : "Nenhuma sala para exibir no momento."}
+              </p>
+              <p className="mt-1 text-xs text-white/35">
+                {busca ? "Tente outro nome, código ou identificador." : filtroSalas === "MINHAS" || filtroSalas === "TODAS" ? "Crie uma sala para começar sua próxima batalha." : "Volte em alguns instantes ou crie sua própria partida."}
+              </p>
+              {busca && (
+                <button type="button" onClick={() => setBusca("")} className="mt-3 text-xs font-bold text-violet-200 hover:text-violet-100">Limpar pesquisa</button>
               )}
-
             </div>
-
-          ) : salasAbertas.length === 0 ? (
-
-            <div className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.015] px-5 text-center">
-
-              <p className="text-sm font-semibold text-white/45">
-                Nenhuma sala aberta no momento.
-              </p>
-
-              <p className="mt-1 text-xs text-white/25">
-                Crie uma sala e comece a primeira batalha.
-              </p>
-
-            </div>
-
           ) : (
-
-            <div className="grid gap-3 md:grid-cols-3">
-
-              {salasAbertas.map(
-                (sala) => (
-
-                  <button
-                    key={sala.id}
-                    onDoubleClick={() => {
-
-                      if (
-                        !estaLogado ||
-                        emailNaoVerificado
-                      ) {
-                        tratarAcesso();
-                        return;
-                      }
-
-                      entrarDiretoNaSala(
-                        sala
-                      );
-                    }}
-                    onClick={() =>
-                      setCodigo(
-                        sala.codigo
-                      )
-                    }
-                    className="group cursor-pointer rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 text-left transition hover:-translate-y-1 hover:border-fuchsia-300/35 hover:bg-fuchsia-400/[0.06] hover:shadow-lg hover:shadow-fuchsia-950/15"
-                  >
-
-                    <div className="flex items-center justify-between gap-3">
-
-                      <span className="truncate text-sm font-bold text-white/85">
-                        {sala.nome}
-                      </span>
-
-                      <span className="flex h-2 w-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.7)]" />
-
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between">
-
-                      <span className="font-mono text-xs tracking-[0.18em] text-violet-200">
-                        {sala.codigo}
-                      </span>
-
-                      <span className="flex items-center gap-1 text-[11px] text-white/30">
-                        <Users size={12} />
-
-                        {sala._count?.jogadores ?? 0}/
-                        {sala.maxJogadores}
-                      </span>
-
-                    </div>
-
-                  </button>
-
-                )
-              )}
-
-            </div>
-
-          )}
-
-        </section>
-
-        {/* MINHAS SALAS */}
-        {estaLogado && (
-
-          <section className="mt-5 overflow-hidden rounded-[26px] border border-cyan-200/15 bg-[#101d2b]/95 p-5 shadow-[0_18px_55px_rgba(8,145,178,0.16)] transition hover:border-cyan-200/35 sm:p-6">
-
-            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-              <div>
-
-                <div className="flex items-center gap-2.5">
-
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-300/20 to-blue-400/20 text-cyan-200 ring-1 ring-inset ring-cyan-300/15">
-                    <History size={19} />
-                  </div>
-
-                  <div>
-
-                    <h2 className="text-xl font-black tracking-tight">
-                      Minhas salas
-                    </h2>
-
-                    <p className="mt-0.5 text-xs text-white/35">
-                      Salas que você criou e pode abrir novamente.
-                    </p>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-              <span className="w-fit rounded-xl border border-cyan-200/15 bg-cyan-300/15 px-3 py-2 text-xs font-bold text-cyan-100">
-                {minhasSalas.length === 1
-                  ? "1 sala criada"
-                  : `${minhasSalas.length} salas criadas`}
-              </span>
-
-            </div>
-
-            {minhasSalas.length === 0 ? (
-
-              <div className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-dashed border-cyan-300/10 bg-white/[0.02] px-5 text-center">
-
-                <p className="mt-3 text-sm font-semibold text-white/45">
-                  Você ainda não criou nenhuma sala.
-                </p>
-
-                <p className="mt-1 text-xs text-white/25">
-                  {emailNaoVerificado
-                    ? "Verificar e-mail"
-                    : "Criar minha primeira sala"}
-                </p>
-
-              </div>
-
-            ) : (
-
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-
-                {minhasSalas.map(
-                  (sala, index) => {
-
-                    const encerrada =
-                      sala.status ===
-                      "FINALIZADA" ||
-                      sala.status ===
-                      "ENCERRADA";
-
-                    const emAndamento =
-                      sala.status ===
-                      "ANDAMENTO" ||
-                      sala.status ===
-                      "EM_ANDAMENTO";
-
-                    return (
-
-                      <div
-                        key={sala.id}
-                        className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-[#10101b]/80 p-4 transition duration-300 hover:-translate-y-1 hover:border-cyan-300/25 hover:shadow-xl hover:shadow-cyan-950/20"
-                      >
-
-                        <div
-                          className={`absolute -right-10 -top-10 h-28 w-28 rounded-full blur-[45px] ${emAndamento
-                              ? "bg-amber-400/15"
-                              : encerrada
-                                ? "bg-fuchsia-400/15"
-                                : "bg-emerald-400/15"
-                            }`}
-                        />
-
-                        <div className="relative">
-
-                          <div className="flex items-start justify-between gap-3">
-
-                            <div className="flex min-w-0 items-center gap-3">
-
-                              <div
-                                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${emAndamento
-                                    ? "bg-amber-400/10 text-amber-200"
-                                    : encerrada
-                                      ? "bg-fuchsia-400/10 text-sky-100"
-                                      : "bg-emerald-400/10 text-emerald-200"
-                                  }`}
-                              >
-                                {emAndamento ? (
-                                  <Zap size={18} />
-                                ) : (
-                                  <Swords size={18} />
-                                )}
-                              </div>
-
-                              <div className="min-w-0">
-
-                                <p className="truncate text-sm font-black text-white/90">
-                                  {sala.nome}
-                                </p>
-
-                                <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-white/25">
-                                  Sala #{sala.id}
-                                </p>
-
-                              </div>
-
-                            </div>
-
-                            <span
-                              className={`shrink-0 rounded-lg px-2 py-1 text-[9px] font-black uppercase tracking-wider ${emAndamento
-                                  ? "bg-amber-400/10 text-amber-200"
-                                  : encerrada
-                                    ? "bg-fuchsia-400/10 text-sky-100"
-                                    : "bg-emerald-400/10 text-emerald-200"
-                                }`}
-                            >
-                              {emAndamento
-                                ? "Em andamento"
-                                : encerrada
-                                  ? "Finalizada"
-                                  : "Aberta"}
-                            </span>
-
-                          </div>
-
-                          <div className="mt-4 flex items-center justify-between">
-
-                            <div>
-
-                              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/25">
-                                Código
-                              </p>
-
-                              <p className="mt-1 font-mono text-sm font-black tracking-[0.2em] text-cyan-200">
-                                {sala.codigo}
-                              </p>
-
-                            </div>
-
-                            <div className="text-right">
-
-                              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/25">
-                                Jogadores
-                              </p>
-
-                              <p className="mt-1 flex items-center justify-end gap-1 text-sm font-bold text-white/65">
-
-                                <Users size={13} />
-
-                                {sala._count?.jogadores ?? 0}/
-                                {sala.maxJogadores}
-
-                              </p>
-
-                            </div>
-
-                          </div>
-
-                          {encerrada ? (
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                reabrirSala(
-                                  sala.id
-                                )
-                              }
-                              disabled={
-                                loading
-                              }
-                              className="mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300/15 via-violet-300/15 to-fuchsia-300/15 text-xs font-black text-cyan-100 ring-1 ring-inset ring-cyan-300/15 transition hover:-translate-y-0.5 hover:from-cyan-300/25 hover:via-violet-300/25 hover:to-fuchsia-300/25 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-
-                              <RefreshCw
-                                size={14}
-                              />
-
-                              Abrir novamente
-
-                            </button>
-
-                          ) : (
-
-                            <button
-                              type="button"
-                              onClick={() => {
-
-                                if (
-                                  emailNaoVerificado &&
-                                  usuario
-                                ) {
-                                  setLoading(
-                                    true
-                                  );
-
-                                  router.push(
-                                    `/verificar-email?email=${encodeURIComponent(
-                                      usuario.email
-                                    )}`
-                                  );
-
-                                  return;
-                                }
-
-                                setCodigo(
-                                  sala.codigo
-                                );
-
-                              }}
-                              className="mt-4 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-white/[0.04] text-xs font-black text-white/55 ring-1 ring-inset ring-white/[0.06] transition hover:bg-white/[0.08] hover:text-white"
-                            >
-
-                              {emailNaoVerificado ? (
-                                <>
-                                  <Mail
-                                    size={14}
-                                  />
-
-                                  Verificar e-mail
-                                </>
-                              ) : (
-                                <>
-                                  <ArrowRight
-                                    size={14}
-                                  />
-
-                                  {emAndamento
-                                    ? "Continuar sala"
-                                    : "Selecionar sala"}
-                                </>
-                              )}
-
-                            </button>
-
-                          )}
-
-                          {index === 0 && (
-                            <div className="pointer-events-none absolute inset-x-0 -bottom-4 mx-auto h-16 w-3/4 bg-cyan-400/[0.04] blur-2xl" />
-                          )}
-
+            <div className="relative grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {salasExibidas.map((sala) => {
+                const minhaSala = Boolean(usuario && Number(sala.criadorId) === Number(usuario.id));
+                const encerrada = sala.status === "FINALIZADA" || sala.status === "ENCERRADA";
+                const emAndamento = sala.status === "ANDAMENTO" || sala.status === "EM_ANDAMENTO";
+                const disponivel = sala.status === "ABERTA";
+
+                return (
+                  <article key={sala.id} className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0d1122]/75 p-4 transition duration-200 hover:border-violet-300/25 hover:bg-white/[0.035]">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${emAndamento ? "bg-amber-400/10 text-amber-200" : encerrada ? "bg-fuchsia-400/10 text-fuchsia-200" : "bg-emerald-400/10 text-emerald-200"}`}>
+                          {emAndamento ? <Zap size={18} /> : <Swords size={18} />}
                         </div>
-
+                        <div className="min-w-0">
+                          <h3 className="truncate text-sm font-black text-white/90">{sala.nome}</h3>
+                          <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/30">Sala #{sala.id}</p>
+                        </div>
                       </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1.5">
+                        <span className={`rounded-md px-2 py-1 text-[9px] font-black uppercase tracking-wider ${emAndamento ? "bg-amber-400/10 text-amber-200" : encerrada ? "bg-fuchsia-400/10 text-fuchsia-200" : disponivel ? "bg-emerald-400/10 text-emerald-200" : "bg-white/[0.07] text-white/50"}`}>
+                          {emAndamento ? "Em andamento" : encerrada ? "Finalizada" : disponivel ? "Aberta" : sala.status.replaceAll("_", " ")}
+                        </span>
+                        {minhaSala && <span className="rounded-md bg-violet-400/10 px-2 py-1 text-[9px] font-bold text-violet-200">Sua sala</span>}
+                      </div>
+                    </div>
 
-                    );
-                  }
-                )}
+                    <div className="mt-4 flex items-end justify-between border-t border-white/[0.06] pt-3">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/30">Código</p>
+                        <p className="mt-1 font-mono text-sm font-black tracking-[0.18em] text-violet-200">{sala.codigo}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-white/30">Jogadores</p>
+                        <p className="mt-1 flex items-center justify-end gap-1 text-sm font-bold text-white/70"><Users size={13} />{sala._count?.jogadores ?? 0}/{sala.maxJogadores}</p>
+                      </div>
+                    </div>
 
-              </div>
-
-            )}
-
-          </section>
-
-        )}
+                    {minhaSala ? (
+                      encerrada ? (
+                        <button type="button" onClick={() => reabrirSala(sala.id)} disabled={loading} className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-violet-300/15 text-xs font-black text-violet-100 transition hover:bg-violet-300/25 disabled:cursor-not-allowed disabled:opacity-40">
+                          <RefreshCw size={14} /> Abrir novamente
+                        </button>
+                      ) : (
+                        <button type="button" onClick={() => {
+                          if (emailNaoVerificado && usuario) {
+                            setLoading(true);
+                            router.push(`/verificar-email?email=${encodeURIComponent(usuario.email)}`);
+                            return;
+                          }
+                          setCodigo(sala.codigo);
+                        }} className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-white/[0.05] text-xs font-black text-white/70 transition hover:bg-white/[0.09] hover:text-white">
+                          {emailNaoVerificado ? <><Mail size={14} /> Verificar e-mail</> : <><ArrowRight size={14} /> {emAndamento ? "Continuar sala" : "Selecionar sala"}</>}
+                        </button>
+                      )
+                    ) : disponivel ? (
+                      <button type="button" onClick={() => {
+                        if (!estaLogado || emailNaoVerificado) {
+                          tratarAcesso();
+                          return;
+                        }
+                        entrarDiretoNaSala(sala);
+                      }} className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-violet-300/10 text-xs font-black text-violet-100 transition hover:bg-violet-300/20">
+                        Entrar na sala <ArrowRight size={14} />
+                      </button>
+                    ) : (
+                      <div className="mt-4 flex h-10 items-center justify-center rounded-xl bg-white/[0.025] text-xs font-semibold text-white/30">
+                        Sala indisponível para entrada
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
 
         {/* PARTE INFERIOR */}
         <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
