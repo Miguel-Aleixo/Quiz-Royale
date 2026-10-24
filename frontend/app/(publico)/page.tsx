@@ -991,7 +991,7 @@ export default function Home() {
         </section>
 
         {/* PARTE INFERIOR */}
-        <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
+        <div className="mt-5 grid gap-4 ">
 
           {/* PATENTE */}
           <button
