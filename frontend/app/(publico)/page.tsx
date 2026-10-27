@@ -195,17 +195,6 @@ export default function Home() {
     buscarPerguntas(currentToken);
   }, []);
 
-  // Ativa a rolagem suave da página inteira.
-  useEffect(() => {
-    const html = document.documentElement;
-    const comportamentoAnterior = html.style.scrollBehavior;
-    html.style.scrollBehavior = "smooth";
-
-    return () => {
-      html.style.scrollBehavior = comportamentoAnterior;
-    };
-  }, []);
-
   const minhasSalas = useMemo(() => {
     if (!usuario) return [];
     return salas
@@ -826,6 +815,16 @@ export default function Home() {
         </section>
 
       </section>
+
+      <footer className="relative mt-8 border-t border-white/[0.08] bg-[#090a14]/80 px-4 py-7 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left">
+          <div>
+            <p className="text-sm font-black tracking-wide text-white/80">QuizRoyale</p>
+            <p className="mt-1 text-xs text-white/35">Desafie seus conhecimentos. Conquiste sua patente.</p>
+          </div>
+          <p className="text-[11px] text-white/30">© {new Date().getFullYear()} QuizRoyale. Todos os direitos reservados.</p>
+        </div>
+      </footer>
     </main>
   );
 }
