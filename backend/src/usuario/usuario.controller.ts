@@ -10,7 +10,7 @@ import {
   UseGuards,
   Query,
   Req,
-  NotFoundException
+  ParseIntPipe,
 } from '@nestjs/common';
 
 import type { Request } from 'express';
@@ -18,9 +18,11 @@ import type { Request } from 'express';
 import { UsuarioService } from './usuario.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
+import { AlterarRoleDto } from './dto/alterar-role.dto';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Roles } from '../auth/decorators/roles.decorators';
+
 
 interface AuthenticatedRequest extends Request {
   user: {
@@ -170,6 +172,21 @@ export class UsuarioController {
     return this.usuarioService.redefinirSenha(
       token,
       senha,
+    );
+  }
+
+  @Patch(':id/role')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async alterarRole(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AlterarRoleDto,
+    @Req() req: any,
+  ) {
+    return this.usuarioService.alterarRole(
+      id,
+      dto.role,
+      Number(req.user.id),
     );
   }
 

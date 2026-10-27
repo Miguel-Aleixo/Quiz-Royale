@@ -4,9 +4,12 @@ import {
   Injectable,
   NotFoundException,
   InternalServerErrorException,
-  ConflictException
+  ConflictException,
+  BadRequestException,
+   ForbiddenException
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Role } from '@prisma/client';
 
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
@@ -840,6 +843,71 @@ export class UsuarioService {
       melhorPosicao,
     };
   }
+
+  async alterarRole(
+  id: number,
+  novaRole: Role,
+  solicitanteId: number,
+) {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new BadRequestException('ID de usuário inválido.');
+  }
+
+  if (id === solicitanteId) {
+    throw new ForbiddenException(
+      'Você não pode alterar sua própria função.',
+    );
+  }
+
+  const usuario = await this.prisma.usuario.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      nome: true,
+      email: true,
+      role: true,
+    },
+  });
+
+  if (!usuario) {
+    throw new NotFoundException('Usuário não encontrado.');
+  }
+
+  if (usuario.role === novaRole) {
+    return usuario;
+  }
+
+  // Impede que o sistema fique sem administradores.
+  if (usuario.role === Role.ADMIN && novaRole === Role.JOGADOR) {
+    const totalAdministradores = await this.prisma.usuario.count({
+      where: { role: Role.ADMIN },
+    });
+
+    if (totalAdministradores <= 1) {
+      throw new BadRequestException(
+        'Não é possível remover o último administrador.',
+      );
+    }
+  }
+
+  return this.prisma.usuario.update({
+    where: { id },
+    data: { role: novaRole },
+    select: {
+      id: true,
+      nome: true,
+      email: true,
+      role: true,
+      patenteId: true,
+      patente: {
+        select: {
+          id: true,
+          nome: true,
+        },
+      },
+    },
+  });
+}
 
   async remove(id: number) {
     return await this.prisma.usuario.delete({
