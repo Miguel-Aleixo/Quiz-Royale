@@ -763,7 +763,7 @@ export default function Home() {
                               </div>
                               {minhaSala && <span className="rounded-lg border border-violet-200/15 bg-violet-200/[0.07] px-2 py-1 text-[9px] font-extrabold text-violet-100">SUA SALA</span>}
                             </div>
-                            {encerrada && (
+                            {!encerrada && (
                               <div className="mt-3 flex items-center justify-between text-[11px]">
                                 <span className="flex items-center gap-1.5 text-white/40">
                                   <Users size={13} />
