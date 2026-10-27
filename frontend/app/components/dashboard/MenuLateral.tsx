@@ -296,7 +296,7 @@ export default function MenuLateral({
           <button
             type="button"
             onClick={sair}
-            className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-500 transition-all hover:bg-red-500/[0.07] hover:text-red-400"
+            className="group cursor-pointer flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-500 transition-all hover:bg-red-500/[0.07] hover:text-red-400"
           >
             <LogOut className="h-5 w-5 transition-colors group-hover:text-red-400" />
 
