@@ -20,14 +20,22 @@ import Header from "@/app/components/dashboard/Header";
 import LoadingOverlay from "@/app/components/global/Loading";
 
 type Tema = { id: number; nome: string };
+
 type Alternativa = { id?: number; texto: string; correta: boolean };
+
 type Pergunta = {
   id: number;
   enunciado: string;
   temaId: number;
   tema?: Tema;
+  criador?: {
+    id: number;
+    nome: string;
+    role: string;
+  } | null;
   alternativas: Alternativa[];
 };
+
 type FormPergunta = {
   enunciado: string;
   temaId: number;
@@ -102,7 +110,17 @@ export default function PerguntasPage() {
         lerResposta(perguntasRes),
         lerResposta(temasRes),
       ]);
-      setPerguntas(Array.isArray(perguntasData) ? perguntasData : []);
+      const perguntasAdministrativas: Pergunta[] = Array.isArray(perguntasData)
+        ? perguntasData.filter(
+          (pergunta: Pergunta) =>
+            pergunta.criador?.role === "ADMIN" &&
+            typeof pergunta.id === "number" &&
+            typeof pergunta.enunciado === "string" &&
+            Array.isArray(pergunta.alternativas),
+        )
+        : [];
+
+      setPerguntas(perguntasAdministrativas);
       setTemas(Array.isArray(temasData) ? temasData : []);
     } catch (error) {
       console.error("Erro ao buscar perguntas:", error);
@@ -576,11 +594,10 @@ export default function PerguntasPage() {
                         {(pergunta.alternativas ?? []).map((alternativa, index) => (
                           <div
                             key={alternativa.id ?? `${pergunta.id}-${index}`}
-                            className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-xs ${
-                              alternativa.correta
+                            className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-xs ${alternativa.correta
                                 ? "border-emerald-400/20 bg-emerald-500/[0.06] text-emerald-200"
                                 : "border-white/5 bg-white/[0.02] text-white/45"
-                            }`}
+                              }`}
                           >
                             <span className="font-black">
                               {String.fromCharCode(65 + index)}.
@@ -665,11 +682,10 @@ export default function PerguntasPage() {
                       key={pagina}
                       onClick={() => setPaginaAtual(pagina)}
                       aria-current={paginaSegura === pagina ? "page" : undefined}
-                      className={`h-9 min-w-9 rounded-lg px-3 text-sm transition ${
-                        paginaSegura === pagina
+                      className={`h-9 min-w-9 rounded-lg px-3 text-sm transition ${paginaSegura === pagina
                           ? "bg-purple-500 font-bold text-white"
                           : "border border-white/10 text-white/55 hover:bg-white/5"
-                      }`}
+                        }`}
                     >
                       {pagina}
                     </button>
@@ -790,11 +806,10 @@ export default function PerguntasPage() {
                     {form.alternativas.map((alternativa, index) => (
                       <div
                         key={alternativa.id ?? `nova-${index}`}
-                        className={`rounded-xl border p-2 ${
-                          alternativa.correta
+                        className={`rounded-xl border p-2 ${alternativa.correta
                             ? "border-emerald-400/30 bg-emerald-500/[0.06]"
                             : "border-white/10 bg-white/[0.02]"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-3">
                           <button
@@ -804,11 +819,10 @@ export default function PerguntasPage() {
                             }
                             aria-label={`Marcar alternativa ${String.fromCharCode(65 + index)} como correta`}
                             aria-pressed={alternativa.correta}
-                            className={`flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border text-xs font-black ${
-                              alternativa.correta
+                            className={`flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg border text-xs font-black ${alternativa.correta
                                 ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-300"
                                 : "border-white/10 bg-white/[0.03] text-white/35 hover:text-white"
-                            }`}
+                              }`}
                           >
                             {alternativa.correta ? (
                               <Check size={15} />
