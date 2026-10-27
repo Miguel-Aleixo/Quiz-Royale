@@ -116,7 +116,7 @@ export default function LoginPage() {
                   ((4 - (parteToken.length % 4)) % 4),
                 "="
               )
-          );
+          ));
       } catch {
         toast.error("Não foi possível validar a sessão recebida.");
         return;
