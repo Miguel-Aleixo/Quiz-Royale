@@ -160,9 +160,8 @@ export default function MenuLateral({
   }, [API]);
 
   function sair() {
-    Cookies.remove("token");
-    onClose?.();
-    router.push("/login");
+
+    router.push("/");
   }
 
   const nomeExibido = carregandoUsuario
