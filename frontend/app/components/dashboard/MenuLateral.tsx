@@ -160,7 +160,6 @@ export default function MenuLateral({
   }, [API]);
 
   function sair() {
-
     router.push("/");
   }
 

@@ -881,7 +881,7 @@ export default function CriarSalaPage() {
                         key={quantidade}
                         type="button"
                         onClick={() => setMaxJogadores(quantidade)}
-                        className={`rounded-xl border py-3 text-sm font-bold transition hover:-translate-y-0.5 ${
+                        className={`rounded-xl cursor-pointer border py-3 text-sm font-bold transition hover:-translate-y-0.5 ${
                           maxJogadores === quantidade
                             ? "border-fuchsia-400/50 bg-fuchsia-500/15 text-fuchsia-200 shadow-lg shadow-fuchsia-950/20"
                             : "border-white/[0.08] bg-white/[0.02] text-white/45 hover:border-white/20 hover:text-white"
@@ -925,7 +925,7 @@ export default function CriarSalaPage() {
                 <button
                   type="button"
                   onClick={() => setModoPerguntas("banco")}
-                  className={`group relative overflow-hidden rounded-2xl border p-5 text-left transition duration-300 hover:-translate-y-1 ${
+                  className={`group relative cursor-pointer overflow-hidden rounded-2xl border p-5 text-left transition duration-300 hover:-translate-y-1 ${
                     modoPerguntas === "banco"
                       ? "border-fuchsia-400/40 bg-gradient-to-br from-fuchsia-500/[0.12] to-violet-500/[0.04] shadow-lg shadow-fuchsia-950/10"
                       : "border-white/[0.08] bg-black/20 hover:border-white/20"
@@ -966,7 +966,7 @@ export default function CriarSalaPage() {
                 <button
                   type="button"
                   onClick={() => setModoPerguntas("proprias")}
-                  className={`group relative overflow-hidden rounded-2xl border p-5 text-left transition duration-300 hover:-translate-y-1 ${
+                  className={`group cursor-pointer relative overflow-hidden rounded-2xl border p-5 text-left transition duration-300 hover:-translate-y-1 ${
                     modoPerguntas === "proprias"
                       ? "border-violet-400/40 bg-gradient-to-br from-violet-500/[0.12] to-fuchsia-500/[0.04] shadow-lg shadow-violet-950/10"
                       : "border-white/[0.08] bg-black/20 hover:border-white/20"
@@ -1025,7 +1025,7 @@ export default function CriarSalaPage() {
                     type="button"
                     onClick={buscarPerguntasBanco}
                     disabled={loadingPerguntas}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 text-xs font-bold text-white/65 transition hover:border-fuchsia-300/30 hover:text-fuchsia-200 disabled:opacity-50"
+                    className="inline-flex cursor-pointer h-10 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 text-xs font-bold text-white/65 transition hover:border-fuchsia-300/30 hover:text-fuchsia-200 disabled:opacity-50"
                   >
                     <Search
                       size={15}
@@ -1044,6 +1044,7 @@ export default function CriarSalaPage() {
                     />
                     <input
                       value={busca}
+                      maxLength={80}
                       onChange={(e) => setBusca(e.target.value)}
                       placeholder="Pesquisar desafios..."
                       className="h-11 w-full rounded-xl border border-white/10 bg-black/20 pl-10 pr-4 text-sm outline-none transition placeholder:text-white/25 focus:border-fuchsia-400/50"
@@ -1054,7 +1055,7 @@ export default function CriarSalaPage() {
                     <select
                       value={temaFiltro}
                       onChange={(e) => setTemaFiltro(e.target.value)}
-                      className="h-11 w-full appearance-none rounded-xl border border-white/10 bg-[#10101d] px-4 pr-10 text-sm text-white/70 outline-none focus:border-fuchsia-400/50"
+                      className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-white/10 bg-[#10101d] px-4 pr-10 text-sm text-white/70 outline-none focus:border-fuchsia-400/50"
                     >
                       <option value="todos">Todos os temas</option>
                       {temas.map((tema) => (
@@ -1155,7 +1156,7 @@ export default function CriarSalaPage() {
                                     ? "Desmarcar pergunta"
                                     : "Selecionar pergunta"
                                 }
-                                className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition ${
+                                className={`mt-1 cursor-pointer flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition ${
                                   selecionada
                                     ? "border-fuchsia-400 bg-fuchsia-500 text-white"
                                     : "border-white/20 text-transparent hover:border-fuchsia-300/60"
@@ -1206,7 +1207,7 @@ export default function CriarSalaPage() {
                                     ? "Recolher pergunta"
                                     : "Expandir pergunta"
                                 }
-                                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition ${
+                                className={`flex cursor-pointer h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition ${
                                   expandida
                                     ? "rotate-180 border-fuchsia-300/20 bg-fuchsia-400/10 text-fuchsia-200"
                                     : "border-white/[0.08] text-white/40 hover:text-white"
@@ -1295,7 +1296,7 @@ export default function CriarSalaPage() {
                                     onClick={() =>
                                       alternarPerguntaBanco(pergunta.id)
                                     }
-                                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-fuchsia-300/20 bg-fuchsia-500/[0.07] py-3 text-xs font-bold text-fuchsia-200 transition hover:bg-fuchsia-500/[0.14]"
+                                    className="mt-4 cursor-pointer flex w-full items-center justify-center gap-2 rounded-xl border border-fuchsia-300/20 bg-fuchsia-500/[0.07] py-3 text-xs font-bold text-fuchsia-200 transition hover:bg-fuchsia-500/[0.14]"
                                   >
                                     <Plus size={15} />
                                     Adicionar à partida
@@ -1344,7 +1345,7 @@ export default function CriarSalaPage() {
                               )
                             }
                             disabled={paginaBancoAtual <= 1}
-                            className="flex-1 rounded-xl border border-white/10 px-4 py-2.5 text-xs font-bold text-white/70 transition hover:border-fuchsia-300/30 hover:bg-fuchsia-500/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-30 sm:flex-none"
+                            className="flex-1 cursor-pointer rounded-xl border border-white/10 px-4 py-2.5 text-xs font-bold text-white/70 transition hover:border-fuchsia-300/30 hover:bg-fuchsia-500/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-30 sm:flex-none"
                           >
                             Anterior
                           </button>
@@ -1357,7 +1358,7 @@ export default function CriarSalaPage() {
                               )
                             }
                             disabled={paginaBancoAtual >= totalPaginasBanco}
-                            className="flex-1 rounded-xl border border-fuchsia-300/20 bg-fuchsia-500/[0.08] px-4 py-2.5 text-xs font-bold text-fuchsia-200 transition hover:bg-fuchsia-500/[0.15] disabled:cursor-not-allowed disabled:opacity-30 sm:flex-none"
+                            className="flex-1 cursor-pointer rounded-xl border border-fuchsia-300/20 bg-fuchsia-500/[0.08] px-4 py-2.5 text-xs font-bold text-fuchsia-200 transition hover:bg-fuchsia-500/[0.15] disabled:cursor-not-allowed disabled:opacity-30 sm:flex-none"
                           >
                             Próxima
                           </button>
@@ -1398,7 +1399,7 @@ export default function CriarSalaPage() {
                       setPerguntaExpandida(perguntas.length);
                     }}
                     disabled={loadingTemas || temas.length === 0}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-600 px-5 text-xs font-black shadow-lg shadow-fuchsia-950/20 transition hover:-translate-y-0.5 hover:shadow-fuchsia-900/30 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="inline-flex cursor-pointer h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-600 px-5 text-xs font-black shadow-lg shadow-fuchsia-950/20 transition hover:-translate-y-0.5 hover:shadow-fuchsia-900/30 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <Plus size={17} />
                     Nova pergunta
@@ -1433,7 +1434,7 @@ export default function CriarSalaPage() {
                         setPerguntaExpandida(0);
                       }}
                       disabled={loadingTemas || temas.length === 0}
-                      className="mt-5 inline-flex items-center gap-2 rounded-xl border border-violet-300/20 bg-violet-500/10 px-4 py-3 text-xs font-bold text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-40"
+                      className="mt-5 cursor-pointer inline-flex items-center gap-2 rounded-xl border border-violet-300/20 bg-violet-500/10 px-4 py-3 text-xs font-bold text-violet-200 transition hover:bg-violet-500/20 disabled:opacity-40"
                     >
                       <Plus size={15} />
                       Criar primeira pergunta
@@ -1476,7 +1477,7 @@ export default function CriarSalaPage() {
                                 )
                               }
                               aria-expanded={expandida}
-                              className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                              className="flex cursor-pointer min-w-0 flex-1 items-center gap-3 text-left"
                             >
                               <div
                                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border text-sm font-black transition ${
@@ -1544,7 +1545,7 @@ export default function CriarSalaPage() {
                               aria-label={`Excluir pergunta ${
                                 perguntaIndex + 1
                               }`}
-                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-transparent text-white/30 transition hover:border-red-400/15 hover:bg-red-400/10 hover:text-red-300"
+                              className="flex cursor-pointer h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-transparent text-white/30 transition hover:border-red-400/15 hover:bg-red-400/10 hover:text-red-300"
                             >
                               <Trash2 size={15} />
                             </button>
@@ -1570,6 +1571,7 @@ export default function CriarSalaPage() {
                                   <textarea
                                     id={`enunciado-${perguntaIndex}`}
                                     value={pergunta.enunciado}
+                                    maxLength={300}
                                     onChange={(e) =>
                                       alterarPergunta(
                                         perguntaIndex,
@@ -1603,7 +1605,7 @@ export default function CriarSalaPage() {
                                             Number(e.target.value)
                                           )
                                         }
-                                        className="h-11 w-full appearance-none rounded-xl border border-white/10 bg-[#10101d] px-3 pr-9 text-sm outline-none focus:border-violet-400/50"
+                                        className="h-11 cursor-pointer w-full appearance-none rounded-xl border border-white/10 bg-[#10101d] px-3 pr-9 text-sm outline-none focus:border-violet-400/50"
                                       >
                                         <option value={0}>
                                           Selecione um tema
@@ -1650,7 +1652,7 @@ export default function CriarSalaPage() {
                                             Number(e.target.value)
                                           )
                                         }
-                                        className="h-11 w-full appearance-none rounded-xl border border-white/10 bg-[#10101d] pl-9 pr-9 text-sm outline-none focus:border-violet-400/50"
+                                        className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-white/10 bg-[#10101d] pl-9 pr-9 text-sm outline-none focus:border-violet-400/50"
                                       >
                                         {[10, 15, 20, 30, 45, 60, 90].map(
                                           (tempo) => (
@@ -1716,7 +1718,7 @@ export default function CriarSalaPage() {
                                               65 + alternativaIndex
                                             )} como correta`}
                                             aria-pressed={alternativa.correta}
-                                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-xs font-black transition ${
+                                            className={`flex cursor-pointer h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-xs font-black transition ${
                                               alternativa.correta
                                                 ? "border-emerald-400/30 bg-emerald-400/15 text-emerald-300"
                                                 : "border-white/10 bg-white/[0.03] text-white/40 hover:border-violet-300/30 hover:text-violet-200"
@@ -1733,6 +1735,7 @@ export default function CriarSalaPage() {
 
                                           <input
                                             value={alternativa.texto}
+                                            maxLength={120}
                                             onChange={(e) =>
                                               alterarAlternativa(
                                                 perguntaIndex,
@@ -1763,7 +1766,7 @@ export default function CriarSalaPage() {
                                     onClick={() =>
                                       setPerguntaExpandida(null)
                                     }
-                                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-xs font-bold text-white/60 transition hover:bg-white/[0.04] hover:text-white"
+                                    className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 px-4 py-2.5 text-xs font-bold text-white/60 transition hover:bg-white/[0.04] hover:text-white"
                                   >
                                     <Check size={14} />
                                     Concluir edição
@@ -1786,7 +1789,7 @@ export default function CriarSalaPage() {
                       setPerguntaExpandida(perguntas.length);
                     }}
                     disabled={loadingTemas || temas.length === 0}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-violet-300/25 bg-violet-500/[0.035] py-4 text-xs font-bold text-violet-200/80 transition hover:border-violet-300/45 hover:bg-violet-500/[0.08] disabled:opacity-40"
+                    className="mt-4 flex cursor-pointer w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-violet-300/25 bg-violet-500/[0.035] py-4 text-xs font-bold text-violet-200/80 transition hover:border-violet-300/45 hover:bg-violet-500/[0.08] disabled:opacity-40"
                   >
                     <Plus size={16} />
                     Adicionar outra pergunta
@@ -1910,7 +1913,7 @@ export default function CriarSalaPage() {
               type="button"
               onClick={criarSala}
               disabled={criandoSala || loadingTemas}
-              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-fuchsia-500 via-violet-500 to-violet-600 px-5 py-4 text-sm font-black shadow-xl shadow-fuchsia-950/30 transition duration-300 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-fuchsia-900/25 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-fuchsia-500 via-violet-500 to-violet-600 px-5 py-4 text-sm font-black shadow-xl shadow-fuchsia-950/30 transition duration-300 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-fuchsia-900/25 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {criandoSala ? (
                 <>
