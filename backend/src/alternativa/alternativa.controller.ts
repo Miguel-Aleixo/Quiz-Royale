@@ -1,57 +1,82 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ConflictException, UseGuards } from '@nestjs/common';
+
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Req,
+  ParseIntPipe,
+} from '@nestjs/common';
+import type { Request } from 'express';
+
 import { AlternativaService } from './alternativa.service';
 import { CreateAlternativaDto } from './dto/create-alternativa.dto';
 import { UpdateAlternativaDto } from './dto/update-alternativa.dto';
-import { PerguntaService } from '../pergunta/pergunta.service';
-import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: number | string;
+    role: 'ADMIN' | 'JOGADOR';
+  };
+}
+
 @Controller('alternativa')
+@UseGuards(JwtAuthGuard)
 export class AlternativaController {
   constructor(
     private readonly alternativaService: AlternativaService,
-    private readonly perguntaService: PerguntaService
-  ) { }
+  ) {}
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Post()
-  async create(@Body() createAlternativaDto: CreateAlternativaDto) {
-    const perguntaExiste = await this.perguntaService.findOne(createAlternativaDto.perguntaId);
-
-    if (!perguntaExiste) {
-      return new ConflictException('Essa pergunta não existe!')
-    }
-
-    return await this.alternativaService.create(createAlternativaDto);
+  create(
+    @Body() dto: CreateAlternativaDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.alternativaService.create(
+      dto,
+      Number(req.user.id),
+      req.user.role,
+    );
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get()
-  async findAll() {
-    return await this.alternativaService.findAll();
+  findAll() {
+    return this.alternativaService.findAll();
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return await this.alternativaService.findOne(Number(id));
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.alternativaService.findOne(id);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateAlternativaDto: UpdateAlternativaDto) {
-    const perguntaExiste = await this.perguntaService.findOne(updateAlternativaDto.perguntaId!);
-
-    if (!perguntaExiste) {
-      return new ConflictException('Essa pergunta não existe!')
-    }
-
-    return await this.alternativaService.update(Number(id), updateAlternativaDto);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateAlternativaDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.alternativaService.update(
+      id,
+      dto,
+      Number(req.user.id),
+      req.user.role,
+    );
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return await this.alternativaService.remove(Number(id));
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.alternativaService.remove(
+      id,
+      Number(req.user.id),
+      req.user.role,
+    );
   }
 }

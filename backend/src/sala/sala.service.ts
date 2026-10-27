@@ -5,8 +5,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
+  ConflictException
 } from '@nestjs/common';
 import { SalaGateway } from './sala.gateway';
+
 
 @Injectable()
 export class SalaService {
@@ -187,15 +190,6 @@ export class SalaService {
     }
 
     return sala;
-  }
-
-  async update(id: number, updateSalaDto: UpdateSalaDto) {
-    return await this.prisma.sala.update({
-      where: {
-        id,
-      },
-      data: updateSalaDto,
-    });
   }
 
   async sairDaSala(codigo: string, usuarioId: number) {
@@ -503,11 +497,106 @@ export class SalaService {
     });
   }
 
-  async remove(id: number) {
-    return await this.prisma.sala.delete({
-      where: {
-        id,
-      },
+  async update(
+    id: number,
+    updateSalaDto: UpdateSalaDto,
+    usuarioId: number,
+    role: 'ADMIN' | 'JOGADOR',
+  ) {
+    const sala = await this.prisma.sala.findUnique({
+      where: { id },
+    });
+
+    if (!sala) {
+      throw new NotFoundException('Sala não encontrada.');
+    }
+
+    if (role !== 'ADMIN' && sala.criadorId !== usuarioId) {
+      throw new ForbiddenException(
+        'Somente o criador da sala ou um administrador pode editá-la.',
+      );
+    }
+
+    if (sala.status !== 'ABERTA') {
+      throw new ConflictException(
+        'Só é possível editar uma sala aberta.',
+      );
+    }
+
+    // Não permita alterar código, criador ou status por este endpoint.
+    const dadosPermitidos = {
+      ...(updateSalaDto.nome !== undefined && {
+        nome: updateSalaDto.nome,
+      }),
+      ...(updateSalaDto.maxJogadores !== undefined && {
+        maxJogadores: updateSalaDto.maxJogadores,
+      }),
+    };
+
+    if (
+      dadosPermitidos.maxJogadores !== undefined &&
+      (
+        dadosPermitidos.maxJogadores < 2 ||
+        dadosPermitidos.maxJogadores > 50
+      )
+    ) {
+      throw new BadRequestException(
+        'O limite de jogadores deve estar entre 2 e 50.',
+      );
+    }
+
+    if (dadosPermitidos.maxJogadores !== undefined) {
+      const quantidadeJogadores = await this.prisma.jogador.count({
+        where: { salaId: id },
+      });
+
+      if (dadosPermitidos.maxJogadores < quantidadeJogadores) {
+        throw new ConflictException(
+          'O limite não pode ser menor que a quantidade atual de jogadores.',
+        );
+      }
+    }
+
+    return this.prisma.sala.update({
+      where: { id },
+      data: dadosPermitidos,
     });
   }
-}
+
+  async remove(
+    id: number,
+    usuarioId: number,
+    role: 'ADMIN' | 'JOGADOR',
+  ) {
+    const sala = await this.prisma.sala.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            jogadores: true,
+            rodadas: true,
+          },
+        },
+      },
+    });
+
+    if (!sala) {
+      throw new NotFoundException('Sala não encontrada.');
+    }
+
+    if (role !== 'ADMIN' && sala.criadorId !== usuarioId) {
+      throw new ForbiddenException(
+        'Somente o criador da sala ou um administrador pode excluí-la.',
+      );
+    }
+
+    if (sala._count.jogadores > 0 || sala._count.rodadas > 0) {
+      throw new ConflictException(
+        'Não é possível excluir uma sala que possui jogadores ou rodadas. Feche-a ou utilize um fluxo de arquivamento.',
+      );
+    }
+
+    return this.prisma.sala.delete({
+      where: { id },
+    });
+  }}

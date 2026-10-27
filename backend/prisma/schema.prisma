@@ -3,6 +3,7 @@
 
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -17,28 +18,28 @@ enum Role {
 }
 
 model Patente {
-  id        Int    @id @default(autoincrement())
-  nome      String @unique
-  pontos    Int    @default(0)
-
-  usuarios  Usuario[]
+  id       Int       @id @default(autoincrement())
+  nome     String    @unique
+  pontos   Int       @default(0)
+  usuarios Usuario[]
 }
 
 model Usuario {
-  id                  Int     @id @default(autoincrement())
-  nome                String
-  email               String  @unique
-  senha               String
-  role                Role    @default(JOGADOR)
-  patenteId           Int?
-  pontuacao            Int     @default(0)
-  emailVerificado     Boolean @default(false)
+  id                Int     @id @default(autoincrement())
+  nome              String
+  email             String  @unique
+  senha             String
+  role              Role    @default(JOGADOR)
+  patenteId         Int?
+  pontuacao         Int     @default(0)
+  emailVerificado   Boolean @default(false)
 
-  patente             Patente?          @relation(fields: [patenteId], references: [id])
-  jogadores           Jogador[]
-  salas               Sala[]
-  verificacaoEmail    VerificacaoEmail?
-  recuperacoesSenha   RecuperacaoSenha[]
+  patente           Patente?          @relation(fields: [patenteId], references: [id])
+  jogadores         Jogador[]
+  salas             Sala[]
+  verificacaoEmail  VerificacaoEmail?
+  recuperacoesSenha RecuperacaoSenha[]
+  perguntasCriadas  Pergunta[]        @relation("CriadorPergunta")
 }
 
 model RecuperacaoSenha {
@@ -61,78 +62,77 @@ model VerificacaoEmail {
 
 model Jogador {
   id           Int     @id @default(autoincrement())
-  usuarioId    Int    
+  usuarioId    Int
   salaId       Int
   eliminado    Boolean @default(false)
   posicaoFinal Int?
 
-  usuario      Usuario @relation(fields: [usuarioId], references: [id])
-  sala         Sala    @relation(fields: [salaId], references: [id])
-  respostas    Resposta[]
+  usuario   Usuario    @relation(fields: [usuarioId], references: [id])
+  sala      Sala       @relation(fields: [salaId], references: [id])
+  respostas Resposta[]
 }
 
 model Sala {
-  id           Int    @id @default(autoincrement())
+  id           Int       @id @default(autoincrement())
   nome         String
-  codigo       String @unique
-  status       String @default("ABERTA")
+  codigo       String    @unique
+  status       String    @default("ABERTA")
   maxJogadores Int
-
   criadaEm     DateTime  @default(now())
   finalizadaEm DateTime?
 
-  criadorId    Int?
-  criador      Usuario? @relation(fields: [criadorId], references: [id])
+  criadorId Int?
+  criador   Usuario? @relation(fields: [criadorId], references: [id])
 
-  jogadores    Jogador[]
-  rodadas      Rodada[]
+  jogadores Jogador[]
+  rodadas   Rodada[]
 }
 
 model Rodada {
-  id           Int  @id @default(autoincrement())
-  perguntaId   Int
-  salaId       Int
-  ordem        Int?
-  tempoLimite  Int
+  id          Int  @id @default(autoincrement())
+  perguntaId  Int
+  salaId      Int
+  ordem       Int?
+  tempoLimite Int
 
   pergunta Pergunta @relation(fields: [perguntaId], references: [id])
   sala     Sala     @relation(fields: [salaId], references: [id])
 }
 
-
 model Tema {
-  id        Int    @id @default(autoincrement())
-  nome      String @unique
-
+  id        Int        @id @default(autoincrement())
+  nome      String     @unique
   perguntas Pergunta[]
 }
 
 model Pergunta {
-  id           Int    @id @default(autoincrement())
-  enunciado    String 
-  temaId       Int
+  id        Int    @id @default(autoincrement())
+  enunciado String
+  temaId    Int
+  criadorId Int?
 
-  tema         Tema   @relation(fields: [temaId], references: [id])
+  tema         Tema         @relation(fields: [temaId], references: [id])
+  criador      Usuario?     @relation("CriadorPergunta", fields: [criadorId], references: [id], onDelete: SetNull)
   rodadas      Rodada[]
   alternativas Alternativa[]
 }
 
 model Alternativa {
-  id          Int      @id @default(autoincrement())
-  perguntaId  Int
-  texto       String
-  correta     Boolean  @default(false)
+  id         Int     @id @default(autoincrement())
+  perguntaId Int
+  texto      String
+  correta    Boolean @default(false)
 
-  pergunta    Pergunta @relation(fields: [perguntaId], references: [id])
-  respostas   Resposta[]
+  pergunta Pergunta   @relation(fields: [perguntaId], references: [id])
+  respostas Resposta[]
 }
 
 model Resposta {
-  id            Int         @id @default(autoincrement())
+  id            Int @id @default(autoincrement())
   tempoResposta Int
   jogadorId     Int
   alternativaId Int
 
-  jogador       Jogador     @relation(fields: [jogadorId], references: [id])
-  alternativa   Alternativa @relation(fields: [alternativaId], references: [id])
+  jogador     Jogador     @relation(fields: [jogadorId], references: [id])
+  alternativa Alternativa @relation(fields: [alternativaId], references: [id])
 }

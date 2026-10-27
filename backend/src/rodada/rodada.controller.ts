@@ -1,65 +1,77 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ConflictException, UseGuards } from '@nestjs/common';
+
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Req,
+  ParseIntPipe,
+} from '@nestjs/common';
+import type { Request } from 'express';
+
 import { RodadaService } from './rodada.service';
 import { CreateRodadaDto } from './dto/create-rodada.dto';
 import { UpdateRodadaDto } from './dto/update-rodada.dto';
-import { PerguntaService } from '../pergunta/pergunta.service';
-import { SalaService } from '../sala/sala.service';
-import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: number | string;
+    role: 'ADMIN' | 'JOGADOR';
+  };
+}
+
 @Controller('rodada')
+@UseGuards(JwtAuthGuard)
 export class RodadaController {
   constructor(
     private readonly rodadaService: RodadaService,
-    private readonly perguntaService: PerguntaService,
-    private readonly salaService: SalaService
-  ) { }
+  ) {}
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Post()
-  async create(@Body() createRodadaDto: CreateRodadaDto) {
-    const perguntaExiste = await this.perguntaService.findOne(createRodadaDto.perguntaId);
-    const salaExiste = await this.salaService.findOne(createRodadaDto.salaId);
+  create(
+    @Body() dto: CreateRodadaDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.rodadaService.create(
+      dto,
+      Number(req.user.id),
+      req.user.role,
+    );
+  }
 
-    if (!perguntaExiste) {
-      return new ConflictException('Essa pergunta não existe!')
-    }
-
-    if (!salaExiste) {
-      return new ConflictException('Essa sala não existe!')
-    }
-
-
-    return this.rodadaService.create(createRodadaDto);
-  };
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get()
-  async findAll() {
-    return await this.rodadaService.findAll();
-  };
+  findAll() {
+    return this.rodadaService.findAll();
+  }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateRodadaDto: UpdateRodadaDto) {
-    const perguntaExiste = await this.perguntaService.findOne(updateRodadaDto.perguntaId!);
-    const salaExiste = await this.salaService.findOne(updateRodadaDto.salaId!);
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateRodadaDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.rodadaService.update(
+      id,
+      dto,
+      Number(req.user.id),
+      req.user.role,
+    );
+  }
 
-    if (!perguntaExiste) {
-      return new ConflictException('Essa pergunta não existe!')
-    }
-
-    if (!salaExiste) {
-      return new ConflictException('Essa sala não existe!')
-    }
-
-    return this.rodadaService.update(Number(id), updateRodadaDto);
-  };
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.rodadaService.remove(Number(id));
-  };
-
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.rodadaService.remove(
+      id,
+      Number(req.user.id),
+      req.user.role,
+    );
+  }
 }
