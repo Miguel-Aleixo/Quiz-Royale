@@ -338,10 +338,6 @@ export default function UsuariosPage() {
                   className="h-11 w-full rounded-xl border border-white/10 bg-[#0d0d1b] pl-10 pr-4 text-sm outline-none transition placeholder:text-white/25 focus:border-purple-400/50 focus:ring-2 focus:ring-purple-500/10"
                 />
               </div>
-
-              <p className="mt-1.5 text-right text-[11px] text-white/30">
-                {busca.length}/{LIMITE_BUSCA} caracteres
-              </p>
             </div>
           </div>
 
@@ -413,7 +409,7 @@ export default function UsuariosPage() {
                       type="button"
                       onClick={() => setUsuarioSelecionado(usuario)}
                       disabled={alterandoRoleId !== null}
-                      className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                      className={`inline-flex cursor-pointer min-h-10 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                         usuario.role === "ADMIN"
                           ? "border-red-400/20 bg-red-500/10 text-red-300 hover:bg-red-500/20"
                           : "border-purple-400/20 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20"
@@ -454,7 +450,7 @@ export default function UsuariosPage() {
                 onClick={() => setPagina((atual) => Math.max(1, atual - 1))}
                 disabled={pagina <= 1 || loading}
                 aria-label="Página anterior"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-white/70 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex cursor-pointer h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-white/70 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
               >
                 <ChevronLeft size={17} />
               </button>
@@ -472,7 +468,7 @@ export default function UsuariosPage() {
                 }
                 disabled={pagina >= totalPaginas || loading}
                 aria-label="Próxima página"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-white/70 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex cursor-pointer h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-white/70 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-30"
               >
                 <ChevronRight size={17} />
               </button>
@@ -536,7 +532,7 @@ export default function UsuariosPage() {
                 onClick={() => setUsuarioSelecionado(null)}
                 disabled={confirmando}
                 aria-label="Fechar modal"
-                className="rounded-lg p-2 text-white/40 transition hover:bg-white/[0.06] hover:text-white disabled:opacity-30"
+                className="rounded-lg cursor-pointer p-2 text-white/40 transition hover:bg-white/[0.06] hover:text-white disabled:opacity-30"
               >
                 <X size={18} />
               </button>
@@ -591,7 +587,7 @@ export default function UsuariosPage() {
                   type="button"
                   onClick={() => setUsuarioSelecionado(null)}
                   disabled={confirmando}
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 px-4 text-sm font-semibold text-white/65 transition hover:bg-white/[0.05] disabled:opacity-40"
+                  className="inline-flex cursor-pointer h-10 items-center justify-center rounded-xl border border-white/10 px-4 text-sm font-semibold text-white/65 transition hover:bg-white/[0.05] disabled:opacity-40"
                 >
                   Cancelar
                 </button>
@@ -600,7 +596,7 @@ export default function UsuariosPage() {
                   type="button"
                   onClick={alterarPermissao}
                   disabled={confirmando}
-                  className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                  className={`inline-flex cursor-pointer h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
                     novoRole === "ADMIN"
                       ? "bg-purple-500 text-white hover:bg-purple-400"
                       : "bg-red-500/90 text-white hover:bg-red-500"
