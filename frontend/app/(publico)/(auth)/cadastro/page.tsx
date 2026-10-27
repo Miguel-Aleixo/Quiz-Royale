@@ -603,10 +603,7 @@ export default function CadastroPage() {
                       />
                     </button>
 
-                    <p className="text-center text-[10px] leading-5 text-white/30">
-                      Para sua segurança, há um limite de
-                      tentativas de cadastro.
-                    </p>
+                   
                   </div>
                 </form>
 
