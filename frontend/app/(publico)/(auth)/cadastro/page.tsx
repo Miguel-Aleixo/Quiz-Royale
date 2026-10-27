@@ -1,8 +1,9 @@
+
 "use client";
 
 import Link from "next/link";
 import Cookies from "js-cookie";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -20,8 +21,13 @@ import LoadingOverlay from "@/app/components/global/Loading";
 import Image from "next/image";
 import { toast } from "sonner";
 
+const INTERVALO_ENTRE_TENTATIVAS = 2000;
+const JANELA_DE_TENTATIVAS = 60_000;
+const MAX_TENTATIVAS = 5;
+
 export default function CadastroPage() {
   const API = process.env.NEXT_PUBLIC_API;
+  const router = useRouter();
 
   const [form, setForm] = useState({
     nome: "",
@@ -36,14 +42,118 @@ export default function CadastroPage() {
   const [loading, setLoading] = useState(false);
   const [cadastroRealizado, setCadastroRealizado] =
     useState(false);
-
   const [verificacaoSessaoToken, setVerificacaoSessaoToken] =
     useState<string | null>(null);
+  const [aguardandoLimite, setAguardandoLimite] = useState(false);
 
-  const router = useRouter();
+  /*
+   * Proteção contra cliques rápidos e requisições duplicadas.
+   *
+   * O useRef bloqueia imediatamente, sem depender da atualização
+   * assíncrona do estado loading.
+   */
+  const envioEmAndamentoRef = useRef(false);
+  const tentativasCadastroRef = useRef<number[]>([]);
+  const proximoEnvioRef = useRef(0);
+  const timeoutLimiteRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutLimiteRef.current) {
+        clearTimeout(timeoutLimiteRef.current);
+      }
+    };
+  }, []);
+
+  const iniciarIntervaloEntreTentativas = () => {
+    setAguardandoLimite(true);
+
+    if (timeoutLimiteRef.current) {
+      clearTimeout(timeoutLimiteRef.current);
+    }
+
+    timeoutLimiteRef.current = setTimeout(() => {
+      setAguardandoLimite(false);
+      timeoutLimiteRef.current = null;
+    }, INTERVALO_ENTRE_TENTATIVAS);
+  };
 
   const handleCadastro = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    /*
+     * Impede envios duplicados mesmo se o usuário clicar
+     * repetidamente antes da tela atualizar.
+     */
+    if (envioEmAndamentoRef.current || loading) {
+      return;
+    }
+
+    const agora = Date.now();
+
+    /*
+     * Intervalo mínimo entre requisições.
+     */
+    if (agora < proximoEnvioRef.current) {
+      toast.error(
+        "Aguarde alguns segundos antes de tentar novamente."
+      );
+      return;
+    }
+
+    /*
+     * Mantém somente as tentativas realizadas no último minuto.
+     */
+    tentativasCadastroRef.current =
+      tentativasCadastroRef.current.filter(
+        (timestamp) =>
+          agora - timestamp < JANELA_DE_TENTATIVAS
+      );
+
+    /*
+     * Limite de 5 requisições de cadastro por minuto
+     * nesta página.
+     */
+    if (
+      tentativasCadastroRef.current.length >=
+      MAX_TENTATIVAS
+    ) {
+      const primeiraTentativa =
+        tentativasCadastroRef.current[0];
+
+      const segundosRestantes = Math.max(
+        1,
+        Math.ceil(
+          (JANELA_DE_TENTATIVAS -
+            (agora - primeiraTentativa)) /
+            1000
+        )
+      );
+
+      toast.error(
+        `Limite de tentativas atingido. Aguarde ${segundosRestantes} segundos.`
+      );
+      return;
+    }
+
+    if (!form.nome.trim()) {
+      toast.error("Informe seu nome.");
+      return;
+    }
+
+    if (!form.email.trim()) {
+      toast.error("Informe seu e-mail.");
+      return;
+    }
+
+    if (form.senha.length < 6) {
+      toast.error(
+        "A senha precisa ter pelo menos 6 caracteres."
+      );
+      return;
+    }
 
     if (form.senha !== confirmarSenha) {
       toast.error("As senhas não coincidem.");
@@ -55,9 +165,19 @@ export default function CadastroPage() {
       return;
     }
 
-    try {
-      setLoading(true);
+    /*
+     * O bloqueio é ativado sincronamente antes do fetch.
+     */
+    envioEmAndamentoRef.current = true;
+    proximoEnvioRef.current =
+      agora + INTERVALO_ENTRE_TENTATIVAS;
 
+    tentativasCadastroRef.current.push(agora);
+
+    setLoading(true);
+    iniciarIntervaloEntreTentativas();
+
+    try {
       const res = await fetch(`${API}/usuario`, {
         method: "POST",
         headers: {
@@ -70,7 +190,7 @@ export default function CadastroPage() {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         const mensagem = Array.isArray(data.message)
@@ -93,10 +213,8 @@ export default function CadastroPage() {
       }
 
       /*
-       * O sessaoToken fica somente no navegador
-       * onde o cadastro foi realizado.
-       *
-       * Ele NÃO é enviado no e-mail.
+       * O token de verificação fica somente neste navegador.
+       * Ele não é enviado no e-mail.
        */
       sessionStorage.setItem(
         "verificacaoSessaoToken",
@@ -119,22 +237,14 @@ export default function CadastroPage() {
           : "Erro ao cadastrar usuário."
       );
     } finally {
+      envioEmAndamentoRef.current = false;
       setLoading(false);
     }
   };
 
   /*
-   * ==========================================================
-   * AGUARDA A VERIFICAÇÃO DO E-MAIL
-   * ==========================================================
-   *
-   * O PC consulta o backend a cada 3 segundos.
-   *
-   * Quando o celular verificar o e-mail:
-   *
-   * emailVerificado = true
-   *
-   * O backend então devolve um JWT para ESTE navegador.
+   * Aguarda a confirmação do e-mail.
+   * O navegador consulta o backend a cada 3 segundos.
    */
   useEffect(() => {
     if (!cadastroRealizado) {
@@ -143,9 +253,7 @@ export default function CadastroPage() {
 
     const token =
       verificacaoSessaoToken ??
-      sessionStorage.getItem(
-        "verificacaoSessaoToken"
-      );
+      sessionStorage.getItem("verificacaoSessaoToken");
 
     if (!token) {
       console.error(
@@ -160,8 +268,13 @@ export default function CadastroPage() {
     }
 
     let ativo = true;
+    let redirecionando = false;
 
     const verificarStatus = async () => {
+      if (!ativo || redirecionando) {
+        return;
+      }
+
       try {
         const response = await fetch(
           `${API}/usuario/status-verificacao?token=${encodeURIComponent(
@@ -180,23 +293,13 @@ export default function CadastroPage() {
             "Erro ao consultar verificação:",
             data
           );
-
           return;
         }
 
-        /*
-         * Ainda não verificou.
-         *
-         * O intervalo continua executando.
-         */
         if (data?.emailVerificado !== true) {
           return;
         }
 
-        /*
-         * O backend só envia o accessToken
-         * depois que o e-mail foi confirmado.
-         */
         if (
           typeof data?.accessToken !== "string" ||
           data.accessToken.length === 0
@@ -204,7 +307,6 @@ export default function CadastroPage() {
           console.error(
             "E-mail verificado, mas o backend não retornou um accessToken."
           );
-
           return;
         }
 
@@ -212,23 +314,14 @@ export default function CadastroPage() {
           return;
         }
 
-        /*
-         * Salva o JWT somente no PC.
-         */
-        Cookies.set(
-          "token",
-          data.accessToken,
-          {
-            expires: 1,
-            sameSite: "lax",
-            secure:
-              process.env.NODE_ENV === "production",
-          }
-        );
+        redirecionando = true;
 
-        /*
-         * O sessaoToken não é mais necessário.
-         */
+        Cookies.set("token", data.accessToken, {
+          expires: 1,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+        });
+
         sessionStorage.removeItem(
           "verificacaoSessaoToken"
         );
@@ -237,10 +330,6 @@ export default function CadastroPage() {
           "E-mail verificado! Sua conta está pronta."
         );
 
-        /*
-         * O intervalo será destruído pelo cleanup
-         * quando a página mudar.
-         */
         router.push("/");
       } catch (error) {
         console.error(
@@ -250,14 +339,8 @@ export default function CadastroPage() {
       }
     };
 
-    /*
-     * Faz uma consulta imediatamente.
-     */
     verificarStatus();
 
-    /*
-     * Depois verifica a cada 3 segundos.
-     */
     const intervalo = setInterval(
       verificarStatus,
       3000
@@ -273,6 +356,23 @@ export default function CadastroPage() {
     API,
     router,
   ]);
+
+  const voltarAoCadastro = () => {
+    sessionStorage.removeItem("verificacaoSessaoToken");
+
+    setVerificacaoSessaoToken(null);
+    setCadastroRealizado(false);
+
+    setForm({
+      nome: "",
+      email: "",
+      senha: "",
+    });
+
+    setConfirmarSenha("");
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  };
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#080812] text-white selection:bg-purple-400 selection:text-white">
@@ -342,7 +442,8 @@ export default function CadastroPage() {
                           }
                           placeholder="Seu nome"
                           required
-                          className="h-13 w-full rounded-2xl border border-white/10 bg-black/20 pl-12 pr-4 text-sm text-white outline-none transition placeholder:text-white/25 hover:border-white/20 focus:border-purple-500/70 focus:bg-black/30 focus:ring-4 focus:ring-purple-500/10"
+                          disabled={loading}
+                          className="h-13 w-full rounded-2xl border border-white/10 bg-black/20 pl-12 pr-4 text-sm text-white outline-none transition placeholder:text-white/25 hover:border-white/20 focus:border-purple-500/70 focus:bg-black/30 focus:ring-4 focus:ring-purple-500/10 disabled:opacity-60"
                         />
                       </div>
                     </label>
@@ -371,7 +472,8 @@ export default function CadastroPage() {
                           }
                           placeholder="seu@email.com"
                           required
-                          className="h-13 w-full rounded-2xl border border-white/10 bg-black/20 pl-12 pr-4 text-sm text-white outline-none transition placeholder:text-white/25 hover:border-white/20 focus:border-purple-500/70 focus:bg-black/30 focus:ring-4 focus:ring-purple-500/10"
+                          disabled={loading}
+                          className="h-13 w-full rounded-2xl border border-white/10 bg-black/20 pl-12 pr-4 text-sm text-white outline-none transition placeholder:text-white/25 hover:border-white/20 focus:border-purple-500/70 focus:bg-black/30 focus:ring-4 focus:ring-purple-500/10 disabled:opacity-60"
                         />
                       </div>
                     </label>
@@ -390,9 +492,7 @@ export default function CadastroPage() {
 
                         <input
                           type={
-                            showPassword
-                              ? "text"
-                              : "password"
+                            showPassword ? "text" : "password"
                           }
                           autoComplete="new-password"
                           value={form.senha}
@@ -405,22 +505,22 @@ export default function CadastroPage() {
                           placeholder="Crie uma senha"
                           required
                           minLength={6}
-                          className="h-13 w-full rounded-2xl border border-white/10 bg-black/20 px-12 pr-14 text-sm text-white outline-none transition placeholder:text-white/25 hover:border-white/20 focus:border-purple-500/70 focus:bg-black/30 focus:ring-4 focus:ring-purple-500/10"
+                          disabled={loading}
+                          className="h-13 w-full rounded-2xl border border-white/10 bg-black/20 px-12 pr-14 text-sm text-white outline-none transition placeholder:text-white/25 hover:border-white/20 focus:border-purple-500/70 focus:bg-black/30 focus:ring-4 focus:ring-purple-500/10 disabled:opacity-60"
                         />
 
                         <button
                           type="button"
                           onClick={() =>
-                            setShowPassword(
-                              (visible) => !visible
-                            )
+                            setShowPassword((visible) => !visible)
                           }
                           aria-label={
                             showPassword
                               ? "Ocultar senha"
                               : "Mostrar senha"
                           }
-                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-2 text-purple-300 hover:bg-white/5"
+                          disabled={loading}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-2 text-purple-300 hover:bg-white/5 disabled:opacity-50"
                         >
                           {showPassword ? (
                             <EyeOff size={18} />
@@ -452,14 +552,13 @@ export default function CadastroPage() {
                           autoComplete="new-password"
                           value={confirmarSenha}
                           onChange={(e) =>
-                            setConfirmarSenha(
-                              e.target.value
-                            )
+                            setConfirmarSenha(e.target.value)
                           }
                           placeholder="Digite a senha novamente"
                           required
                           minLength={6}
-                          className="h-13 w-full rounded-2xl border border-white/10 bg-black/20 px-12 pr-14 text-sm text-white outline-none transition placeholder:text-white/25 hover:border-white/20 focus:border-purple-500/70 focus:bg-black/30 focus:ring-4 focus:ring-purple-500/10"
+                          disabled={loading}
+                          className="h-13 w-full rounded-2xl border border-white/10 bg-black/20 px-12 pr-14 text-sm text-white outline-none transition placeholder:text-white/25 hover:border-white/20 focus:border-purple-500/70 focus:bg-black/30 focus:ring-4 focus:ring-purple-500/10 disabled:opacity-60"
                         />
 
                         <button
@@ -474,7 +573,8 @@ export default function CadastroPage() {
                               ? "Ocultar confirmação de senha"
                               : "Mostrar confirmação de senha"
                           }
-                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-2 text-purple-300 hover:bg-white/5"
+                          disabled={loading}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-2 text-purple-300 hover:bg-white/5 disabled:opacity-50"
                         >
                           {showConfirmPassword ? (
                             <EyeOff size={18} />
@@ -485,18 +585,28 @@ export default function CadastroPage() {
                       </div>
                     </label>
 
+                    {/* Botão protegido contra cliques repetidos */}
                     <button
                       type="submit"
-                      disabled={loading}
-                      className="group mt-1 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 text-[13px] font-bold text-white shadow-lg shadow-purple-900/20 transition hover:-translate-y-0.5 hover:from-purple-500 hover:to-indigo-500 hover:shadow-purple-900/40 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-[#10101c] disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={loading || aguardandoLimite}
+                      className="group mt-1 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 text-[13px] font-bold text-white shadow-lg shadow-purple-900/20 transition hover:-translate-y-0.5 hover:from-purple-500 hover:to-indigo-500 hover:shadow-purple-900/40 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 focus:ring-offset-[#10101c] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                     >
-                      Criar conta
+                      {loading
+                        ? "Criando conta..."
+                        : aguardandoLimite
+                          ? "Aguarde..."
+                          : "Criar conta"}
 
                       <ArrowUpRight
                         size={17}
                         className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
                       />
                     </button>
+
+                    <p className="text-center text-[10px] leading-5 text-white/30">
+                      Para sua segurança, há um limite de
+                      tentativas de cadastro.
+                    </p>
                   </div>
                 </form>
 
@@ -516,9 +626,8 @@ export default function CadastroPage() {
                   </p>
 
                   <button
-                    onClick={() =>
-                      router.push("/login")
-                    }
+                    type="button"
+                    onClick={() => router.push("/login")}
                     className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-white/15 text-xs font-bold transition hover:border-purple-400 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-purple-400"
                   >
                     Fazer login
@@ -532,9 +641,7 @@ export default function CadastroPage() {
                 </div>
               </>
             ) : (
-              /* =========================================
-                 E-MAIL DE VERIFICAÇÃO
-                 ========================================= */
+              /* Tela de verificação do e-mail */
               <div className="flex flex-col items-center text-center">
                 <div className="mb-7 flex h-20 w-20 items-center justify-center rounded-3xl bg-purple-500/10">
                   <CheckCircle2
@@ -593,22 +700,8 @@ export default function CadastroPage() {
                 </div>
 
                 <button
-                  onClick={() => {
-                    sessionStorage.removeItem(
-                      "verificacaoSessaoToken"
-                    );
-
-                    setVerificacaoSessaoToken(null);
-                    setCadastroRealizado(false);
-
-                    setForm({
-                      nome: "",
-                      email: "",
-                      senha: "",
-                    });
-
-                    setConfirmarSenha("");
-                  }}
+                  type="button"
+                  onClick={voltarAoCadastro}
                   className="mt-5 text-xs font-medium text-white/40 transition hover:text-white"
                 >
                   Voltar ao cadastro
@@ -618,7 +711,7 @@ export default function CadastroPage() {
           </div>
         </section>
 
-        {/* Painel de posicionamento */}
+        {/* Painel visual */}
         <section className="relative hidden min-h-[calc(100vh-2rem)] overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#10101c] p-10 text-white lg:my-4 lg:mr-4 lg:flex lg:flex-col lg:justify-between xl:p-16">
           <div className="absolute -right-40 -top-36 h-[520px] w-[520px] rounded-full border border-purple-400/15" />
 
