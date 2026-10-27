@@ -779,16 +779,23 @@ export default function Home() {
                                 <RefreshCw size={14} /> Reabrir batalha
                               </button>
                             ) : (
-                              <button type="button" onClick={() => {
-                                if (emailNaoVerificado && usuario) {
-                                  setLoading(true);
-                                  router.push(`/verificar-email?email=${encodeURIComponent(usuario.email)}`);
-                                  return;
-                                }
-                                setCodigo(sala.codigo);
-                                if (emAndamento) router.push(`/sala/entrar?codigo=${sala.codigo}`);
-                              }} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.045] text-xs font-black text-white/75 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white cursor-pointer">
-                                {emailNaoVerificado ? <><Mail size={14} /> Verificar e-mail</> : <>{emAndamento ? <Clock3 size={14} /> : <ArrowRight size={14} />}{emAndamento ? "Continuar sala" : "Selecionar sala"}</>}
+                              <button
+                                type="button"
+                                disabled={loading}
+                                onClick={() => {
+                                  if (!estaLogado || emailNaoVerificado) {
+                                    tratarAcesso();
+                                    return;
+                                  }
+                                  if (emAndamento) {
+                                    router.push(`/sala/entrar?codigo=${sala.codigo}`);
+                                    return;
+                                  }
+                                  entrarDiretoNaSala(sala);
+                                }}
+                                className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-white text-xs font-black text-[#101120] transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                              >
+                                {emailNaoVerificado ? <><Mail size={14} /> Verificar e-mail</> : <>{emAndamento ? <Clock3 size={14} /> : <ArrowRight size={14} />}{emAndamento ? "Continuar sala" : "Entrar na partida"}</>}
                               </button>
                             )
                           ) : disponivel ? (
