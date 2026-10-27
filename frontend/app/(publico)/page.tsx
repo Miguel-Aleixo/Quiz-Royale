@@ -50,7 +50,11 @@ interface Sala {
   codigo: string;
   status: string;
   maxJogadores: number;
-  criadorId?: number | null;
+  criadorId?: number | string | null;
+  criador_id?: number | string | null;
+  usuarioId?: number | string | null;
+  criador?: { id?: number | string | null } | null;
+  usuario?: { id?: number | string | null } | null;
   _count?: { jogadores: number; rodadas: number };
 }
 
@@ -198,7 +202,15 @@ export default function Home() {
   const minhasSalas = useMemo(() => {
     if (!usuario) return [];
     return salas
-      .filter((sala) => Number(sala.criadorId) === Number(usuario.id))
+      .filter((sala) => {
+        const idCriador =
+          sala.criadorId ??
+          sala.criador_id ??
+          sala.usuarioId ??
+          sala.criador?.id ??
+          sala.usuario?.id;
+        return idCriador != null && Number(idCriador) === Number(usuario.id);
+      })
       .sort((a, b) => b.id - a.id);
   }, [salas, usuario]);
 
@@ -690,10 +702,38 @@ export default function Home() {
               <>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {salasPaginadas.map((sala) => {
-                  const minhaSala = Boolean(usuario && Number(sala.criadorId) === Number(usuario.id));
-                  const encerrada = sala.status === "FINALIZADA" || sala.status === "ENCERRADA";
-                  const emAndamento = sala.status === "ANDAMENTO" || sala.status === "EM_ANDAMENTO";
-                  const disponivel = sala.status === "ABERTA";
+                  const idCriador =
+                    sala.criadorId ??
+                    sala.criador_id ??
+                    sala.usuarioId ??
+                    sala.criador?.id ??
+                    sala.usuario?.id;
+                  const minhaSala =
+                    Boolean(usuario) &&
+                    idCriador != null &&
+                    Number(idCriador) === Number(usuario?.id);
+
+                  // Normaliza o status para aceitar variações retornadas pela API.
+                  const statusNormalizado = String(sala.status ?? "")
+                    .trim()
+                    .toUpperCase()
+                    .replaceAll(" ", "_");
+                  const encerrada = [
+                    "FINALIZADA",
+                    "FINALIZADO",
+                    "ENCERRADA",
+                    "ENCERRADO",
+                    "CONCLUIDA",
+                    "CONCLUIDO",
+                    "FECHADA",
+                    "FECHADO",
+                  ].includes(statusNormalizado);
+                  const emAndamento = [
+                    "ANDAMENTO",
+                    "EM_ANDAMENTO",
+                    "EM_ANDAMENTO",
+                  ].includes(statusNormalizado);
+                  const disponivel = statusNormalizado === "ABERTA";
                   const ocupacao = Math.min(100, Math.round(((sala._count?.jogadores ?? 0) / Math.max(sala.maxJogadores, 1)) * 100));
 
                   return (
