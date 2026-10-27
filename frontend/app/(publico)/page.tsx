@@ -433,7 +433,7 @@ export default function Home() {
 
           <div className="relative grid gap-9 lg:grid-cols-[1.15fr_.85fr] lg:items-end">
             <div>
-              
+
               <h1 className="max-w-3xl text-[2.65rem] font-black leading-[.98] tracking-[-.065em] sm:text-6xl lg:text-[4.6rem]">
                 Pronto para
                 <span className="mt-2 block bg-gradient-to-r from-fuchsia-200 via-violet-200 to-cyan-200 bg-clip-text pb-1 text-transparent">
@@ -700,162 +700,172 @@ export default function Home() {
               </div>
             ) : (
               <>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {salasPaginadas.map((sala) => {
-                  const idCriador =
-                    sala.criadorId ??
-                    sala.criador_id ??
-                    sala.usuarioId ??
-                    sala.criador?.id ??
-                    sala.usuario?.id;
-                  const minhaSala =
-                    Boolean(usuario) &&
-                    idCriador != null &&
-                    Number(idCriador) === Number(usuario?.id);
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {salasPaginadas.map((sala) => {
+                    const idCriador =
+                      sala.criadorId ??
+                      sala.criador_id ??
+                      sala.usuarioId ??
+                      sala.criador?.id ??
+                      sala.usuario?.id;
+                    const minhaSala =
+                      Boolean(usuario) &&
+                      idCriador != null &&
+                      Number(idCriador) === Number(usuario?.id);
 
-                  // Normaliza o status para aceitar variações retornadas pela API.
-                  const statusNormalizado = String(sala.status ?? "")
-                    .trim()
-                    .toUpperCase()
-                    .replaceAll(" ", "_");
-                  const encerrada = [
-                    "FINALIZADA",
-                    "FINALIZADO",
-                    "ENCERRADA",
-                    "ENCERRADO",
-                    "CONCLUIDA",
-                    "CONCLUIDO",
-                    "FECHADA",
-                    "FECHADO",
-                  ].includes(statusNormalizado);
-                  const emAndamento = [
-                    "ANDAMENTO",
-                    "EM_ANDAMENTO",
-                    "EM_ANDAMENTO",
-                  ].includes(statusNormalizado);
-                  const disponivel = statusNormalizado === "ABERTA";
-                  const ocupacao = Math.min(100, Math.round(((sala._count?.jogadores ?? 0) / Math.max(sala.maxJogadores, 1)) * 100));
+                    // Normaliza o status para aceitar variações retornadas pela API.
+                    const statusNormalizado = String(sala.status ?? "")
+                      .trim()
+                      .toUpperCase()
+                      .replaceAll(" ", "_");
+                    const encerrada = [
+                      "FINALIZADA",
+                      "FINALIZADO",
+                      "ENCERRADA",
+                      "ENCERRADO",
+                      "CONCLUIDA",
+                      "CONCLUIDO",
+                      "FECHADA",
+                      "FECHADO",
+                    ].includes(statusNormalizado);
+                    const emAndamento = [
+                      "ANDAMENTO",
+                      "EM_ANDAMENTO",
+                      "EM_ANDAMENTO",
+                    ].includes(statusNormalizado);
+                    const disponivel = statusNormalizado === "ABERTA";
+                    const ocupacao = Math.min(100, Math.round(((sala._count?.jogadores ?? 0) / Math.max(sala.maxJogadores, 1)) * 100));
 
-                  return (
-                    <article key={sala.id} className="group relative flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-white/[0.08] bg-gradient-to-br from-[#171a2d] to-[#0e1020] transition duration-300 hover:-translate-y-1 hover:border-violet-200/25 hover:shadow-[0_18px_45px_rgba(0,0,0,.22)]">
-                      <div className={`h-1 w-full ${emAndamento ? "bg-gradient-to-r from-amber-300 to-orange-400" : encerrada ? "bg-gradient-to-r from-fuchsia-400 to-violet-400" : "bg-gradient-to-r from-emerald-300 to-cyan-300"}`} />
-                      <div className="flex flex-1 flex-col p-4 sm:p-5">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] border ${emAndamento ? "border-amber-200/15 bg-amber-200/[0.07] text-amber-100" : encerrada ? "border-fuchsia-200/15 bg-fuchsia-200/[0.07] text-fuchsia-100" : "border-emerald-200/15 bg-emerald-200/[0.07] text-emerald-100"}`}>
-                              {emAndamento ? <Zap size={19} /> : encerrada ? <CheckCircle2 size={19} /> : <Swords size={19} />}
+                    return (
+                      <article key={sala.id} className="group relative flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-white/[0.08] bg-gradient-to-br from-[#171a2d] to-[#0e1020] transition duration-300 hover:-translate-y-1 hover:border-violet-200/25 hover:shadow-[0_18px_45px_rgba(0,0,0,.22)]">
+                        <div className={`h-1 w-full ${emAndamento ? "bg-gradient-to-r from-amber-300 to-orange-400" : encerrada ? "bg-gradient-to-r from-fuchsia-400 to-violet-400" : "bg-gradient-to-r from-emerald-300 to-cyan-300"}`} />
+                        <div className="flex flex-1 flex-col p-4 sm:p-5">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] border ${emAndamento ? "border-amber-200/15 bg-amber-200/[0.07] text-amber-100" : encerrada ? "border-fuchsia-200/15 bg-fuchsia-200/[0.07] text-fuchsia-100" : "border-emerald-200/15 bg-emerald-200/[0.07] text-emerald-100"}`}>
+                                {emAndamento ? <Zap size={19} /> : encerrada ? <CheckCircle2 size={19} /> : <Swords size={19} />}
+                              </div>
+                              <div className="min-w-0">
+                                <h3 className="truncate text-sm font-black text-white/90">{sala.nome}</h3>
+                                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">ARENA #{sala.id}</p>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <h3 className="truncate text-sm font-black text-white/90">{sala.nome}</h3>
-                              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">ARENA #{sala.id}</p>
+                            <span className={`shrink-0 rounded-lg px-2 py-1.5 text-[9px] font-black uppercase tracking-wider ${emAndamento ? "bg-amber-200/10 text-amber-100" : encerrada ? "bg-fuchsia-200/10 text-fuchsia-100" : disponivel ? "bg-emerald-200/10 text-emerald-100" : "bg-white/[0.07] text-white/50"}`}>
+                              {emAndamento ? "Em andamento" : encerrada ? "Finalizada" : disponivel ? "Aberta" : sala.status.replaceAll("_", " ")}
+                            </span>
+                          </div>
+
+                          <div className="mt-5 rounded-xl border border-white/[0.06] bg-black/15 p-3.5">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-white/30">Código de acesso</p>
+                                <p className="mt-1.5 font-mono text-lg font-black tracking-[0.22em] text-violet-100">{sala.codigo}</p>
+                              </div>
+                              {minhaSala && <span className="rounded-lg border border-violet-200/15 bg-violet-200/[0.07] px-2 py-1 text-[9px] font-extrabold text-violet-100">SUA SALA</span>}
+                            </div>
+                            {encerrada && (
+                              <div className="mt-3 flex items-center justify-between text-[11px]">
+                                <span className="flex items-center gap-1.5 text-white/40">
+                                  <Users size={13} />
+                                  Jogadores
+                                </span>
+
+                                <span className="font-bold tabular-nums text-white/75">
+                                  {sala._count?.jogadores ?? 0}
+                                  <span className="mx-1 text-white/25">/</span>
+                                  {sala.maxJogadores}
+                                </span>
+                              </div>
+                            )}
+                            <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.07]">
+                              <div className={`h-full rounded-full transition-all ${emAndamento ? "bg-amber-300" : "bg-cyan-200"}`} style={{ width: `${ocupacao}%` }} />
                             </div>
                           </div>
-                          <span className={`shrink-0 rounded-lg px-2 py-1.5 text-[9px] font-black uppercase tracking-wider ${emAndamento ? "bg-amber-200/10 text-amber-100" : encerrada ? "bg-fuchsia-200/10 text-fuchsia-100" : disponivel ? "bg-emerald-200/10 text-emerald-100" : "bg-white/[0.07] text-white/50"}`}>
-                            {emAndamento ? "Em andamento" : encerrada ? "Finalizada" : disponivel ? "Aberta" : sala.status.replaceAll("_", " ")}
-                          </span>
-                        </div>
 
-                        <div className="mt-5 rounded-xl border border-white/[0.06] bg-black/15 p-3.5">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="text-[9px] font-extrabold uppercase tracking-[0.18em] text-white/30">Código de acesso</p>
-                              <p className="mt-1.5 font-mono text-lg font-black tracking-[0.22em] text-violet-100">{sala.codigo}</p>
-                            </div>
-                            {minhaSala && <span className="rounded-lg border border-violet-200/15 bg-violet-200/[0.07] px-2 py-1 text-[9px] font-extrabold text-violet-100">SUA SALA</span>}
-                          </div>
-                          <div className="mt-3 flex items-center justify-between text-[11px]">
-                            <span className="flex items-center gap-1.5 text-white/40"><Users size={13} /> Jogadores</span>
-                            <span className="font-bold tabular-nums text-white/75">{sala._count?.jogadores ?? 0}<span className="mx-1 text-white/25">/</span>{sala.maxJogadores}</span>
-                          </div>
-                          <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.07]">
-                            <div className={`h-full rounded-full transition-all ${emAndamento ? "bg-amber-300" : "bg-cyan-200"}`} style={{ width: `${ocupacao}%` }} />
-                          </div>
-                        </div>
-
-                        <div className="mt-auto pt-4">
-                          {minhaSala ? (
-                            encerrada ? (
-                              <button type="button" onClick={() => reabrirSala(sala.id)} disabled={loading} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-violet-200/15 bg-violet-200/[0.09] text-xs font-black text-violet-100 transition hover:bg-violet-200/[0.16] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer">
-                                <RefreshCw size={14} /> Reabrir batalha
+                          <div className="mt-auto pt-4">
+                            {minhaSala ? (
+                              encerrada ? (
+                                <button type="button" onClick={() => reabrirSala(sala.id)} disabled={loading} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-violet-200/15 bg-violet-200/[0.09] text-xs font-black text-violet-100 transition hover:bg-violet-200/[0.16] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer">
+                                  <RefreshCw size={14} /> Reabrir batalha
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled={loading}
+                                  onClick={() => {
+                                    if (!estaLogado || emailNaoVerificado) {
+                                      tratarAcesso();
+                                      return;
+                                    }
+                                    if (emAndamento) {
+                                      router.push(`/sala/entrar?codigo=${sala.codigo}`);
+                                      return;
+                                    }
+                                    entrarDiretoNaSala(sala);
+                                  }}
+                                  className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-white text-xs font-black text-[#101120] transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                                >
+                                  {emailNaoVerificado ? <><Mail size={14} /> Verificar e-mail</> : <>{emAndamento ? <Clock3 size={14} /> : <ArrowRight size={14} />}{emAndamento ? "Continuar sala" : "Entrar na partida"}</>}
+                                </button>
+                              )
+                            ) : disponivel ? (
+                              <button type="button" onClick={() => {
+                                if (!estaLogado || emailNaoVerificado) {
+                                  tratarAcesso();
+                                  return;
+                                }
+                                entrarDiretoNaSala(sala);
+                              }} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-white text-xs font-black text-[#101120] transition hover:bg-cyan-100 cursor-pointer">
+                                Entrar na partida <ArrowRight size={14} />
                               </button>
                             ) : (
-                              <button
-                                type="button"
-                                disabled={loading}
-                                onClick={() => {
-                                  if (!estaLogado || emailNaoVerificado) {
-                                    tratarAcesso();
-                                    return;
-                                  }
-                                  if (emAndamento) {
-                                    router.push(`/sala/entrar?codigo=${sala.codigo}`);
-                                    return;
-                                  }
-                                  entrarDiretoNaSala(sala);
-                                }}
-                                className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-white text-xs font-black text-[#101120] transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
-                              >
-                                {emailNaoVerificado ? <><Mail size={14} /> Verificar e-mail</> : <>{emAndamento ? <Clock3 size={14} /> : <ArrowRight size={14} />}{emAndamento ? "Continuar sala" : "Entrar na partida"}</>}
-                              </button>
-                            )
-                          ) : disponivel ? (
-                            <button type="button" onClick={() => {
-                              if (!estaLogado || emailNaoVerificado) {
-                                tratarAcesso();
-                                return;
-                              }
-                              entrarDiretoNaSala(sala);
-                            }} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-white text-xs font-black text-[#101120] transition hover:bg-cyan-100 cursor-pointer">
-                              Entrar na partida <ArrowRight size={14} />
-                            </button>
-                          ) : (
-                            <div className="flex h-10 items-center justify-center gap-2 rounded-xl bg-white/[0.025] text-xs font-semibold text-white/30">
-                              <Shield size={13} /> Sala indisponível para entrada
-                            </div>
-                          )}
+                              <div className="flex h-10 items-center justify-center gap-2 rounded-xl bg-white/[0.025] text-xs font-semibold text-white/30">
+                                <Shield size={13} /> Sala indisponível para entrada
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-              {totalPaginasSalas > 1 && (
-                <div className="mt-6 flex flex-col gap-3 border-t border-white/[0.07] pt-5 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs text-white/40">
-                    Mostrando{" "}
-                    <span className="font-bold text-white/75">
-                      {(paginaSalas - 1) * SALAS_POR_PAGINA + 1}–
-                      {Math.min(paginaSalas * SALAS_POR_PAGINA, salasExibidas.length)}
-                    </span>{" "}
-                    de{" "}
-                    <span className="font-bold text-white/75">{salasExibidas.length}</span>{" "}
-                    salas
-                  </p>
-                  <div className="flex items-center justify-between gap-2 sm:justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setPaginaSalas((pagina) => Math.max(1, pagina - 1))}
-                      disabled={paginaSalas === 1}
-                      className="rounded-xl border border-white/10 px-3.5 py-2.5 text-xs font-bold text-white/70 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
-                    >
-                      Anterior
-                    </button>
-                    <span className="min-w-[88px] text-center text-xs font-bold tabular-nums text-white/55">
-                      Página {paginaSalas} de {totalPaginasSalas}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setPaginaSalas((pagina) => Math.min(totalPaginasSalas, pagina + 1))
-                      }
-                      disabled={paginaSalas === totalPaginasSalas}
-                      className="rounded-xl border border-white/10 px-3.5 py-2.5 text-xs font-bold text-white/70 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
-                    >
-                      Próxima
-                    </button>
-                  </div>
+                      </article>
+                    );
+                  })}
                 </div>
-              )}
+                {totalPaginasSalas > 1 && (
+                  <div className="mt-6 flex flex-col gap-3 border-t border-white/[0.07] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs text-white/40">
+                      Mostrando{" "}
+                      <span className="font-bold text-white/75">
+                        {(paginaSalas - 1) * SALAS_POR_PAGINA + 1}–
+                        {Math.min(paginaSalas * SALAS_POR_PAGINA, salasExibidas.length)}
+                      </span>{" "}
+                      de{" "}
+                      <span className="font-bold text-white/75">{salasExibidas.length}</span>{" "}
+                      salas
+                    </p>
+                    <div className="flex items-center justify-between gap-2 sm:justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setPaginaSalas((pagina) => Math.max(1, pagina - 1))}
+                        disabled={paginaSalas === 1}
+                        className="rounded-xl border border-white/10 px-3.5 py-2.5 text-xs font-bold text-white/70 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+                      >
+                        Anterior
+                      </button>
+                      <span className="min-w-[88px] text-center text-xs font-bold tabular-nums text-white/55">
+                        Página {paginaSalas} de {totalPaginasSalas}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPaginaSalas((pagina) => Math.min(totalPaginasSalas, pagina + 1))
+                        }
+                        disabled={paginaSalas === totalPaginasSalas}
+                        className="rounded-xl border border-white/10 px-3.5 py-2.5 text-xs font-bold text-white/70 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+                      >
+                        Próxima
+                      </button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
