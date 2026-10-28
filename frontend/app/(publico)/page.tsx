@@ -462,39 +462,44 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="relative grid grid-cols-2 gap-3 pt-4">
-              <div className="rounded-xl bg-white/[0.035] p-3 sm:p-4">
-                <div className="flex items-center gap-2">
-                  <Users size={15} className="text-cyan-200" />
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/45">
-                    Jogadores ativos
-                  </p>
+            <div className="relative lg:pl-6">
+              <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-[#0a0c19]/80 p-5 sm:p-6">
+                <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-cyan-400/10 blur-3xl" />
+                <div className="relative flex items-center justify-between border-b border-white/[0.08] pb-4">
+                  <div>
+                    <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-white/35">Status da arena</p>
+                    <p className="mt-1.5 text-lg font-black tracking-tight">Sua próxima vitória começa aqui</p>
+                  </div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-200/15 bg-cyan-300/[0.08] text-cyan-100">
+                    <Swords size={21} />
+                  </div>
                 </div>
-
-                <p className="mt-3 text-2xl font-black tabular-nums sm:text-3xl">
-                  {estaLogado ? jogadoresNasSalas : "—"}
-                </p>
-
-                <p className="mt-1 text-[10px] text-cyan-200/50">
-                  nas salas
-                </p>
-              </div>
-
-              <div className="rounded-xl bg-white/[0.035] p-3 sm:p-4">
-                <div className="flex items-center gap-2">
-                  <Gamepad2 size={15} className="text-emerald-200" />
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-white/45">
-                    Salas abertas
-                  </p>
+                <div className="relative grid grid-cols-3 gap-2 pt-4">
+                  <div className="rounded-xl bg-white/[0.035] p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">Salas</p>
+                    <p className="mt-1 text-2xl font-black tabular-nums">{estaLogado ? totalSalasUnicas : "—"}</p>
+                    <p className="mt-1 text-[10px] text-white/30">no radar</p>
+                  </div>
+                  <div className="rounded-xl bg-white/[0.035] p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">Abertas</p>
+                    <p className="mt-1 text-2xl font-black tabular-nums">{estaLogado ? salasAbertas.length : "—"}</p>
+                    <p className="mt-1 text-[10px] text-emerald-200/60">para entrar</p>
+                  </div>
+                  <div className="rounded-xl bg-white/[0.035] p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">Jogadores</p>
+                    <p className="mt-1 text-2xl font-black tabular-nums">{estaLogado ? jogadoresNasSalas : "—"}</p>
+                    <p className="mt-1 text-[10px] text-white/30">nas salas</p>
+                  </div>
                 </div>
-
-                <p className="mt-3 text-2xl font-black tabular-nums sm:text-3xl">
-                  {estaLogado ? salasAbertas.length : "—"}
-                </p>
-
-                <p className="mt-1 text-[10px] text-emerald-200/60">
-                  disponíveis para entrar
-                </p>
+                <div className="relative mt-4 flex items-center gap-3 rounded-xl border border-fuchsia-200/10 bg-gradient-to-r from-fuchsia-400/[0.08] to-cyan-400/[0.05] p-3.5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-fuchsia-300/10 text-fuchsia-100">
+                    <Zap size={17} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-extrabold">Entre no ritmo da disputa</p>
+                    <p className="mt-1 text-[11px] leading-4 text-white/40">Responda rápido. Suba no ranking. Ganhe sua patente.</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -771,10 +776,10 @@ export default function Home() {
                                   {sala.maxJogadores}
                                 </span>
                               </div>
-                            )}
                             <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.07]">
                               <div className={`h-full rounded-full transition-all ${emAndamento ? "bg-amber-300" : "bg-cyan-200"}`} style={{ width: `${ocupacao}%` }} />
                             </div>
+                            )}
                           </div>
 
                           <div className="mt-auto pt-4">
