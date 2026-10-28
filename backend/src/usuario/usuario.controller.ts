@@ -11,6 +11,7 @@ import {
   Query,
   Req,
   ParseIntPipe,
+  ForbiddenException
 } from '@nestjs/common';
 
 import type { Request } from 'express';
@@ -190,30 +191,24 @@ export class UsuarioController {
     );
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateUsuarioDto: UpdateUsuarioDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    if (updateUsuarioDto.email) {
-      const emailExiste =
-        await this.usuarioService.findByEmail(
-          updateUsuarioDto.email,
-        );
-
-      if (
-        emailExiste &&
-        emailExiste.id !== Number(id)
-      ) {
-        throw new ConflictException(
-          'Esse email já está sendo usado!',
-        );
-      }
+    if (
+      req.user.id !== id &&
+      req.user.role !== 'ADMIN'
+    ) {
+      throw new ForbiddenException(
+        'Você não tem permissão para alterar este usuário!',
+      );
     }
 
     return this.usuarioService.update(
-      Number(id),
+      id,
       updateUsuarioDto,
     );
   }

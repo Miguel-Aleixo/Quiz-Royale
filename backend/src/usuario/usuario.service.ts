@@ -6,7 +6,7 @@ import {
   InternalServerErrorException,
   ConflictException,
   BadRequestException,
-   ForbiddenException
+  ForbiddenException
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
@@ -845,69 +845,192 @@ export class UsuarioService {
   }
 
   async alterarRole(
-  id: number,
-  novaRole: Role,
-  solicitanteId: number,
-) {
-  if (!Number.isInteger(id) || id <= 0) {
-    throw new BadRequestException('ID de usuário inválido.');
-  }
+    id: number,
+    novaRole: Role,
+    solicitanteId: number,
+  ) {
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new BadRequestException('ID de usuário inválido.');
+    }
 
-  if (id === solicitanteId) {
-    throw new ForbiddenException(
-      'Você não pode alterar sua própria função.',
-    );
-  }
-
-  const usuario = await this.prisma.usuario.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      nome: true,
-      email: true,
-      role: true,
-    },
-  });
-
-  if (!usuario) {
-    throw new NotFoundException('Usuário não encontrado.');
-  }
-
-  if (usuario.role === novaRole) {
-    return usuario;
-  }
-
-  // Impede que o sistema fique sem administradores.
-  if (usuario.role === Role.ADMIN && novaRole === Role.JOGADOR) {
-    const totalAdministradores = await this.prisma.usuario.count({
-      where: { role: Role.ADMIN },
-    });
-
-    if (totalAdministradores <= 1) {
-      throw new BadRequestException(
-        'Não é possível remover o último administrador.',
+    if (id === solicitanteId) {
+      throw new ForbiddenException(
+        'Você não pode alterar sua própria função.',
       );
     }
-  }
 
-  return this.prisma.usuario.update({
-    where: { id },
-    data: { role: novaRole },
-    select: {
-      id: true,
-      nome: true,
-      email: true,
-      role: true,
-      patenteId: true,
-      patente: {
-        select: {
-          id: true,
-          nome: true,
-        },
+    const usuario = await this.prisma.usuario.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        nome: true,
+        email: true,
+        role: true,
       },
-    },
-  });
-}
+    });
+
+    if (!usuario) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+
+    if (usuario.role === novaRole) {
+      return usuario;
+    }
+
+    // Impede que o sistema fique sem administradores.
+    if (usuario.role === Role.ADMIN && novaRole === Role.JOGADOR) {
+      const totalAdministradores = await this.prisma.usuario.count({
+        where: { role: Role.ADMIN },
+      });
+
+      if (totalAdministradores <= 1) {
+        throw new BadRequestException(
+          'Não é possível remover o último administrador.',
+        );
+      }
+    }
+
+  async update(
+      id: number,
+      updateUsuarioDto: UpdateUsuarioDto,
+    ) {
+      const usuario = await this.prisma.usuario.findUnique({
+        where: { id },
+      });
+
+      if (!usuario) {
+        throw new NotFoundException('Usuário não encontrado.');
+      }
+
+      const { nome, email, senhaAtual, senha, confirmarSenha } =
+        updateUsuarioDto;
+
+      const emailNormalizado = email?.trim().toLowerCase();
+
+      const emailMudou =
+        emailNormalizado !== undefined &&
+        emailNormalizado !== usuario.email.toLowerCase();
+
+      const senhaMudou = senha !== undefined && senha.length > 0;
+
+      if (confirmarSenha !== undefined && !senhaMudou) {
+        throw new BadRequestException(
+          'Informe a nova senha para confirmar a alteração.',
+        );
+      }
+
+      if (senhaMudou) {
+        if (!confirmarSenha) {
+          throw new BadRequestException(
+            'Confirme a nova senha.',
+          );
+        }
+
+        if (senha !== confirmarSenha) {
+          throw new BadRequestException(
+            'A nova senha e a confirmação não coincidem.',
+          );
+        }
+      }
+
+      if (emailMudou || senhaMudou) {
+        if (!senhaAtual) {
+          throw new BadRequestException(
+            'Informe sua senha atual para confirmar a alteração.',
+          );
+        }
+
+        const senhaValida = await bcrypt.compare(
+          senhaAtual,
+          usuario.senha,
+        );
+
+        if (!senhaValida) {
+          throw new BadRequestException(
+            'A senha atual está incorreta.',
+          );
+        }
+      }
+
+      if (emailMudou && emailNormalizado) {
+        const emailExistente = await this.prisma.usuario.findFirst({
+          where: {
+            email: emailNormalizado,
+            NOT: { id },
+          },
+          select: { id: true },
+        });
+
+        if (emailExistente) {
+          throw new ConflictException(
+            'Este e-mail já está sendo utilizado.',
+          );
+        }
+      }
+
+      const data: {
+        nome?: string;
+        email?: string;
+        senha?: string;
+        emailVerificado?: boolean;
+      } = {};
+
+      if (nome !== undefined) {
+        const nomeNormalizado = nome.trim();
+
+        if (nomeNormalizado.length < 2) {
+          throw new BadRequestException(
+            'O nome deve possuir pelo menos 2 caracteres.',
+          );
+        }
+
+        if (nomeNormalizado.length > 80) {
+          throw new BadRequestException(
+            'O nome deve possuir no máximo 80 caracteres.',
+          );
+        }
+
+        data.nome = nomeNormalizado;
+      }
+
+      if (emailNormalizado !== undefined) {
+        data.email = emailNormalizado;
+      }
+
+      if (senhaMudou && senha) {
+        if (senha.length < 8 || senha.length > 128) {
+          throw new BadRequestException(
+            'A nova senha deve possuir entre 8 e 128 caracteres.',
+          );
+        }
+
+        data.senha = await bcrypt.hash(senha, 10);
+      }
+
+      if (emailMudou) {
+        data.emailVerificado = false;
+      }
+
+      const usuarioAtualizado = await this.prisma.usuario.update({
+        where: { id },
+        data,
+        include: { patente: true },
+      });
+
+      return {
+        id: usuarioAtualizado.id,
+        nome: usuarioAtualizado.nome,
+        email: usuarioAtualizado.email,
+        role: usuarioAtualizado.role,
+        patenteId: usuarioAtualizado.patenteId,
+        pontuacao: usuarioAtualizado.pontuacao,
+        emailVerificado: usuarioAtualizado.emailVerificado,
+        patente: usuarioAtualizado.patente,
+        emailAlterado: emailMudou,
+        senhaAlterada: senhaMudou,
+      };
+    }
+  }
 
   async remove(id: number) {
     return await this.prisma.usuario.delete({
