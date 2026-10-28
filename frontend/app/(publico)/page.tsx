@@ -23,6 +23,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
+  import { io, Socket } from "socket.io-client";
 
 import Header from "../components/inicio/Header";
 import LoadingOverlay from "../components/global/Loading";
@@ -86,6 +87,8 @@ export default function Home() {
   const [loadingUsuario, setLoadingUsuario] = useState(false);
   const [loadingSalas, setLoadingSalas] = useState(false);
   const [loadingPerguntas, setLoadingPerguntas] = useState(false);
+
+  const [jogadoresOnline, setJogadoresOnline] = useState(0);
 
   const estaLogado = mounted && Boolean(token);
   const emailNaoVerificado =
@@ -197,6 +200,27 @@ export default function Home() {
     buscarUsuario(currentToken);
     buscarSalas(currentToken);
     buscarPerguntas(currentToken);
+  }, []);
+
+  useEffect(() => {
+    const socket: Socket = io(
+      process.env.NEXT_PUBLIC_API!,
+      {
+        withCredentials: true,
+        transports: ["websocket"],
+      }
+    );
+
+    socket.on(
+      "jogadores_online",
+      (data: { total: number }) => {
+        setJogadoresOnline(data.total);
+      }
+    );
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const minhasSalas = useMemo(() => {
@@ -477,18 +501,13 @@ export default function Home() {
                 <div className="relative grid grid-cols-3 gap-2 pt-4">
                   <div className="rounded-xl bg-white/[0.035] p-3">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">Salas</p>
-                    <p className="mt-1 text-2xl font-black tabular-nums">{estaLogado ? totalSalasUnicas : "—"}</p>
-                    <p className="mt-1 text-[10px] text-white/30">no radar</p>
-                  </div>
-                  <div className="rounded-xl bg-white/[0.035] p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">Abertas</p>
                     <p className="mt-1 text-2xl font-black tabular-nums">{estaLogado ? salasAbertas.length : "—"}</p>
-                    <p className="mt-1 text-[10px] text-emerald-200/60">para entrar</p>
+                    <p className="mt-1 text-[10px] text-emerald-200/60">abertas</p>
                   </div>
                   <div className="rounded-xl bg-white/[0.035] p-3">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">Jogadores</p>
-                    <p className="mt-1 text-2xl font-black tabular-nums">{estaLogado ? jogadoresNasSalas : "—"}</p>
-                    <p className="mt-1 text-[10px] text-white/30">nas salas</p>
+                    <p className="mt-1 text-2xl font-black tabular-nums">{estaLogado ? jogadoresOnline : "—"}</p>
+                    <p className="mt-1 text-[10px] text-white/30">onlines</p>
                   </div>
                 </div>
                 <div className="relative mt-4 flex items-center gap-3 rounded-xl border border-fuchsia-200/10 bg-gradient-to-r from-fuchsia-400/[0.08] to-cyan-400/[0.05] p-3.5">
