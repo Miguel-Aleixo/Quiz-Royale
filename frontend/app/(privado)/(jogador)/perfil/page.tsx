@@ -1174,7 +1174,7 @@ export default function PerfilPage() {
                   onClick={fecharEdicao}
                   disabled={salvando || modalConfirmacao}
                   aria-label="Fechar edição"
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/45 transition hover:bg-white/[0.07] hover:text-white disabled:opacity-40"
+                  className="flex cursor-pointer h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-white/45 transition hover:bg-white/[0.07] hover:text-white disabled:opacity-40"
                 >
                   <X size={17} />
                 </button>
@@ -1385,7 +1385,7 @@ export default function PerfilPage() {
                 type="button"
                 onClick={fecharEdicao}
                 disabled={salvando}
-                className="h-11 rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 text-xs font-extrabold text-white/55 transition hover:bg-white/[0.06] hover:text-white disabled:opacity-40 sm:flex-1"
+                className="h-11 cursor-pointer rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 text-xs font-extrabold text-white/55 transition hover:bg-white/[0.06] hover:text-white disabled:opacity-40 sm:flex-1"
               >
                 Cancelar
               </button>
@@ -1393,7 +1393,7 @@ export default function PerfilPage() {
                 type="button"
                 onClick={prepararConfirmacao}
                 disabled={salvando}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-600 px-4 text-xs font-extrabold text-white shadow-lg shadow-fuchsia-950/25 transition hover:-translate-y-0.5 hover:from-fuchsia-400 hover:to-violet-500 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-[1.25]"
+                className="inline-flex cursor-pointer h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-600 px-4 text-xs font-extrabold text-white shadow-lg shadow-fuchsia-950/25 transition hover:-translate-y-0.5 hover:from-fuchsia-400 hover:to-violet-500 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-[1.25]"
               >
                 <Save size={15} />
                 Revisar alterações
@@ -1465,7 +1465,7 @@ export default function PerfilPage() {
                     type="button"
                     onClick={() => setModalConfirmacao(false)}
                     disabled={salvando}
-                    className="h-11 rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 text-xs font-extrabold text-white/60 transition hover:bg-white/[0.06] hover:text-white disabled:opacity-40 sm:flex-1"
+                    className="h-11 cursor-pointer rounded-xl border border-white/[0.09] bg-white/[0.025] px-4 text-xs font-extrabold text-white/60 transition hover:bg-white/[0.06] hover:text-white disabled:opacity-40 sm:flex-1"
                   >
                     Voltar e revisar
                   </button>
@@ -1474,7 +1474,7 @@ export default function PerfilPage() {
                     type="button"
                     onClick={() => void confirmarSalvarEdicao()}
                     disabled={salvando}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-600 px-4 text-xs font-extrabold text-white transition hover:from-fuchsia-400 hover:to-violet-500 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-1"
+                    className="inline-flex cursor-pointer h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-600 px-4 text-xs font-extrabold text-white transition hover:from-fuchsia-400 hover:to-violet-500 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-1"
                   >
                     {salvando ? (
                       <RefreshCw size={15} className="animate-spin" />
