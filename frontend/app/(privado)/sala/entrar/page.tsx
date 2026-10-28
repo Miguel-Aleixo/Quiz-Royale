@@ -1017,7 +1017,7 @@ function SalaEntrarContent() {
         </div>
 
         {/* RODAPÉ */}
-        <footer className="mt-8 border-t border-white/[0.07] py-6">
+        <footer className=" border-t border-white/[0.07] py-6">
           <div className="flex flex-col items-center justify-center gap-2 text-center sm:flex-row sm:gap-3">
             <p className="text-[11px] leading-5 text-white/30">
               © {new Date().getFullYear()} QuizRoyale. Todos os direitos reservados.
