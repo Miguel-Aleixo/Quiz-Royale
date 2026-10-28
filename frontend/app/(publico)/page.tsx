@@ -764,21 +764,23 @@ export default function Home() {
                               {minhaSala && <span className="rounded-lg border border-violet-200/15 bg-violet-200/[0.07] px-2 py-1 text-[9px] font-extrabold text-violet-100">SUA SALA</span>}
                             </div>
                             {!encerrada && (
-                              <div className="mt-3 flex items-center justify-between text-[11px]">
-                                <span className="flex items-center gap-1.5 text-white/40">
-                                  <Users size={13} />
-                                  Jogadores
-                                </span>
+                              <>
+                                <div className="mt-3 flex items-center justify-between text-[11px]">
+                                  <span className="flex items-center gap-1.5 text-white/40">
+                                    <Users size={13} />
+                                    Jogadores
+                                  </span>
 
-                                <span className="font-bold tabular-nums text-white/75">
-                                  {sala._count?.jogadores ?? 0}
-                                  <span className="mx-1 text-white/25">/</span>
-                                  {sala.maxJogadores}
-                                </span>
-                              </div>
-                            <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.07]">
-                              <div className={`h-full rounded-full transition-all ${emAndamento ? "bg-amber-300" : "bg-cyan-200"}`} style={{ width: `${ocupacao}%` }} />
-                            </div>
+                                  <span className="font-bold tabular-nums text-white/75">
+                                    {sala._count?.jogadores ?? 0}
+                                    <span className="mx-1 text-white/25">/</span>
+                                    {sala.maxJogadores}
+                                  </span>
+                                </div>
+                                <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/[0.07]">
+                                  <div className={`h-full rounded-full transition-all ${emAndamento ? "bg-amber-300" : "bg-cyan-200"}`} style={{ width: `${ocupacao}%` }} />
+                                </div>
+                              </>
                             )}
                           </div>
 
