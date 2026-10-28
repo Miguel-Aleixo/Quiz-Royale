@@ -498,7 +498,7 @@ export default function Home() {
                     <Swords size={21} />
                   </div>
                 </div>
-                <div className="relative grid grid-cols-3 gap-2 pt-4">
+                <div className="relative grid grid-cols-2 gap-2 pt-4">
                   <div className="rounded-xl bg-white/[0.035] p-3">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-white/35">Salas</p>
                     <p className="mt-1 text-2xl font-black tabular-nums">{estaLogado ? salasAbertas.length : "—"}</p>
