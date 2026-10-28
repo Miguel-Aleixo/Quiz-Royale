@@ -908,11 +908,18 @@ export default function Home() {
 
       </section>
 
-      <footer className="relative mt-8 border-t border-white/[0.08] bg-[#090a14]/80 px-4 py-7 sm:px-6">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-3 text-center sm:flex-row sm:text-left">
-          <p className="text-[11px] text-white/30">© {new Date().getFullYear()} QuizRoyale. Todos os direitos reservados.</p>
+
+
+      <footer className="relative mt-16 w-full  px-75">
+        <div className="mx-auto flex max-w-7xl border-t border-white/[0.07] flex-col items-center justify-center gap-3 px-4 py-7 text-center sm:px-6 lg:px-8">
+         
+
+          <p className="text-[11px] leading-5 text-white/30">
+            © {new Date().getFullYear()} QuizRoyale. Todos os direitos reservados.
+          </p>
         </div>
       </footer>
+
     </main>
   );
 }
