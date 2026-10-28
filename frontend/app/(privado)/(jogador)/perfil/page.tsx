@@ -281,12 +281,12 @@ export default function PerfilPage() {
     progresso =
       intervalo > 0
         ? Math.min(
-            100,
-            Math.max(
-              0,
-              ((usuario.pontuacao - pontosBase) / intervalo) * 100,
-            ),
-          )
+          100,
+          Math.max(
+            0,
+            ((usuario.pontuacao - pontosBase) / intervalo) * 100,
+          ),
+        )
         : 0;
   } else if (usuario && patenteAtual) {
     progresso = 100;
@@ -362,7 +362,7 @@ export default function PerfilPage() {
 
   const emailMudou = Boolean(
     usuario &&
-      dadosEdicao.email.trim().toLowerCase() !== usuario.email.toLowerCase(),
+    dadosEdicao.email.trim().toLowerCase() !== usuario.email.toLowerCase(),
   );
 
   const nomeMudou = Boolean(
@@ -384,8 +384,8 @@ export default function PerfilPage() {
     const nome = dadosEdicao.nome.trim();
     const email = dadosEdicao.email.trim().toLowerCase();
 
-    if (!nome) {
-      setErroEdicao("O nome não pode ficar vazio.");
+    if (nome.length < 2) {
+      setErroEdicao("O nome deve ter pelo menos 2 caracteres.");
       return;
     }
 
@@ -471,6 +471,7 @@ export default function PerfilPage() {
         email: string;
         senhaAtual?: string;
         senha?: string;
+        confirmarSenha?: string;
       } = {
         nome,
         email,
@@ -482,6 +483,7 @@ export default function PerfilPage() {
 
       if (senhaMudou) {
         body.senha = dadosEdicao.senha;
+        body.confirmarSenha = dadosEdicao.confirmarSenha;
       }
 
       const response = await fetch(`${API}/usuario/${usuario.id}`, {
@@ -687,11 +689,10 @@ export default function PerfilPage() {
 
                   {!loading && usuario && (
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
-                        usuario.emailVerificado
-                          ? "border-emerald-300/20 bg-emerald-300/[0.07] text-emerald-200"
-                          : "border-amber-300/20 bg-amber-300/[0.07] text-amber-200"
-                      }`}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${usuario.emailVerificado
+                        ? "border-emerald-300/20 bg-emerald-300/[0.07] text-emerald-200"
+                        : "border-amber-300/20 bg-amber-300/[0.07] text-amber-200"
+                        }`}
                     >
                       {usuario.emailVerificado ? (
                         <CircleCheck size={12} />
@@ -1366,11 +1367,10 @@ export default function PerfilPage() {
                 </div>
                 {dadosEdicao.confirmarSenha.length > 0 && (
                   <p
-                    className={`mt-2 text-[11px] ${
-                      dadosEdicao.senha === dadosEdicao.confirmarSenha
-                        ? "text-emerald-200"
-                        : "text-red-200"
-                    }`}
+                    className={`mt-2 text-[11px] ${dadosEdicao.senha === dadosEdicao.confirmarSenha
+                      ? "text-emerald-200"
+                      : "text-red-200"
+                      }`}
                   >
                     {dadosEdicao.senha === dadosEdicao.confirmarSenha
                       ? "As senhas correspondem."
@@ -1573,11 +1573,10 @@ function Achievement({
 }) {
   return (
     <div
-      className={`group relative overflow-hidden rounded-[1.4rem] border p-5 transition duration-200 hover:-translate-y-0.5 ${
-        unlocked
-          ? "border-fuchsia-200/15 bg-gradient-to-br from-fuchsia-300/[0.07] to-violet-300/[0.035] hover:border-fuchsia-200/25"
-          : "border-white/[0.06] bg-[#10111e]/65 opacity-65 hover:opacity-85"
-      }`}
+      className={`group relative overflow-hidden rounded-[1.4rem] border p-5 transition duration-200 hover:-translate-y-0.5 ${unlocked
+        ? "border-fuchsia-200/15 bg-gradient-to-br from-fuchsia-300/[0.07] to-violet-300/[0.035] hover:border-fuchsia-200/25"
+        : "border-white/[0.06] bg-[#10111e]/65 opacity-65 hover:opacity-85"
+        }`}
     >
       {unlocked && (
         <div className="pointer-events-none absolute -right-8 -top-10 h-24 w-24 rounded-full bg-fuchsia-400/[0.07] blur-2xl" />
@@ -1585,11 +1584,10 @@ function Achievement({
 
       <div className="relative flex items-start justify-between gap-3">
         <div
-          className={`flex h-11 w-11 items-center justify-center rounded-xl border ${
-            unlocked
-              ? "border-fuchsia-200/15 bg-fuchsia-300/[0.08] text-fuchsia-100"
-              : "border-white/[0.06] bg-white/[0.025] text-white/35"
-          }`}
+          className={`flex h-11 w-11 items-center justify-center rounded-xl border ${unlocked
+            ? "border-fuchsia-200/15 bg-fuchsia-300/[0.08] text-fuchsia-100"
+            : "border-white/[0.06] bg-white/[0.025] text-white/35"
+            }`}
         >
           {icon}
         </div>
@@ -1603,9 +1601,8 @@ function Achievement({
       </div>
 
       <h4
-        className={`relative mt-4 text-sm font-extrabold ${
-          unlocked ? "text-white/90" : "text-white/60"
-        }`}
+        className={`relative mt-4 text-sm font-extrabold ${unlocked ? "text-white/90" : "text-white/60"
+          }`}
       >
         {title}
       </h4>
