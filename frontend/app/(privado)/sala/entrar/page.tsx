@@ -825,7 +825,7 @@ function SalaEntrarContent() {
 
 
             {/* CHAT */}
-            <section className="flex max-h-[200px] min-h-0 flex-col overflow-hidden rounded-2xl border border-fuchsia-400/15 bg-[#10101d]/90 shadow-xl shadow-black/10 backdrop-blur-xl  lg:sticky lg:top-4">
+            <section className="flex max-h-[250px] min-h-0 flex-col overflow-hidden rounded-2xl border border-fuchsia-400/15 bg-[#10101d]/90 shadow-xl shadow-black/10 backdrop-blur-xl  lg:sticky lg:top-4">
               {/* CABEÇALHO */}
               <div className="flex shrink-0 items-center gap-2.5 border-b border-white/[0.07] px-3 py-2.5">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-fuchsia-300/10 bg-fuchsia-500/10">
@@ -996,12 +996,7 @@ function SalaEntrarContent() {
               </button>
             )}
 
-            {/* AVISO */}
-            <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-3">
-              <p className="text-center text-[11px] leading-5 text-white/35">
-                A partida começará para todos os jogadores simultaneamente.
-              </p>
-            </div>
+           
 
             {/* SAIR */}
             <button
