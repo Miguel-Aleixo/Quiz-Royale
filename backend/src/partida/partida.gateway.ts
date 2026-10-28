@@ -183,6 +183,7 @@ export class PartidaGateway {
       console.log(
         `Socket autenticado - Usuario: ${usuario.id}`,
       );
+      await this.emitirJogadoresOnline()
     } catch (error) {
       console.error(
         'Erro na autenticação do Socket:',
@@ -2359,5 +2360,27 @@ export class PartidaGateway {
     }
 
     return sala.id;
+  }
+
+  async handleDisconnect() {
+    await this.emitirJogadoresOnline();
+  }
+
+  private async emitirJogadoresOnline() {
+    const sockets = await this.server.fetchSockets();
+
+    const usuariosOnline = new Set<number>();
+
+    for (const socket of sockets) {
+      const usuarioId = Number(socket.data?.usuarioId);
+
+      if (Number.isInteger(usuarioId) && usuarioId > 0) {
+        usuariosOnline.add(usuarioId);
+      }
+    }
+
+    this.server.emit('jogadores_online', {
+      total: usuariosOnline.size,
+    });
   }
 }
