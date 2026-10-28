@@ -888,7 +888,7 @@ export class UsuarioService {
           'Não é possível remover o último administrador.',
         );
       }
-    }
+    }}
 
   async update(
       id: number,
@@ -1030,7 +1030,7 @@ export class UsuarioService {
         senhaAlterada: senhaMudou,
       };
     }
-  }
+  
 
   async remove(id: number) {
     return await this.prisma.usuario.delete({
