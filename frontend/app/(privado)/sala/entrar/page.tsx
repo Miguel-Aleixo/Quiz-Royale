@@ -824,7 +824,7 @@ function SalaEntrarContent() {
             </div>
 
             {/* CHAT */}
-            <section className="flex min-h-[300px] flex-col overflow-hidden rounded-2xl border border-fuchsia-400/15 bg-[#10101d]/90 shadow-xl shadow-black/10 backdrop-blur-xl sm:min-h-[460px] lg:sticky lg:top-4">
+            <section className="flex min-h-[100px] flex-col overflow-hidden rounded-2xl border border-fuchsia-400/15 bg-[#10101d]/90 shadow-xl shadow-black/10 backdrop-blur-xl sm:min-h-[460px] lg:sticky lg:top-4">
               <div className="flex items-center gap-3 border-b border-white/[0.07] px-4 py-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-fuchsia-300/10 bg-fuchsia-500/10">
                   <MessageCircle className="h-5 w-5 text-fuchsia-300" />
