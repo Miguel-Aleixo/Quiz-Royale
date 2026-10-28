@@ -155,7 +155,7 @@ function SalaEntrarContent() {
       );
 
       setCooldown(restante);
-    }, 150);
+    }, 100);
 
     return () => {
       if (cooldownTimerRef.current) {
@@ -966,9 +966,7 @@ function SalaEntrarContent() {
                       Aguarde {cooldown}s
                     </span>
                   ) : (
-                    <span className="text-[10px] text-white/25">
-                      1 mensagem a cada 2s
-                    </span>
+                    
                   )}
                 </div>
               </form>
