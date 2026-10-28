@@ -613,14 +613,14 @@ function SalaEntrarContent() {
 
           <div
             className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 ${conectado
-                ? "border-emerald-400/15 bg-emerald-500/10 text-emerald-300"
-                : "border-yellow-400/15 bg-yellow-500/10 text-yellow-300"
+              ? "border-emerald-400/15 bg-emerald-500/10 text-emerald-300"
+              : "border-yellow-400/15 bg-yellow-500/10 text-yellow-300"
               }`}
           >
             <span
               className={`h-2 w-2 rounded-full ${conectado
-                  ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.7)]"
-                  : "animate-pulse bg-yellow-400"
+                ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.7)]"
+                : "animate-pulse bg-yellow-400"
                 }`}
             />
             <span className="hidden text-[11px] font-bold sm:block">
@@ -823,16 +823,18 @@ function SalaEntrarContent() {
               </p>
             </div>
 
+
             {/* CHAT */}
-            <section className="flex h-[50px] flex-col overflow-hidden rounded-2xl border border-fuchsia-400/15 bg-[#10101d]/90 shadow-xl shadow-black/10 backdrop-blur-xl sm:min-h-[460px] lg:sticky lg:top-4">
-              <div className="flex items-center gap-3 border-b border-white/[0.07] px-4 py-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-fuchsia-300/10 bg-fuchsia-500/10">
-                  <MessageCircle className="h-5 w-5 text-fuchsia-300" />
+            <section className="flex h-[380px] min-h-0 flex-col overflow-hidden rounded-2xl border border-fuchsia-400/15 bg-[#10101d]/90 shadow-xl shadow-black/10 backdrop-blur-xl sm:h-[420px] lg:sticky lg:top-4">
+              {/* CABEÇALHO */}
+              <div className="flex shrink-0 items-center gap-2.5 border-b border-white/[0.07] px-3 py-2.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-fuchsia-300/10 bg-fuchsia-500/10">
+                  <MessageCircle className="h-4 w-4 text-fuchsia-300" />
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-black">Chat da sala</h3>
-                  <p className="mt-0.5 text-[11px] text-white/35">
+                  <h3 className="text-xs font-black">Chat da sala</h3>
+                  <p className="text-[10px] text-white/35">
                     Converse com os participantes
                   </p>
                 </div>
@@ -844,22 +846,25 @@ function SalaEntrarContent() {
                 />
               </div>
 
+              {/* MENSAGENS */}
               <div
                 ref={mensagensRef}
                 aria-live="polite"
                 aria-label="Mensagens do chat"
-                className="flex max-h-[420px] min-h-[240px] flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-4 [scrollbar-color:rgba(192,132,252,.25)_transparent] [scrollbar-width:thin]"
+                className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain p-3 [scrollbar-color:rgba(192,132,252,.25)_transparent] [scrollbar-width:thin]"
               >
                 {mensagensChat.length === 0 ? (
-                  <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.03]">
-                      <MessageCircle className="h-6 w-6 text-white/20" />
+                  <div className="flex flex-1 flex-col items-center justify-center py-4 text-center">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.03]">
+                      <MessageCircle className="h-5 w-5 text-white/20" />
                     </div>
-                    <p className="mt-3 text-sm font-bold text-white/50">
+
+                    <p className="mt-2 text-xs font-bold text-white/50">
                       Nenhuma mensagem ainda
                     </p>
-                    <p className="mt-1 max-w-[210px] text-xs leading-5 text-white/30">
-                      Comece a conversa com os participantes da sala.
+
+                    <p className="mt-1 max-w-[190px] text-[10px] leading-4 text-white/30">
+                      Seja o primeiro a conversar!
                     </p>
                   </div>
                 ) : (
@@ -873,24 +878,24 @@ function SalaEntrarContent() {
                         className={`flex min-w-0 flex-col ${minhaMensagem ? "items-end" : "items-start"
                           }`}
                       >
-                        <span className="mb-1 max-w-[90%] truncate px-1 text-[10px] font-bold text-white/40">
+                        <span className="mb-0.5 max-w-[90%] truncate px-1 text-[9px] font-bold text-white/40">
                           {minhaMensagem ? "Você" : mensagem.nome}
                         </span>
 
                         <div
-                          className={`max-w-[90%] break-words rounded-2xl px-3 py-2.5 text-sm leading-5 ${minhaMensagem
-                              ? "rounded-br-sm bg-gradient-to-br from-fuchsia-600 to-violet-600 text-white shadow-md shadow-fuchsia-950/20"
+                          className={`max-w-[90%] break-words rounded-xl px-2.5 py-2 text-xs leading-4 ${minhaMensagem
+                              ? "rounded-br-sm bg-gradient-to-br from-fuchsia-600 to-violet-600 text-white"
                               : "rounded-bl-sm border border-white/[0.07] bg-white/[0.045] text-white/85"
                             }`}
                         >
                           {mensagem.texto}
                         </div>
 
-                        <span className="mt-1 px-1 text-[9px] text-white/25">
-                          {new Date(mensagem.criadoEm).toLocaleTimeString(
-                            "pt-BR",
-                            { hour: "2-digit", minute: "2-digit" }
-                          )}
+                        <span className="mt-0.5 px-1 text-[9px] text-white/25">
+                          {new Date(mensagem.criadoEm).toLocaleTimeString("pt-BR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </span>
                       </div>
                     );
@@ -898,13 +903,13 @@ function SalaEntrarContent() {
                 )}
               </div>
 
-              {/* FORMULÁRIO DO CHAT */}
+              {/* FORMULÁRIO */}
               <form
                 onSubmit={enviarMensagemChat}
-                className="border-t border-white/[0.07] bg-black/10 p-3"
+                className="shrink-0 border-t border-white/[0.07] bg-black/10 p-2.5"
               >
                 <div
-                  className={`flex items-center gap-2 rounded-xl border bg-black/20 p-1.5 transition ${cooldown > 0
+                  className={`flex items-center gap-1.5 rounded-xl border bg-black/20 p-1 transition ${cooldown > 0
                       ? "border-yellow-400/20"
                       : "border-white/10 focus-within:border-fuchsia-400/40"
                     }`}
@@ -912,65 +917,62 @@ function SalaEntrarContent() {
                   <input
                     value={textoChat}
                     onChange={(event) =>
-                      setTextoChat(
-                        event.target.value.slice(0, LIMITE_CARACTERES)
-                      )
+                      setTextoChat(event.target.value.slice(0, LIMITE_CARACTERES))
                     }
                     maxLength={LIMITE_CARACTERES}
                     placeholder={
                       !conectado
-                        ? "Conectando ao chat..."
+                        ? "Conectando..."
                         : cooldown > 0
                           ? "Aguarde para enviar..."
                           : "Digite uma mensagem..."
                     }
                     aria-label="Mensagem do chat"
                     disabled={!conectado}
-                    className="min-w-0 flex-1 bg-transparent px-2 py-2 text-sm text-white outline-none placeholder:text-white/25 disabled:opacity-50"
+                    className="min-w-0 flex-1 bg-transparent px-2 py-1.5 text-xs text-white outline-none placeholder:text-white/25 disabled:opacity-50"
                   />
 
                   <button
                     type="submit"
                     disabled={!podeEnviar}
                     aria-label="Enviar mensagem"
-                    title={
-                      cooldown > 0
-                        ? `Aguarde ${cooldown}s`
-                        : "Enviar mensagem"
-                    }
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-600 to-violet-600 text-white shadow-md shadow-fuchsia-950/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-30"
+                    title={cooldown > 0 ? `Aguarde ${cooldown}s` : "Enviar mensagem"}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-600 to-violet-600 text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     {cooldown > 0 ? (
-                      <span className="text-xs font-black tabular-nums">
+                      <span className="text-[10px] font-black tabular-nums">
                         {cooldown}
                       </span>
                     ) : (
-                      <Send className="h-4 w-4" />
+                      <Send className="h-3.5 w-3.5" />
                     )}
                   </button>
                 </div>
 
-                <div className="mt-2 flex items-center justify-between gap-2 px-1">
+                <div className="mt-1.5 flex items-center justify-between gap-2 px-1">
                   <p
-                    className={`text-[10px] ${textoChat.length >= LIMITE_CARACTERES
+                    className={`text-[9px] ${textoChat.length >= LIMITE_CARACTERES
                         ? "text-yellow-300"
                         : "text-white/30"
                       }`}
                   >
-                    {textoChat.length}/{LIMITE_CARACTERES} caracteres
+                    {textoChat.length}/{LIMITE_CARACTERES}
                   </p>
 
                   {cooldown > 0 ? (
-                    <span className="flex items-center gap-1 text-[10px] font-medium text-yellow-300/80">
+                    <span className="flex items-center gap-1 text-[9px] text-yellow-300/80">
                       <Clock3 className="h-3 w-3" />
                       Aguarde {cooldown}s
                     </span>
                   ) : (
-                    
+                    <span className="text-[9px] text-white/25">
+                      Intervalo de 2s
+                    </span>
                   )}
                 </div>
               </form>
             </section>
+
 
             {/* INICIAR PARTIDA */}
             {ehCriador && (
