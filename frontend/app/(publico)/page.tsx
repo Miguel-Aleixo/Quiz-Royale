@@ -23,7 +23,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
-  import { io, Socket } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 
 import Header from "../components/inicio/Header";
 import LoadingOverlay from "../components/global/Loading";
@@ -202,26 +202,40 @@ export default function Home() {
     buscarPerguntas(currentToken);
   }, []);
 
-  useEffect(() => {
-    const socket: Socket = io(
-      process.env.NEXT_PUBLIC_API!,
-      {
-        withCredentials: true,
-        transports: ["websocket"],
-      }
-    );
 
-    socket.on(
-      "jogadores_online",
-      (data: { total: number }) => {
-        setJogadoresOnline(data.total);
-      }
-    );
+  useEffect(() => {
+    if (!API) {
+      console.error("NEXT_PUBLIC_API não está configurada.");
+      return;
+    }
+
+    const currentToken = Cookies.get("token");
+
+    const socket: Socket = io(API, {
+      auth: {
+        token: currentToken,
+      },
+      withCredentials: true,
+      transports: ["websocket"],
+    });
+
+    socket.on("connect", () => {
+      console.log("Conectado ao gateway de presença:", socket.id);
+    });
+
+    socket.on("jogadores_online", (data: { total: number }) => {
+      setJogadoresOnline(data.total);
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error("Erro na conexão de presença:", error.message);
+    });
 
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [API]);
+
 
   const minhasSalas = useMemo(() => {
     if (!usuario) return [];
