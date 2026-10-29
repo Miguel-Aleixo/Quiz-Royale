@@ -81,9 +81,9 @@ export class PartidaService {
      * =========================================================
      */
 
-    if (sala.jogadores.length === 0) {
+    if (sala.jogadores.length === 2) {
       throw new BadRequestException(
-        'É necessário ter pelo menos um jogador na sala',
+        'É necessário ter pelo menos dois jogadores na sala',
       );
     }
 
