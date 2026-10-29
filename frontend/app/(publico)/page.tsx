@@ -780,7 +780,6 @@ export default function Home() {
                               </div>
                               <div className="min-w-0">
                                 <h3 className="truncate text-sm font-black text-white/90">{sala.nome}</h3>
-                                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/30">ARENA #{sala.id}</p>
                               </div>
                             </div>
                             <span className={`shrink-0 rounded-lg px-2 py-1.5 text-[9px] font-black uppercase tracking-wider ${emAndamento ? "bg-amber-200/10 text-amber-100" : encerrada ? "bg-fuchsia-200/10 text-fuchsia-100" : disponivel ? "bg-emerald-200/10 text-emerald-100" : "bg-white/[0.07] text-white/50"}`}>
