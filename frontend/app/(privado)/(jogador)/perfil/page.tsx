@@ -1197,7 +1197,7 @@ export default function PerfilPage() {
                   htmlFor="perfil-nome"
                   className="mb-2 block text-xs font-extrabold text-white/60"
                 >
-                  Nome
+                  Nome de usuario
                 </label>
                 <div className="relative">
                   <User
