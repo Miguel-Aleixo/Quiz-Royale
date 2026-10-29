@@ -12,19 +12,19 @@ export class AuthService {
   constructor(
     private readonly usuarioService: UsuarioService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   async login(email: string, senha: string) {
 
-    const usuario = await this.usuarioService.findByEmail(email);
+    const usuario = await this.usuarioService.findByEmailOuUsuario(email);
 
     if (!usuario) {
       throw new UnauthorizedException('Email ou senha inválidos');
     }
 
     const senhaValida = await bcrypt.compare(
-      senha ,
-      usuario.senha ,
+      senha,
+      usuario.senha,
     );
 
     if (!senhaValida) {

@@ -127,6 +127,21 @@ export class UsuarioService {
     });
   }
 
+  async findByEmailOuUsuario(identificador: string) {
+    return this.prisma.usuario.findFirst({
+      where: {
+        OR: [
+          {
+            email: identificador,
+          },
+          {
+            nome: identificador,
+          },
+        ],
+      },
+    });
+  }
+
   async findOne(id: number) {
     const usuario = await this.prisma.usuario.findUnique({
       where: {
@@ -822,16 +837,43 @@ export class UsuarioService {
       throw new NotFoundException('Usuário não encontrado.');
     }
 
-    const { nome, email, senhaAtual, senha, confirmarSenha } =
-      updateUsuarioDto;
+    const {
+      nome,
+      nomeUsuario,
+      email,
+      senhaAtual,
+      senha,
+      confirmarSenha,
+    } = updateUsuarioDto;
+
+    // =========================================================
+    // NORMALIZAÇÃO DOS DADOS
+    // =========================================================
 
     const emailNormalizado = email?.trim().toLowerCase();
+
+    const nomeUsuarioNormalizado = nomeUsuario
+      ?.trim()
+      .toLowerCase();
+
+    // =========================================================
+    // VERIFICAR ALTERAÇÕES
+    // =========================================================
 
     const emailMudou =
       emailNormalizado !== undefined &&
       emailNormalizado !== usuario.email.toLowerCase();
 
-    const senhaMudou = senha !== undefined && senha.length > 0;
+    const nomeUsuarioMudou =
+      nomeUsuarioNormalizado !== undefined &&
+      nomeUsuarioNormalizado !== usuario.nomeUsuario.toLowerCase();
+
+    const senhaMudou =
+      senha !== undefined && senha.length > 0;
+
+    // =========================================================
+    // VALIDAÇÃO DA SENHA
+    // =========================================================
 
     if (confirmarSenha !== undefined && !senhaMudou) {
       throw new BadRequestException(
@@ -851,9 +893,19 @@ export class UsuarioService {
           'A nova senha e a confirmação não coincidem.',
         );
       }
+
+      if (senha.length < 8 || senha.length > 128) {
+        throw new BadRequestException(
+          'A nova senha deve possuir entre 8 e 128 caracteres.',
+        );
+      }
     }
 
-    if (emailMudou || senhaMudou) {
+    // =========================================================
+    // CONFIRMAR SENHA ATUAL
+    // =========================================================
+
+    if (emailMudou || nomeUsuarioMudou || senhaMudou) {
       if (!senhaAtual) {
         throw new BadRequestException(
           'Informe sua senha atual para confirmar a alteração.',
@@ -872,28 +924,9 @@ export class UsuarioService {
       }
     }
 
-    if (emailMudou && emailNormalizado) {
-      const emailExistente = await this.prisma.usuario.findFirst({
-        where: {
-          email: emailNormalizado,
-          NOT: { id },
-        },
-        select: { id: true },
-      });
-
-      if (emailExistente) {
-        throw new ConflictException(
-          'Este e-mail já está sendo utilizado.',
-        );
-      }
-    }
-
-    const data: {
-      nome?: string;
-      email?: string;
-      senha?: string;
-      emailVerificado?: boolean;
-    } = {};
+    // =========================================================
+    // VALIDAR NOME
+    // =========================================================
 
     if (nome !== undefined) {
       const nomeNormalizado = nome.trim();
@@ -909,8 +942,79 @@ export class UsuarioService {
           'O nome deve possuir no máximo 80 caracteres.',
         );
       }
+    }
 
-      data.nome = nomeNormalizado;
+    // =========================================================
+    // VALIDAR NOME DE USUÁRIO
+    // =========================================================
+
+    if (nomeUsuarioNormalizado !== undefined) {
+      if (
+        nomeUsuarioNormalizado.length < 3 ||
+        nomeUsuarioNormalizado.length > 30
+      ) {
+        throw new BadRequestException(
+          'O nome de usuário deve possuir entre 3 e 30 caracteres.',
+        );
+      }
+
+      if (nomeUsuarioMudou) {
+        const nomeUsuarioExistente =
+          await this.prisma.usuario.findFirst({
+            where: {
+              nomeUsuario: nomeUsuarioNormalizado,
+              NOT: { id },
+            },
+            select: { id: true },
+          });
+
+        if (nomeUsuarioExistente) {
+          throw new ConflictException(
+            'Este nome de usuário já está sendo utilizado.',
+          );
+        }
+      }
+    }
+
+    // =========================================================
+    // VALIDAR E-MAIL
+    // =========================================================
+
+    if (emailMudou && emailNormalizado) {
+      const emailExistente =
+        await this.prisma.usuario.findFirst({
+          where: {
+            email: emailNormalizado,
+            NOT: { id },
+          },
+          select: { id: true },
+        });
+
+      if (emailExistente) {
+        throw new ConflictException(
+          'Este e-mail já está sendo utilizado.',
+        );
+      }
+    }
+
+    // =========================================================
+    // PREPARAR ATUALIZAÇÃO
+    // =========================================================
+
+    const data: {
+      nome?: string;
+      nomeUsuario?: string;
+      email?: string;
+      senha?: string;
+      emailVerificado?: boolean;
+    } = {};
+
+    if (nome !== undefined) {
+      data.nome = nome.trim();
+    }
+
+    if (nomeUsuarioNormalizado !== undefined) {
+      data.nomeUsuario = nomeUsuarioNormalizado;
     }
 
     if (emailNormalizado !== undefined) {
@@ -918,18 +1022,17 @@ export class UsuarioService {
     }
 
     if (senhaMudou && senha) {
-      if (senha.length < 8 || senha.length > 128) {
-        throw new BadRequestException(
-          'A nova senha deve possuir entre 8 e 128 caracteres.',
-        );
-      }
-
       data.senha = await bcrypt.hash(senha, 10);
     }
 
+    // Alterar o e-mail exige uma nova verificação.
     if (emailMudou) {
       data.emailVerificado = false;
     }
+
+    // =========================================================
+    // ATUALIZAR USUÁRIO
+    // =========================================================
 
     const usuarioAtualizado = await this.prisma.usuario.update({
       where: { id },
@@ -937,16 +1040,23 @@ export class UsuarioService {
       include: { patente: true },
     });
 
+    // =========================================================
+    // RETORNO
+    // =========================================================
+
     return {
       id: usuarioAtualizado.id,
       nome: usuarioAtualizado.nome,
+      nomeUsuario: usuarioAtualizado.nomeUsuario,
       email: usuarioAtualizado.email,
       role: usuarioAtualizado.role,
       patenteId: usuarioAtualizado.patenteId,
       pontuacao: usuarioAtualizado.pontuacao,
       emailVerificado: usuarioAtualizado.emailVerificado,
       patente: usuarioAtualizado.patente,
+
       emailAlterado: emailMudou,
+      nomeUsuarioAlterado: nomeUsuarioMudou,
       senhaAlterada: senhaMudou,
     };
   }

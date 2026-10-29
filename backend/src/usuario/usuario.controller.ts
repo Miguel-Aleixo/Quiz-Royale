@@ -43,14 +43,14 @@ export class UsuarioController {
   async create(
     @Body() createUsuarioDto: CreateUsuarioDto,
   ) {
-    const emailExiste =
-      await this.usuarioService.findByEmail(
+    const usuarioExiste =
+      await this.usuarioService.findByEmailOuUsuario(
         createUsuarioDto.email,
       );
 
-    if (emailExiste) {
+    if (usuarioExiste) {
       throw new ConflictException(
-        'Esse email já está sendo usado!',
+        'Esse email ou nome de usuario já está sendo usado!',
       );
     }
 

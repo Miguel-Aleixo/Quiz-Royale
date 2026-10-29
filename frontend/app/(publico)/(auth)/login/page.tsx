@@ -24,7 +24,7 @@ export default function LoginPage() {
   const router = useRouter();
 
   const [form, setForm] = useState({
-    email: "",
+    identificador: "",
     senha: "",
   });
 
@@ -72,7 +72,8 @@ export default function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: form.email.trim(),
+          // O backend deve interpretar este valor como e-mail ou nome de usuário.
+          email: form.identificador.trim(),
           senha: form.senha,
         }),
       });
@@ -189,7 +190,7 @@ export default function LoginPage() {
                 {/* E-mail */}
                 <label className="grid gap-2.5">
                   <span className="text-[11px] font-bold uppercase tracking-[.1em] text-white/70">
-                    E-mail
+                    E-mail ou nome de usuario
                   </span>
 
                   <div className="relative">
@@ -199,15 +200,15 @@ export default function LoginPage() {
                     />
 
                     <input
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      placeholder="seu@email.com"
-                      value={form.email}
+                      name="identificador"
+                      type="text"
+                      autoComplete="username"
+                      placeholder="Digite seu e-mail ou usuário"
+                      value={form.identificador}
                       onChange={(e) =>
                         setForm({
                           ...form,
-                          email: e.target.value,
+                          identificador: e.target.value,
                         })
                       }
                       required
