@@ -909,7 +909,7 @@ export default function Home() {
 
 
 
-      <footer className="relative mt-16 w-full  px-75">
+      <footer className="relative mt-8 w-full  px-75">
         <div className="mx-auto flex max-w-7xl border-t border-white/[0.07] flex-col items-center justify-center gap-3 px-4 py-7 text-center sm:px-6 lg:px-8">
          
 
