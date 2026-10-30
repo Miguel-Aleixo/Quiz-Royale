@@ -59,8 +59,7 @@ export class UsuarioController {
     );
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+
   @Post('/admin')
   async createAdmin(
     @Body() createUsuarioDto: CreateUsuarioDto,
