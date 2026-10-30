@@ -839,7 +839,6 @@ export class UsuarioService {
 
     const {
       nome,
-      nomeUsuario,
       email,
       senhaAtual,
       senha,
@@ -852,7 +851,7 @@ export class UsuarioService {
 
     const emailNormalizado = email?.trim().toLowerCase();
 
-    const nomeUsuarioNormalizado = nomeUsuario
+    const nomeNormalizado = nome
       ?.trim()
       .toLowerCase();
 
@@ -864,9 +863,9 @@ export class UsuarioService {
       emailNormalizado !== undefined &&
       emailNormalizado !== usuario.email.toLowerCase();
 
-    const nomeUsuarioMudou =
-      nomeUsuarioNormalizado !== undefined &&
-      nomeUsuarioNormalizado !== usuario.nomeUsuario.toLowerCase();
+    const nomeMudou =
+      nomeNormalizado !== undefined &&
+      nomeNormalizado !== usuario.nome.toLowerCase();
 
     const senhaMudou =
       senha !== undefined && senha.length > 0;
@@ -905,7 +904,7 @@ export class UsuarioService {
     // CONFIRMAR SENHA ATUAL
     // =========================================================
 
-    if (emailMudou || nomeUsuarioMudou || senhaMudou) {
+    if (emailMudou || nomeMudou || senhaMudou) {
       if (!senhaAtual) {
         throw new BadRequestException(
           'Informe sua senha atual para confirmar a alteração.',
@@ -948,27 +947,27 @@ export class UsuarioService {
     // VALIDAR NOME DE USUÁRIO
     // =========================================================
 
-    if (nomeUsuarioNormalizado !== undefined) {
+    if (nomeNormalizado !== undefined) {
       if (
-        nomeUsuarioNormalizado.length < 3 ||
-        nomeUsuarioNormalizado.length > 30
+        nomeNormalizado.length < 3 ||
+        nomeNormalizado.length > 30
       ) {
         throw new BadRequestException(
           'O nome de usuário deve possuir entre 3 e 30 caracteres.',
         );
       }
 
-      if (nomeUsuarioMudou) {
-        const nomeUsuarioExistente =
+      if (nomeMudou) {
+        const nomeExistente =
           await this.prisma.usuario.findFirst({
             where: {
-              nomeUsuario: nomeUsuarioNormalizado,
+              nome: nomeNormalizado,
               NOT: { id },
             },
             select: { id: true },
           });
 
-        if (nomeUsuarioExistente) {
+        if (nomeExistente) {
           throw new ConflictException(
             'Este nome de usuário já está sendo utilizado.',
           );
@@ -1003,7 +1002,6 @@ export class UsuarioService {
 
     const data: {
       nome?: string;
-      nomeUsuario?: string;
       email?: string;
       senha?: string;
       emailVerificado?: boolean;
@@ -1013,8 +1011,8 @@ export class UsuarioService {
       data.nome = nome.trim();
     }
 
-    if (nomeUsuarioNormalizado !== undefined) {
-      data.nomeUsuario = nomeUsuarioNormalizado;
+    if (nomeNormalizado !== undefined) {
+      data.nome = nomeNormalizado;
     }
 
     if (emailNormalizado !== undefined) {
@@ -1047,7 +1045,6 @@ export class UsuarioService {
     return {
       id: usuarioAtualizado.id,
       nome: usuarioAtualizado.nome,
-      nomeUsuario: usuarioAtualizado.nomeUsuario,
       email: usuarioAtualizado.email,
       role: usuarioAtualizado.role,
       patenteId: usuarioAtualizado.patenteId,
@@ -1056,7 +1053,7 @@ export class UsuarioService {
       patente: usuarioAtualizado.patente,
 
       emailAlterado: emailMudou,
-      nomeUsuarioAlterado: nomeUsuarioMudou,
+      nomeAlterado: nomeMudou,
       senhaAlterada: senhaMudou,
     };
   }
