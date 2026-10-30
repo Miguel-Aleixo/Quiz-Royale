@@ -629,12 +629,6 @@ function SalaEntrarContent() {
           </div>
         </header>
 
-        {erro && sala && (
-          <div className="mt-4 rounded-xl border border-red-400/15 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-            {erro}
-          </div>
-        )}
-
         {/* CONTEÚDO */}
         <div className="mt-5 grid flex-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_350px]">
           {/* CARD PRINCIPAL */}
