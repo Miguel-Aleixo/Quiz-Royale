@@ -214,16 +214,16 @@ export default function CriarSalaPage() {
         return;
       }
 
-      // Exibe somente perguntas cadastradas por administradores.
-      const perguntasOficiais = data.filter(
+      // Exibe perguntas cadastradas por administradores e jogadores.
+      const perguntasDisponiveis = data.filter(
         (pergunta: PerguntaBanco) =>
           typeof pergunta.id === "number" &&
           typeof pergunta.enunciado === "string" &&
-          pergunta.criador?.role === "ADMIN" &&
+          ["ADMIN", "JOGADOR"].includes(pergunta.criador?.role ?? "") &&
           Array.isArray(pergunta.alternativas)
       );
 
-      setPerguntasBanco(perguntasOficiais);
+      setPerguntasBanco(perguntasDisponiveis);
       setPaginaBanco(1);
     } catch (error) {
       console.error("Erro ao buscar perguntas:", error);
@@ -406,63 +406,49 @@ export default function CriarSalaPage() {
       return false;
     }
 
-    if (modoPerguntas === "banco") {
-      if (selecionadasBanco.length === 0) {
-        toast.error("Selecione pelo menos uma pergunta do banco.");
-        return false;
-      }
-
-      for (const item of selecionadasBanco) {
-        const pergunta = perguntasBanco.find(
-          (p) => p.id === item.perguntaId
-        );
-
-        if (!pergunta) {
-          toast.error("Uma das perguntas selecionadas não foi encontrada.");
-          return false;
-        }
-
-        if (item.tempoLimite < 5) {
-          toast.error("O tempo mínimo por pergunta é de 5 segundos.");
-          return false;
-        }
-
-        if (pergunta.alternativas.length < 2) {
-          toast.error(
-            `A pergunta "${pergunta.enunciado}" precisa ter pelo menos duas alternativas.`
-          );
-          return false;
-        }
-
-        if (
-          !pergunta.alternativas.some((alternativa) => alternativa.correta)
-        ) {
-          toast.error(
-            `A pergunta "${pergunta.enunciado}" não possui uma resposta correta cadastrada.`
-          );
-          return false;
-        }
-
-        if (
-          pergunta.alternativas.some(
-            (alternativa) => !alternativa.texto?.trim()
-          )
-        ) {
-          toast.error(
-            `A pergunta "${pergunta.enunciado}" possui alternativas vazias.`
-          );
-          return false;
-        }
-      }
-
-      return true;
-    }
-
-    if (perguntas.length === 0) {
-      toast.error("Adicione pelo menos uma pergunta.");
+    // É permitido combinar perguntas do banco com perguntas próprias.
+    if (selecionadasBanco.length === 0 && perguntas.length === 0) {
+      toast.error("Adicione pelo menos uma pergunta à sala.");
       return false;
     }
 
+    // Validar todas as perguntas selecionadas do banco, independentemente do modo visual.
+    for (const item of selecionadasBanco) {
+      const pergunta = perguntasBanco.find((p) => p.id === item.perguntaId);
+
+      if (!pergunta) {
+        toast.error("Uma das perguntas selecionadas não foi encontrada.");
+        return false;
+      }
+
+      if (item.tempoLimite < 5) {
+        toast.error("O tempo mínimo por pergunta é de 5 segundos.");
+        return false;
+      }
+
+      if (pergunta.alternativas.length < 2) {
+        toast.error(
+          `A pergunta "${pergunta.enunciado}" precisa ter pelo menos duas alternativas.`
+        );
+        return false;
+      }
+
+      if (!pergunta.alternativas.some((alternativa) => alternativa.correta)) {
+        toast.error(
+          `A pergunta "${pergunta.enunciado}" não possui uma resposta correta cadastrada.`
+        );
+        return false;
+      }
+
+      if (pergunta.alternativas.some((alternativa) => !alternativa.texto?.trim())) {
+        toast.error(
+          `A pergunta "${pergunta.enunciado}" possui alternativas vazias.`
+        );
+        return false;
+      }
+    }
+
+    // Validar todas as perguntas criadas manualmente.
     for (let i = 0; i < perguntas.length; i++) {
       const pergunta = perguntas[i];
 
@@ -483,14 +469,14 @@ export default function CriarSalaPage() {
         return false;
       }
 
-      if (pergunta.alternativas.some((a) => !a.texto.trim())) {
+      if (pergunta.alternativas.some((alternativa) => !alternativa.texto.trim())) {
         toast.error(
           `Preencha todas as alternativas da pergunta ${i + 1}.`
         );
         return false;
       }
 
-      const corretas = pergunta.alternativas.filter((a) => a.correta).length;
+      const corretas = pergunta.alternativas.filter((alternativa) => alternativa.correta).length;
 
       if (corretas !== 1) {
         toast.error(
@@ -594,87 +580,90 @@ export default function CriarSalaPage() {
 
       setCodigo(codigoSala);
 
-      // 2. Preparar as rodadas de acordo com o modo escolhido.
-      if (modoPerguntas === "banco") {
-        for (const [index, item] of selecionadasBanco.entries()) {
-          await criarRodada(
-            item.perguntaId,
-            sala.id,
-            index + 1,
-            item.tempoLimite,
-            token
+      // 2. Criar todas as rodadas em sequência: primeiro as perguntas
+      // selecionadas do banco e, em seguida, as perguntas próprias.
+      let ordemRodada = 1;
+
+      for (const item of selecionadasBanco) {
+        await criarRodada(
+          item.perguntaId,
+          sala.id,
+          ordemRodada,
+          item.tempoLimite,
+          token
+        );
+        ordemRodada++;
+      }
+
+      for (const pergunta of perguntas) {
+        // Cadastrar pergunta própria.
+        const perguntaRes = await fetch(`${API}/pergunta`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            enunciado: pergunta.enunciado.trim(),
+            temaId: Number(pergunta.temaId),
+          }),
+        });
+
+        const perguntaData = await lerResposta(perguntaRes);
+
+        if (!perguntaRes.ok) {
+          throw new Error(
+            mensagemErro(
+              perguntaData,
+              `Erro ao criar a pergunta própria ${ordemRodada - selecionadasBanco.length}.`
+            )
           );
         }
-      } else {
-        for (const [index, pergunta] of perguntas.entries()) {
-          // Cadastrar pergunta própria.
-          const perguntaRes = await fetch(`${API}/pergunta`, {
+
+        const perguntaCriada = perguntaData as { id: number };
+
+        if (!perguntaCriada?.id) {
+          throw new Error(
+            `A API não retornou o ID da pergunta própria ${ordemRodada - selecionadasBanco.length}.`
+          );
+        }
+
+        // Cadastrar alternativas.
+        for (const alternativa of pergunta.alternativas) {
+          const alternativaRes = await fetch(`${API}/alternativa`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
-              enunciado: pergunta.enunciado.trim(),
-              temaId: Number(pergunta.temaId),
+              texto: alternativa.texto.trim(),
+              correta: alternativa.correta,
+              perguntaId: perguntaCriada.id,
             }),
           });
 
-          const perguntaData = await lerResposta(perguntaRes);
+          const alternativaData = await lerResposta(alternativaRes);
 
-          if (!perguntaRes.ok) {
+          if (!alternativaRes.ok) {
             throw new Error(
               mensagemErro(
-                perguntaData,
-                `Erro ao criar a pergunta ${index + 1}.`
+                alternativaData,
+                "Erro ao cadastrar uma alternativa."
               )
             );
           }
-
-          const perguntaCriada = perguntaData as { id: number };
-
-          if (!perguntaCriada?.id) {
-            throw new Error(
-              `A API não retornou o ID da pergunta ${index + 1}.`
-            );
-          }
-
-          // Cadastrar alternativas.
-          for (const alternativa of pergunta.alternativas) {
-            const alternativaRes = await fetch(`${API}/alternativa`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                texto: alternativa.texto.trim(),
-                correta: alternativa.correta,
-                perguntaId: perguntaCriada.id,
-              }),
-            });
-
-            const alternativaData = await lerResposta(alternativaRes);
-
-            if (!alternativaRes.ok) {
-              throw new Error(
-                mensagemErro(
-                  alternativaData,
-                  "Erro ao cadastrar uma alternativa."
-                )
-              );
-            }
-          }
-
-          // Criar rodada.
-          await criarRodada(
-            perguntaCriada.id,
-            sala.id,
-            index + 1,
-            pergunta.tempoLimite,
-            token
-          );
         }
+
+        // Criar a rodada própria na sequência das perguntas do banco.
+        await criarRodada(
+          perguntaCriada.id,
+          sala.id,
+          ordemRodada,
+          pergunta.tempoLimite,
+          token
+        );
+        ordemRodada++;
       }
 
       // 3. Entrar automaticamente na sala.
@@ -724,10 +713,7 @@ export default function CriarSalaPage() {
     }
   };
 
-  const quantidadePerguntas =
-    modoPerguntas === "banco"
-      ? selecionadasBanco.length
-      : perguntas.length;
+  const quantidadePerguntas = selecionadasBanco.length + perguntas.length;
 
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-[#080914] text-white selection:bg-fuchsia-300/30">
