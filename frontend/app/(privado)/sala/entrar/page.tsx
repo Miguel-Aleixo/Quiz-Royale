@@ -151,11 +151,11 @@ function SalaEntrarContent() {
     cooldownTimerRef.current = setInterval(() => {
       const restante = Math.max(
         0,
-        Math.ceil((proximoEnvioRef.current - Date.now()) / 1000)
+        Math.ceil((proximoEnvioRef.current - Date.now()) / 500)
       );
 
       setCooldown(restante);
-    }, 100);
+    }, 50);
 
     return () => {
       if (cooldownTimerRef.current) {
@@ -953,16 +953,6 @@ function SalaEntrarContent() {
                     {textoChat.length}/{LIMITE_CARACTERES}
                   </p>
 
-                  {cooldown > 0 ? (
-                    <span className="flex items-center gap-1 text-[9px] text-yellow-300/80">
-                      <Clock3 className="h-3 w-3" />
-                      Aguarde {cooldown}s
-                    </span>
-                  ) : (
-                    <span className="text-[9px] text-white/25">
-                      Intervalo de 2s
-                    </span>
-                  )}
                 </div>
               </form>
             </section>
