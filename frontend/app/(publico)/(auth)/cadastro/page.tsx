@@ -421,7 +421,7 @@ export default function CadastroPage() {
                     {/* Nome */}
                     <label className="grid gap-2.5">
                       <span className="text-[11px] font-bold uppercase tracking-[.1em] text-white/70">
-                        Nome de usuario
+                        Nome de usuário
                       </span>
 
                       <div className="relative">
@@ -440,7 +440,7 @@ export default function CadastroPage() {
                               nome: e.target.value,
                             })
                           }
-                          placeholder="Seu nome de usuario"
+                          placeholder="Seu nome de usuário"
                           required
                           disabled={loading}
                           className="h-13 w-full rounded-2xl border border-white/10 bg-black/20 pl-12 pr-4 text-sm text-white outline-none transition placeholder:text-white/25 hover:border-white/20 focus:border-purple-500/70 focus:bg-black/30 focus:ring-4 focus:ring-purple-500/10 disabled:opacity-60"

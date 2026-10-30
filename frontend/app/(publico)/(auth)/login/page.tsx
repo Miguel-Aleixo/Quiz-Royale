@@ -190,7 +190,7 @@ export default function LoginPage() {
                 {/* E-mail */}
                 <label className="grid gap-2.5">
                   <span className="text-[11px] font-bold uppercase tracking-[.1em] text-white/70">
-                    E-mail ou nome de usuario
+                    E-mail ou nome de usuário
                   </span>
 
                   <div className="relative">
