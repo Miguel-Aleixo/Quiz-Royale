@@ -716,7 +716,7 @@ export default function CriarSalaPage() {
   const quantidadePerguntas = selecionadasBanco.length + perguntas.length;
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden bg-[#080914] text-white selection:bg-fuchsia-300/30">
+    <main className="relative min-h-screen bg-[#080914] text-white selection:bg-fuchsia-300/30">
       {/* BACKGROUND */}
       <div
         aria-hidden="true"
@@ -745,9 +745,7 @@ export default function CriarSalaPage() {
 
             <div>
               <p className="text-sm font-black tracking-tight">Criar sala</p>
-              <p className="mt-0.5 text-[10px] font-medium text-white/35">
-                Prepare sua próxima partida
-              </p>
+             
             </div>
           </div>
 
@@ -770,7 +768,7 @@ export default function CriarSalaPage() {
 
       <div className="relative mx-auto max-w-7xl px-4 pb-12 pt-28 sm:px-6 sm:pt-32 lg:px-8">
         {/* HERO */}
-        <section className="group relative mb-9 overflow-hidden rounded-[28px] border border-white/[0.09] bg-gradient-to-br from-[#191225] via-[#11101d] to-[#10101a] p-6 shadow-[0_25px_80px_rgba(0,0,0,.20)] transition-all duration-300 hover:border-white/[0.13] sm:p-9 lg:p-10">
+        <section className="group relative mb-9 rounded-[28px] border border-white/[0.09] bg-gradient-to-br from-[#191225] via-[#11101d] to-[#10101a] p-6 shadow-[0_25px_80px_rgba(0,0,0,.20)] transition-all duration-300 hover:border-white/[0.13] sm:p-9 lg:p-10">
           <div className="pointer-events-none absolute -right-10 -top-20 h-72 w-72 rounded-full bg-fuchsia-500/[0.12] blur-[90px] transition-opacity duration-500 group-hover:bg-fuchsia-500/[0.16]" />
           <div className="pointer-events-none absolute bottom-[-100px] right-[25%] h-48 w-48 rounded-full bg-violet-500/[0.10] blur-[80px]" />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-fuchsia-500/[0.025] via-transparent to-cyan-400/[0.025]" />
@@ -1782,7 +1780,7 @@ export default function CriarSalaPage() {
           </div>
 
           {/* SIDEBAR: RESUMO */}
-          <aside className="space-y-5 lg:sticky lg:top-28">
+          <aside className="space-y-5 md:sticky lg:top-28">
             <section className="overflow-hidden rounded-3xl border border-white/[0.09] bg-[#101221]/85 shadow-2xl shadow-black/20 backdrop-blur-xl transition-all duration-300 hover:border-white/[0.13]">
               <div className="relative overflow-hidden border-b border-white/[0.07] p-5">
                 <div className="pointer-events-none absolute right-0 top-0 h-24 w-24 rounded-full bg-fuchsia-500/[0.08] blur-3xl" />
