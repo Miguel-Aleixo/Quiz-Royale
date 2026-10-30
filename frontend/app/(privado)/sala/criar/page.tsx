@@ -214,12 +214,11 @@ export default function CriarSalaPage() {
         return;
       }
 
-      // Exibe perguntas cadastradas por administradores e jogadores.
       const perguntasDisponiveis = data.filter(
         (pergunta: PerguntaBanco) =>
           typeof pergunta.id === "number" &&
           typeof pergunta.enunciado === "string" &&
-          ["ADMIN", "JOGADOR"].includes(pergunta.criador?.role ?? "") &&
+          pergunta.criador?.role === "ADMIN" &&
           Array.isArray(pergunta.alternativas)
       );
 
@@ -745,7 +744,7 @@ export default function CriarSalaPage() {
 
             <div>
               <p className="text-sm font-black tracking-tight">Criar sala</p>
-             
+
             </div>
           </div>
 
