@@ -613,7 +613,7 @@ export default function Home() {
           >
             <div aria-hidden="true" className="absolute -right-10 -top-12 h-44 w-44 rounded-full bg-amber-300/10 blur-[70px]" />
             <div className="relative flex items-start justify-between gap-4">
-              <div className="flex min-w-0 gap-4">
+              <div className="flex min-w-0 gap-4 w-full">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-200/15 bg-amber-200/[0.08] text-amber-100"><Trophy size={22} /></div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-amber-100/45">Sua progressão</p>
@@ -626,8 +626,8 @@ export default function Home() {
                         <span className="text-xs font-bold text-amber-100">{usuario.pontuacao.toLocaleString("pt-BR")} pontos</span>
                         <span className="text-[10px] text-white/35">{usuario.proximaPatente ? `Próxima: ${usuario.proximaPatente.nome}` : "Patente máxima"}</span>
                       </div>
-                      <div className="mt-2.5 h-2 max-w-xl overflow-hidden rounded-full bg-white/10">
-                        <div className="h-full rounded-full bg-gradient-to-r from-amber-300 to-orange-300 transition-all duration-700" style={{ width: `${Math.max(0, Math.min(100, usuario.progresso))}%` }} />
+                      <div className="mt-2.5 h-2 w-full  overflow-hidden rounded-full bg-white/10">
+                        <div className="h-full w-full rounded-full bg-gradient-to-r from-amber-300 to-orange-300 transition-all duration-700" style={{ width: `${Math.max(0, Math.min(100, usuario.progresso))}%` }} />
                       </div>
                     </>
                   ) : (
