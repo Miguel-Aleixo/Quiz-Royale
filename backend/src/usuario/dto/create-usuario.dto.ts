@@ -1,10 +1,19 @@
-import { IsEmail, IsInt, IsNotEmpty, IsString, MinLength, IsOptional } from "class-validator";
+import { IsEmail, IsInt, IsNotEmpty, IsString, MinLength, IsOptional, Matches, MaxLength } from "class-validator";
 
 export class CreateUsuarioDto {
 
-    @IsNotEmpty({ message: 'Nome não pode ser vazio!' })
     @IsString()
-    nome!: string
+    @IsNotEmpty({ message: 'O nome de usuário é obrigatório' })
+    @MinLength(3, {
+        message: 'O nome de usuário deve ter no mínimo 3 caracteres',
+    })
+    @MaxLength(30, {
+        message: 'O nome de usuário deve ter no máximo 30 caracteres',
+    })
+    @Matches(/^[a-zA-Z0-9_]+$/, {
+        message: 'Use apenas letras, números e underline (_), sem espaços',
+    })
+    nome!: string;
 
     @IsNotEmpty({ message: 'Email não pode ser vazio!' })
     @IsEmail({}, { message: 'Email invalido' })
