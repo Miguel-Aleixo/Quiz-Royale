@@ -37,8 +37,6 @@ export default function RootLayout({
       <body className="min-h-full bg-[#080812] text-white">
         {children}
 
-        <MusicController />
-
          <Toaster
           position="top-right"
           richColors
