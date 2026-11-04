@@ -2196,47 +2196,52 @@ export class PartidaGateway {
                   alternativaCorretaId,
                 },
               );
-            },
-              );
+            }
           }
-        }
 
-        console.log(
-          `Jogador ${jogador.id} foi eliminado por não responder a rodada ${rodadaAtual.id}.`,
-        );
+          console.log(
+            `Jogador ${jogador.id} foi eliminado por não responder a rodada ${rodadaAtual.id}.`,
+          );
+        }
       }
     }
+
+    console.log(
+      `Jogador ${jogador.id} foi eliminado por não responder a rodada ${rodadaAtual.id}.`,
+    );
+  }
+}
   }
 
-  /*
-   * =====================================================
-   * VERIFICAR JOGADORES RESTANTES
-   * =====================================================
-   */
+/*
+ * =====================================================
+ * VERIFICAR JOGADORES RESTANTES
+ * =====================================================
+ */
 
-  const jogadoresAtivosDepois =
-    await this.prisma.jogador.findMany({
-      where: {
-        salaId:
-          sala.id,
+const jogadoresAtivosDepois =
+  await this.prisma.jogador.findMany({
+    where: {
+      salaId:
+        sala.id,
 
-        eliminado:
-          false,
-      },
+      eliminado:
+        false,
+    },
 
-      select: {
-        id: true,
-      },
-    });
+    select: {
+      id: true,
+    },
+  });
 
-  /*
-   * Todos foram eliminados.
-   */
+/*
+ * Todos foram eliminados.
+ */
 
-  if(
-    jogadoresAtivosDepois.length ===
-      0
-    ) {
+if (
+  jogadoresAtivosDepois.length ===
+  0
+) {
   console.log(
     `Todos os jogadores foram eliminados na partida ${codigo}.`,
   );
