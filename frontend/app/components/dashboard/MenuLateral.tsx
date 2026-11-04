@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -13,6 +12,8 @@ import {
   Shield,
   Tags,
   Users,
+  X,
+  AlertTriangle,
 } from "lucide-react";
 import Cookies from "js-cookie";
 import Image from "next/image";
@@ -75,6 +76,7 @@ export default function MenuLateral({
 
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [carregandoUsuario, setCarregandoUsuario] = useState(true);
+  const [modalSairAberto, setModalSairAberto] = useState(false);
 
   useEffect(() => {
     let ativo = true;
@@ -159,19 +161,54 @@ export default function MenuLateral({
     };
   }, [API]);
 
-  function sair() {
+  // =========================================================
+  // MODAL DE SAÍDA
+  // =========================================================
+
+  function abrirModalSair() {
+    setModalSairAberto(true);
+  }
+
+  function fecharModalSair() {
+    setModalSairAberto(false);
+  }
+
+  function confirmarSaida() {
+    setModalSairAberto(false);
     router.push("/");
   }
+
+  useEffect(() => {
+    if (!modalSairAberto) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        fecharModalSair();
+      }
+    }
+
+    const overflowAnterior = document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = overflowAnterior;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [modalSairAberto]);
 
   const nomeExibido = carregandoUsuario
     ? "Carregando perfil..."
     : usuario?.nome || "Administrador";
 
-  const inicial = usuario?.nome?.trim()?.charAt(0)?.toUpperCase() || "A";
+  const inicial =
+    usuario?.nome?.trim()?.charAt(0)?.toUpperCase() || "A";
 
   return (
     <>
-      {/* Overlay mobile */}
+      {/* OVERLAY MOBILE */}
+
       {open && (
         <div
           onClick={onClose}
@@ -179,7 +216,8 @@ export default function MenuLateral({
         />
       )}
 
-      {/* Sidebar */}
+      {/* SIDEBAR */}
+
       <aside
         className={`
           fixed left-0 top-0 z-50 flex h-screen w-72 flex-col
@@ -192,6 +230,7 @@ export default function MenuLateral({
         `}
       >
         {/* LOGO */}
+
         <div className="flex h-20 items-center justify-between border-b border-white/5 px-3">
           <Image
             src="/imagens/logo_dark.png"
@@ -204,6 +243,7 @@ export default function MenuLateral({
         </div>
 
         {/* PERFIL CLICÁVEL */}
+
         <div className="border-b border-white/5 p-5">
           <Link
             href="/perfil"
@@ -236,6 +276,7 @@ export default function MenuLateral({
         </div>
 
         {/* MENU */}
+
         <nav className="flex-1 space-y-1 overflow-y-auto p-4">
           <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-indigo-300/30">
             Menu principal
@@ -292,11 +333,12 @@ export default function MenuLateral({
         </nav>
 
         {/* SAIR */}
+
         <div className="border-t border-white/5 p-4">
           <button
             type="button"
-            onClick={sair}
-            className="group cursor-pointer flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-500 transition-all hover:bg-red-500/[0.07] hover:text-red-400"
+            onClick={abrirModalSair}
+            className="group flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-zinc-500 transition-all hover:bg-red-500/[0.07] hover:text-red-400"
           >
             <LogOut className="h-5 w-5 transition-colors group-hover:text-red-400" />
 
@@ -304,6 +346,76 @@ export default function MenuLateral({
           </button>
         </div>
       </aside>
+
+      {/* MODAL DE CONFIRMAÇÃO */}
+
+      {modalSairAberto && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              fecharModalSair();
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="titulo-modal-sair"
+            className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#10101d] shadow-[0_25px_80px_rgba(0,0,0,0.6)] animate-in fade-in zoom-in-95 duration-200"
+          >
+            {/* CABEÇALHO */}
+
+            <div className="relative border-b border-white/5 px-6 pb-5 pt-6">
+              <button
+                type="button"
+                onClick={fecharModalSair}
+                aria-label="Fechar modal"
+                className="absolute right-4 top-4 rounded-lg p-2 text-white/30 transition hover:bg-white/5 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-red-400/20 bg-red-500/10">
+                <LogOut className="h-5 w-5 text-red-400" />
+              </div>
+
+              <h2
+                id="titulo-modal-sair"
+                className="text-lg font-bold text-white"
+              >
+                Sair do painel?
+              </h2>
+
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                Tem certeza de que deseja sair da dashboard?
+                Você será redirecionado para a página inicial.
+              </p>
+            </div>
+
+            {/* AÇÕES */}
+
+            <div className="flex flex-col-reverse gap-2 p-5 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={fecharModalSair}
+                className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-zinc-300 transition hover:bg-white/[0.07] hover:text-white"
+              >
+                Continuar no painel
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmarSaida}
+                className="flex items-center justify-center gap-2 rounded-xl border border-red-400/20 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-300 transition hover:border-red-400/40 hover:bg-red-500/20 hover:text-red-200"
+              >
+                <LogOut className="h-4 w-4" />
+                Sim, quero sair
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
