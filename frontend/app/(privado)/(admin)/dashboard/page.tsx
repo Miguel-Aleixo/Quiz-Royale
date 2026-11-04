@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import {
   Activity,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Crown,
   Gamepad2,
   HelpCircle,
@@ -59,18 +61,20 @@ interface Patente {
   pontos: number;
 }
 
+const SALAS_POR_PAGINA = 5;
+
 export default function DashboardPage() {
   const API = process.env.NEXT_PUBLIC_API;
+  const router = useRouter();
 
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [salas, setSalas] = useState<Sala[]>([]);
   const [perguntas, setPerguntas] = useState<Pergunta[]>([]);
   const [temas, setTemas] = useState<Tema[]>([]);
   const [patentes, setPatentes] = useState<Patente[]>([]);
-
-  const router = useRouter();
-
   const [loading, setLoading] = useState(true);
+
+  const [paginaSalas, setPaginaSalas] = useState(1);
 
   // =========================================================
   // TOKEN
@@ -122,10 +126,8 @@ export default function DashboardPage() {
         fetch(`${API}/patente`, { headers }),
       ]);
 
-      // Verifica se alguma requisição falhou
       if (!usuariosResponse.ok) {
         const data = await usuariosResponse.json();
-
         const mensagem = Array.isArray(data.message)
           ? data.message.join(", ")
           : data.message || "Erro ao carregar usuários.";
@@ -136,7 +138,6 @@ export default function DashboardPage() {
 
       if (!salasResponse.ok) {
         const data = await salasResponse.json();
-
         const mensagem = Array.isArray(data.message)
           ? data.message.join(", ")
           : data.message || "Erro ao carregar salas.";
@@ -147,7 +148,6 @@ export default function DashboardPage() {
 
       if (!perguntasResponse.ok) {
         const data = await perguntasResponse.json();
-
         const mensagem = Array.isArray(data.message)
           ? data.message.join(", ")
           : data.message || "Erro ao carregar perguntas.";
@@ -158,7 +158,6 @@ export default function DashboardPage() {
 
       if (!temasResponse.ok) {
         const data = await temasResponse.json();
-
         const mensagem = Array.isArray(data.message)
           ? data.message.join(", ")
           : data.message || "Erro ao carregar temas.";
@@ -169,7 +168,6 @@ export default function DashboardPage() {
 
       if (!patentesResponse.ok) {
         const data = await patentesResponse.json();
-
         const mensagem = Array.isArray(data.message)
           ? data.message.join(", ")
           : data.message || "Erro ao carregar patentes.";
@@ -197,9 +195,10 @@ export default function DashboardPage() {
       setPerguntas(perguntasData);
       setTemas(temasData);
       setPatentes(patentesData);
+
+      setPaginaSalas(1);
     } catch (error) {
       console.error("Erro ao carregar dashboard:", error);
-
       toast.error("Não foi possível conectar ao servidor.");
     } finally {
       setLoading(false);
@@ -244,14 +243,32 @@ export default function DashboardPage() {
   );
 
   // =========================================================
-  // ÚLTIMAS SALAS
+  // ÚLTIMAS SALAS - PAGINAÇÃO
   // =========================================================
 
-  const ultimasSalas = useMemo(() => {
-    return [...salas]
-      .sort((a, b) => b.id - a.id)
-      .slice(0, 5);
+  const salasOrdenadas = useMemo(() => {
+    return [...salas].sort((a, b) => b.id - a.id);
   }, [salas]);
+
+  const totalPaginasSalas = Math.max(
+    1,
+    Math.ceil(salasOrdenadas.length / SALAS_POR_PAGINA)
+  );
+
+  const ultimasSalas = useMemo(() => {
+    const inicio = (paginaSalas - 1) * SALAS_POR_PAGINA;
+
+    return salasOrdenadas.slice(
+      inicio,
+      inicio + SALAS_POR_PAGINA
+    );
+  }, [salasOrdenadas, paginaSalas]);
+
+  useEffect(() => {
+    if (paginaSalas > totalPaginasSalas) {
+      setPaginaSalas(totalPaginasSalas);
+    }
+  }, [paginaSalas, totalPaginasSalas]);
 
   // =========================================================
   // PATENTES
@@ -273,6 +290,11 @@ export default function DashboardPage() {
         };
       });
   }, [patentes, usuarios]);
+
+  const totalDistribuicao = usuariosPorPatente.reduce(
+    (total, item) => total + item.quantidade,
+    0
+  );
 
   // =========================================================
   // LOADING
@@ -302,15 +324,11 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-[#080812] text-white">
-
       <Header />
 
-      <div className="mx-auto max-w-7xlpx-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 
-
-        {/* ================================================= */}
         {/* HEADER */}
-        {/* ================================================= */}
 
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -318,7 +336,6 @@ export default function DashboardPage() {
           className="mb-8"
         >
           <div className="flex items-center gap-3">
-
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-violet-400/20 bg-violet-500/10">
               <Activity className="h-5 w-5 text-violet-400" />
             </div>
@@ -332,16 +349,12 @@ export default function DashboardPage() {
                 Acompanhe os principais dados do Quiz Royale.
               </p>
             </div>
-
           </div>
         </motion.div>
 
-        {/* ================================================= */}
         {/* CARDS PRINCIPAIS */}
-        {/* ================================================= */}
 
         <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
           <DashboardCard
             icon={<Users className="h-5 w-5" />}
             title="Usuários"
@@ -369,15 +382,11 @@ export default function DashboardPage() {
             value={temas.length}
             description="Temas cadastrados"
           />
-
         </div>
 
-        {/* ================================================= */}
         {/* CARDS SECUNDÁRIOS */}
-        {/* ================================================= */}
 
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
           <SmallCard
             icon={<Shield className="h-4 w-4" />}
             title="Administradores"
@@ -401,18 +410,13 @@ export default function DashboardPage() {
             title="Partidas finalizadas"
             value={salasFinalizadas}
           />
-
         </div>
 
-        {/* ================================================= */}
         {/* SALAS + STATUS */}
-        {/* ================================================= */}
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
 
-          {/* ================================================= */}
           {/* ÚLTIMAS SALAS */}
-          {/* ================================================= */}
 
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -420,9 +424,7 @@ export default function DashboardPage() {
             transition={{ delay: 0.1 }}
             className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] lg:col-span-2"
           >
-
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-
               <div>
                 <h2 className="text-sm font-semibold">
                   Últimas salas
@@ -434,24 +436,20 @@ export default function DashboardPage() {
               </div>
 
               <Gamepad2 className="h-5 w-5 text-white/20" />
-
             </div>
 
             {ultimasSalas.length === 0 ? (
               <div className="flex h-52 items-center justify-center">
                 <div className="text-center">
-
                   <Gamepad2 className="mx-auto mb-3 h-7 w-7 text-white/15" />
 
                   <p className="text-sm text-white/40">
                     Nenhuma sala criada
                   </p>
-
                 </div>
               </div>
             ) : (
               <div className="divide-y divide-white/5">
-
                 {ultimasSalas.map((sala, index) => (
                   <motion.div
                     key={sala.id}
@@ -462,21 +460,17 @@ export default function DashboardPage() {
                     }}
                     className="flex items-center justify-between px-5 py-4 transition hover:bg-white/[0.025]"
                   >
-
                     <div className="flex min-w-0 items-center gap-3">
-
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-400/15 bg-violet-500/10">
                         <Gamepad2 className="h-4 w-4 text-violet-400" />
                       </div>
 
                       <div className="min-w-0">
-
                         <p className="truncate text-sm font-semibold">
                           {sala.nome}
                         </p>
 
                         <div className="mt-1 flex items-center gap-2">
-
                           <span className="font-mono text-[10px] tracking-wider text-white/30">
                             {sala.codigo}
                           </span>
@@ -489,26 +483,97 @@ export default function DashboardPage() {
                             {sala._count?.jogadores ?? 0}/
                             {sala.maxJogadores} jogadores
                           </span>
-
                         </div>
-
                       </div>
-
                     </div>
 
                     <StatusBadge status={sala.status} />
-
                   </motion.div>
                 ))}
-
               </div>
             )}
 
+            {/* PAGINAÇÃO */}
+
+            {salasOrdenadas.length > SALAS_POR_PAGINA && (
+              <div className="flex flex-col gap-3 border-t border-white/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-[11px] text-white/35">
+                  Exibindo{" "}
+                  <span className="font-semibold text-white/65">
+                    {(paginaSalas - 1) * SALAS_POR_PAGINA + 1}
+                    {" - "}
+                    {Math.min(
+                      paginaSalas * SALAS_POR_PAGINA,
+                      salasOrdenadas.length
+                    )}
+                  </span>{" "}
+                  de{" "}
+                  <span className="font-semibold text-white/65">
+                    {salasOrdenadas.length}
+                  </span>{" "}
+                  salas
+                </p>
+
+                <div className="flex items-center justify-between gap-2 sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPaginaSalas((pagina) =>
+                        Math.max(1, pagina - 1)
+                      )
+                    }
+                    disabled={paginaSalas === 1}
+                    aria-label="Página anterior"
+                    className="flex h-9 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 text-xs font-semibold text-white/60 transition hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Anterior
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from(
+                      { length: totalPaginasSalas },
+                      (_, index) => index + 1
+                    ).map((pagina) => (
+                      <button
+                        key={pagina}
+                        type="button"
+                        onClick={() => setPaginaSalas(pagina)}
+                        aria-label={`Ir para página ${pagina}`}
+                        aria-current={
+                          paginaSalas === pagina ? "page" : undefined
+                        }
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-xl px-3 text-xs font-bold transition ${
+                          paginaSalas === pagina
+                            ? "border border-violet-400/30 bg-violet-500/20 text-violet-200 shadow-lg shadow-violet-950/20"
+                            : "border border-transparent text-white/40 hover:border-white/10 hover:bg-white/[0.05] hover:text-white"
+                        }`}
+                      >
+                        {pagina}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPaginaSalas((pagina) =>
+                        Math.min(totalPaginasSalas, pagina + 1)
+                      )
+                    }
+                    disabled={paginaSalas === totalPaginasSalas}
+                    aria-label="Próxima página"
+                    className="flex h-9 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 text-xs font-semibold text-white/60 transition hover:border-violet-400/30 hover:bg-violet-500/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    Próxima
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </motion.div>
 
-          {/* ================================================= */}
           {/* STATUS DAS PARTIDAS */}
-          {/* ================================================= */}
 
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -516,9 +581,7 @@ export default function DashboardPage() {
             transition={{ delay: 0.15 }}
             className="rounded-2xl border border-white/10 bg-white/[0.025]"
           >
-
             <div className="border-b border-white/10 px-5 py-4">
-
               <h2 className="text-sm font-semibold">
                 Status das partidas
               </h2>
@@ -526,11 +589,9 @@ export default function DashboardPage() {
               <p className="mt-1 text-xs text-white/30">
                 Situação atual das salas
               </p>
-
             </div>
 
             <div className="space-y-5 p-5">
-
               <StatusRow
                 icon={<CheckCircle2 className="h-4 w-4" />}
                 title="Salas abertas"
@@ -576,25 +637,20 @@ export default function DashboardPage() {
                 percentage={
                   totalSalas > 0
                     ? (
-                      (totalSalas -
-                        salasAbertas -
-                        salasEmAndamento -
-                        salasFinalizadas) /
-                      totalSalas
-                    ) * 100
+                        (totalSalas -
+                          salasAbertas -
+                          salasEmAndamento -
+                          salasFinalizadas) /
+                        totalSalas
+                      ) * 100
                     : 0
                 }
               />
-
             </div>
-
           </motion.div>
-
         </div>
 
-        {/* ================================================= */}
         {/* PATENTES */}
-        {/* ================================================= */}
 
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -602,11 +658,8 @@ export default function DashboardPage() {
           transition={{ delay: 0.2 }}
           className="mt-5 rounded-2xl border border-white/10 bg-white/[0.025]"
         >
-
           <div className="border-b border-white/10 px-5 py-4">
-
             <div className="flex items-center gap-3">
-
               <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-yellow-400/15 bg-yellow-500/10">
                 <Crown className="h-4 w-4 text-yellow-400" />
               </div>
@@ -620,9 +673,7 @@ export default function DashboardPage() {
                   Distribuição dos jogadores entre as patentes
                 </p>
               </div>
-
             </div>
-
           </div>
 
           {usuariosPorPatente.length === 0 ? (
@@ -631,14 +682,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
-
               {usuariosPorPatente.map((patente) => {
-
-                const totalDistribuicao = usuariosPorPatente.reduce(
-                  (total, item) => total + item.quantidade,
-                  0
-                );
-
                 const percentual =
                   totalDistribuicao > 0
                     ? (patente.quantidade / totalDistribuicao) * 100
@@ -649,19 +693,15 @@ export default function DashboardPage() {
                     key={patente.id}
                     className="rounded-xl border border-white/10 bg-white/[0.02] p-4"
                   >
-
                     <div className="mb-3 flex items-center justify-between">
-
                       <span className="text-sm font-semibold">
                         {patente.nome}
                       </span>
 
                       <Crown className="h-4 w-4 text-yellow-400/60" />
-
                     </div>
 
                     <div className="mb-2 flex items-end justify-between">
-
                       <span className="text-2xl font-bold">
                         {patente.quantidade}
                       </span>
@@ -669,11 +709,9 @@ export default function DashboardPage() {
                       <span className="text-xs text-white/30">
                         {percentual.toFixed(0)}%
                       </span>
-
                     </div>
 
                     <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
-
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{
@@ -682,18 +720,13 @@ export default function DashboardPage() {
                         transition={{ duration: 0.7 }}
                         className="h-full rounded-full bg-violet-500"
                       />
-
                     </div>
-
                   </div>
                 );
               })}
-
             </div>
           )}
-
         </motion.div>
-
       </div>
     </main>
   );
@@ -719,15 +752,12 @@ function DashboardCard({
       whileHover={{ y: -2 }}
       className="rounded-2xl border border-white/10 bg-white/[0.025] p-5"
     >
-
       <div className="mb-4 flex items-center justify-between">
-
         <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-violet-400/15 bg-violet-500/10 text-violet-400">
           {icon}
         </div>
 
         <Activity className="h-4 w-4 text-white/10" />
-
       </div>
 
       <p className="text-xs text-white/35">
@@ -741,7 +771,6 @@ function DashboardCard({
       <p className="mt-2 text-[11px] text-white/25">
         {description}
       </p>
-
     </motion.div>
   );
 }
@@ -761,13 +790,11 @@ function SmallCard({
 }) {
   return (
     <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/40">
         {icon}
       </div>
 
       <div>
-
         <p className="text-[11px] text-white/30">
           {title}
         </p>
@@ -775,9 +802,7 @@ function SmallCard({
         <p className="mt-0.5 text-lg font-bold">
           {value}
         </p>
-
       </div>
-
     </div>
   );
 }
@@ -793,8 +818,7 @@ function StatusBadge({
 }) {
   const normalized = status.toLowerCase();
 
-  let style =
-    "border-white/10 bg-white/5 text-white/40";
+  let style = "border-white/10 bg-white/5 text-white/40";
 
   if (normalized === "aberta") {
     style =
@@ -837,11 +861,8 @@ function StatusRow({
 }) {
   return (
     <div>
-
       <div className="mb-2 flex items-center justify-between">
-
         <div className="flex items-center gap-2">
-
           <span className="text-white/30">
             {icon}
           </span>
@@ -849,17 +870,14 @@ function StatusRow({
           <span className="text-xs text-white/50">
             {title}
           </span>
-
         </div>
 
         <span className="text-sm font-semibold">
           {value}
         </span>
-
       </div>
 
       <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
-
         <motion.div
           initial={{ width: 0 }}
           animate={{
@@ -871,9 +889,7 @@ function StatusRow({
           transition={{ duration: 0.7 }}
           className="h-full rounded-full bg-violet-500"
         />
-
       </div>
-
     </div>
   );
 }
