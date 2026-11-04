@@ -69,7 +69,7 @@ export default function Header({ nome, patente }: HeaderProps) {
             {/* Logo */}
             <button
               type="button"
-              onClick={() => navegar("/")}
+              onClick={() => router.push("/")}
               disabled={loading}
               aria-label="Ir para a página inicial"
               className="group relative z-10 flex min-w-0 cursor-pointer items-center rounded-xl transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
