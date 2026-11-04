@@ -93,6 +93,8 @@ interface JogadorEliminado {
   tempoTotal: number;
   totalRespostas: number;
   totalJogadores: number;
+  rodadaId?: number;
+  alternativaCorretaId?: number;
 }
 
 interface RankingJogador {
@@ -116,6 +118,13 @@ interface PartidaFinalizada {
 interface ProgressoRespostas {
   respondidos: number;
   total: number;
+}
+
+interface RevisaoEliminacao {
+  enunciado: string;
+  alternativas: Alternativa[];
+  corretaId: number | null;
+  minhaAlternativaId: number | null;
 }
 
 export default function PartidaPage() {
@@ -177,6 +186,16 @@ export default function PartidaPage() {
   const diferencaRelogioRef =
     useRef(0);
 
+  /*
+   * Refs para o handler do socket enxergar
+   * sempre o valor atual (evita closure velha).
+   */
+  const rodadaRecebidaRef =
+    useRef<Rodada | null>(null);
+
+  const alternativaSelecionadaRef =
+    useRef<number | null>(null);
+
   const [
     alternativaSelecionada,
     setAlternativaSelecionada,
@@ -217,6 +236,11 @@ export default function PartidaPage() {
     totalRespostas: number;
     totalJogadores: number;
   } | null>(null);
+
+  const [
+    revisaoEliminacao,
+    setRevisaoEliminacao,
+  ] = useState<RevisaoEliminacao | null>(null);
 
   const [
     partidaFinalizada,
@@ -566,6 +590,7 @@ export default function PartidaPage() {
         // Isso impede que o front continue enviando o ID da pergunta anterior.
         if (data.rodada) {
           setRodadaRecebida(data.rodada);
+          rodadaRecebidaRef.current = data.rodada;
         }
 
         if (Number.isFinite(data.numeroRodada) && data.numeroRodada >= 1) {
@@ -637,6 +662,9 @@ export default function PartidaPage() {
         setAlternativaSelecionada(
           null,
         );
+
+        alternativaSelecionadaRef.current =
+          null;
 
         setResultadoResposta(
           null,
@@ -716,6 +744,35 @@ export default function PartidaPage() {
             data.usuarioId,
           )
         ) {
+          /*
+           * Guarda a "foto" da pergunta em que
+           * o jogador foi eliminado, junto com
+           * a alternativa correta e a que ele marcou.
+           */
+          const rodadaDaEliminacao =
+            rodadaRecebidaRef.current;
+
+          if (rodadaDaEliminacao) {
+            setRevisaoEliminacao({
+              enunciado:
+                rodadaDaEliminacao
+                  .pergunta
+                  .enunciado,
+
+              alternativas:
+                rodadaDaEliminacao
+                  .pergunta
+                  .alternativas,
+
+              corretaId:
+                data.alternativaCorretaId ??
+                null,
+
+              minhaAlternativaId:
+                alternativaSelecionadaRef.current,
+            });
+          }
+
           setJogadorEliminado(
             true,
           );
@@ -769,7 +826,7 @@ export default function PartidaPage() {
                 false,
               );
             },
-            2500,
+            6000,
           );
         }
       },
@@ -804,6 +861,10 @@ export default function PartidaPage() {
         );
 
         setClassificacaoEliminacao(
+          null,
+        );
+
+        setRevisaoEliminacao(
           null,
         );
 
@@ -1140,6 +1201,9 @@ export default function PartidaPage() {
       id,
     );
 
+    alternativaSelecionadaRef.current =
+      id;
+
     /*
      * O valor ainda é enviado por compatibilidade
      * com o evento atual, mas o backend NÃO confia nele.
@@ -1462,6 +1526,69 @@ export default function PartidaPage() {
 
   /*
    * =========================================================
+   * BLOCO DE REVISÃO (pergunta + resposta correta)
+   * =========================================================
+   */
+
+  const blocoRevisao = revisaoEliminacao && (
+    <div className="relative mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left">
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
+        A pergunta que te eliminou
+      </p>
+
+      <p className="mt-2 text-sm font-bold leading-snug text-white/90">
+        {revisaoEliminacao.enunciado}
+      </p>
+
+      <div className="mt-4 space-y-2">
+        {revisaoEliminacao.alternativas.map((alt, index) => {
+          const correta = alt.id === revisaoEliminacao.corretaId;
+          const minha = alt.id === revisaoEliminacao.minhaAlternativaId;
+          const errada = minha && !correta;
+
+          return (
+            <div
+              key={alt.id}
+              className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm ${
+                correta
+                  ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200"
+                  : errada
+                    ? "border-red-400/40 bg-red-500/10 text-red-200"
+                    : "border-white/[0.07] bg-white/[0.02] text-white/50"
+              }`}
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/10 text-xs font-black">
+                {String.fromCharCode(65 + index)}
+              </span>
+
+              <span className="flex-1 font-semibold">{alt.texto}</span>
+
+              {correta && (
+                <span className="flex items-center gap-1 text-[10px] font-black uppercase">
+                  <CheckCircle2 className="h-4 w-4" /> Correta
+                </span>
+              )}
+
+              {errada && (
+                <span className="flex items-center gap-1 text-[10px] font-black uppercase">
+                  <XCircle className="h-4 w-4" /> Sua resposta
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {revisaoEliminacao.minhaAlternativaId === null && (
+        <p className="mt-3 text-xs font-semibold text-red-300/80">
+          Você não respondeu a tempo.
+        </p>
+      )}
+    </div>
+  );
+
+  /*
+   * =========================================================
    * JOGADOR ELIMINADO
    * =========================================================
    */
@@ -1512,6 +1639,8 @@ export default function PartidaPage() {
             </h1>
             <p className="relative mx-auto mt-3 max-w-sm text-sm leading-6 text-white/50">{mensagemEliminacao}</p>
 
+            {blocoRevisao}
+
             <div className="relative mt-7 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4">
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-rose-300/50 to-transparent" />
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">Sua jornada ainda conta</p>
@@ -1540,6 +1669,10 @@ export default function PartidaPage() {
           @keyframes bean-wobble {
             0%, 100% { transform: rotate(-5deg) scale(1); }
             50% { transform: rotate(5deg) scale(1.04); }
+          }
+          @keyframes trophy-bounce {
+            0%, 100% { transform: translateY(0) rotate(-3deg); }
+            50% { transform: translateY(-8px) rotate(3deg); }
           }
           @keyframes elimination-confetti {
             0% { opacity: 0; transform: translateY(-20px) rotate(0deg); }
@@ -1603,7 +1736,9 @@ export default function PartidaPage() {
               </div>
             </div>
 
-            <div className="px-5 pb-6 sm:px-6">
+            <div className="-mt-3 px-5 sm:px-6">{blocoRevisao}</div>
+
+            <div className="px-5 pb-6 pt-5 sm:px-6">
               <div className="rounded-2xl border border-white/[0.07] bg-white/[0.035] p-4 text-center">
                 <p className="text-sm font-black text-white/85">Sua partida continua na torcida!</p>
                 <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-white/40">
