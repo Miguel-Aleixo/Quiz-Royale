@@ -1089,6 +1089,11 @@ export class PartidaGateway {
             sala.id,
           );
 
+        const alternativaCorretaId =
+          await this.obterAlternativaCorretaId(
+            rodada.perguntaId,
+          );
+
         socket.emit(
           'jogador_eliminado',
           {
@@ -1114,6 +1119,11 @@ export class PartidaGateway {
 
             totalJogadores:
               classificacao.totalJogadores,
+
+            rodadaId:
+              rodada.id,
+
+            alternativaCorretaId,
           },
         );
 
@@ -2126,6 +2136,11 @@ export class PartidaGateway {
             )
             .fetchSockets();
 
+        const alternativaCorretaId =
+          await this.obterAlternativaCorretaId(
+            rodadaAtual.perguntaId,
+          );
+
         for (
           const jogador of jogadoresSemResposta
         ) {
@@ -2174,163 +2189,187 @@ export class PartidaGateway {
 
                   totalJogadores:
                     classificacao.totalJogadores,
+
+                  rodadaId:
+                    rodadaAtual.id,
+
+                  alternativaCorretaId,
                 },
               );
-            }
+            },
+              );
           }
-
-          console.log(
-            `Jogador ${jogador.id} foi eliminado por não responder a rodada ${rodadaAtual.id}.`,
-          );
         }
+
+        console.log(
+          `Jogador ${jogador.id} foi eliminado por não responder a rodada ${rodadaAtual.id}.`,
+        );
       }
     }
+  }
 
-    /*
-     * =====================================================
-     * VERIFICAR JOGADORES RESTANTES
-     * =====================================================
-     */
+  /*
+   * =====================================================
+   * VERIFICAR JOGADORES RESTANTES
+   * =====================================================
+   */
 
-    const jogadoresAtivosDepois =
-      await this.prisma.jogador.findMany({
-        where: {
-          salaId:
-            sala.id,
+  const jogadoresAtivosDepois =
+    await this.prisma.jogador.findMany({
+      where: {
+        salaId:
+          sala.id,
 
-          eliminado:
-            false,
-        },
+        eliminado:
+          false,
+      },
 
-        select: {
-          id: true,
-        },
-      });
+      select: {
+        id: true,
+      },
+    });
 
-    /*
-     * Todos foram eliminados.
-     */
+  /*
+   * Todos foram eliminados.
+   */
 
-    if (
-      jogadoresAtivosDepois.length ===
+  if(
+    jogadoresAtivosDepois.length ===
       0
     ) {
-      console.log(
-        `Todos os jogadores foram eliminados na partida ${codigo}.`,
-      );
+  console.log(
+    `Todos os jogadores foram eliminados na partida ${codigo}.`,
+  );
 
-      await this.finalizarPartida(
+  await this.finalizarPartida(
+    codigo,
+    sala.id,
+  );
+
+  return;
+}
+
+/*
+ * =====================================================
+ * ÚLTIMA RODADA
+ * =====================================================
+ */
+
+if (
+  estado.rodadaAtual >=
+  rodadas.length - 1
+) {
+  console.log(
+    `Última rodada concluída na partida ${codigo}.`,
+  );
+
+  await this.finalizarPartida(
+    codigo,
+    sala.id,
+  );
+
+  return;
+}
+
+/*
+ * =====================================================
+ * NÃO FINALIZAR COM 1 JOGADOR
+ * =====================================================
+ */
+
+console.log(
+  `Partida ${codigo}: ${jogadoresAtivosDepois.length} jogador(es) ativo(s).`,
+);
+
+/*
+ * =====================================================
+ * PRÓXIMA RODADA
+ * =====================================================
+ */
+
+estado.rodadaAtual++;
+estado.rodadaIdAtual = null;
+
+estado.iniciadaEm = 0;
+
+estado.terminaEm = 0;
+
+estado.jogadoresQueResponderam =
+  new Set<number>();
+
+const proximaRodada =
+  rodadas[
+  estado.rodadaAtual
+  ];
+
+if (!proximaRodada) {
+  await this.finalizarPartida(
+    codigo,
+    sala.id,
+  );
+
+  return;
+}
+
+console.log(
+  `Partida ${codigo} avançando para a rodada ${estado.rodadaAtual + 1
+  }.`,
+);
+
+/*
+ * Esperar 2 segundos para
+ * mostrar o resultado.
+ */
+
+setTimeout(
+  async () => {
+    try {
+      const estadoAtual =
+        this.partidas.get(
+          codigo,
+        );
+
+      if (
+        !estadoAtual ||
+        estadoAtual.finalizando
+      ) {
+        return;
+      }
+
+      estadoAtual.encerrando =
+        false;
+
+      await this.iniciarRodada(
         codigo,
-        sala.id,
+        rodadas,
       );
-
-      return;
+    } catch (error) {
+      console.error(
+        'Erro ao iniciar próxima rodada:',
+        error,
+      );
     }
-
-    /*
-     * =====================================================
-     * ÚLTIMA RODADA
-     * =====================================================
-     */
-
-    if (
-      estado.rodadaAtual >=
-      rodadas.length - 1
-    ) {
-      console.log(
-        `Última rodada concluída na partida ${codigo}.`,
-      );
-
-      await this.finalizarPartida(
-        codigo,
-        sala.id,
-      );
-
-      return;
-    }
-
-    /*
-     * =====================================================
-     * NÃO FINALIZAR COM 1 JOGADOR
-     * =====================================================
-     */
-
-    console.log(
-      `Partida ${codigo}: ${jogadoresAtivosDepois.length} jogador(es) ativo(s).`,
-    );
-
-    /*
-     * =====================================================
-     * PRÓXIMA RODADA
-     * =====================================================
-     */
-
-    estado.rodadaAtual++;
-    estado.rodadaIdAtual = null;
-
-    estado.iniciadaEm = 0;
-
-    estado.terminaEm = 0;
-
-    estado.jogadoresQueResponderam =
-      new Set<number>();
-
-    const proximaRodada =
-      rodadas[
-      estado.rodadaAtual
-      ];
-
-    if (!proximaRodada) {
-      await this.finalizarPartida(
-        codigo,
-        sala.id,
-      );
-
-      return;
-    }
-
-    console.log(
-      `Partida ${codigo} avançando para a rodada ${estado.rodadaAtual + 1
-      }.`,
-    );
-
-    /*
-     * Esperar 2 segundos para
-     * mostrar o resultado.
-     */
-
-    setTimeout(
-      async () => {
-        try {
-          const estadoAtual =
-            this.partidas.get(
-              codigo,
-            );
-
-          if (
-            !estadoAtual ||
-            estadoAtual.finalizando
-          ) {
-            return;
-          }
-
-          estadoAtual.encerrando =
-            false;
-
-          await this.iniciarRodada(
-            codigo,
-            rodadas,
-          );
-        } catch (error) {
-          console.error(
-            'Erro ao iniciar próxima rodada:',
-            error,
-          );
-        }
-      },
-      2000,
-    );
+  },
+  2000,
+);
   }
+
+  private async obterAlternativaCorretaId(
+  perguntaId: number,
+): Promise < number | null > {
+  const alternativa =
+    await this.prisma.alternativa.findFirst({
+      where: {
+        perguntaId,
+        correta: true,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  return alternativa?.id ?? null;
+}
 
   /*
    * =========================================================
@@ -2339,25 +2378,25 @@ export class PartidaGateway {
    */
 
   private async obterSalaId(
-    codigo: string,
-  ): Promise<number> {
-    const sala =
-      await this.prisma.sala.findUnique({
-        where: {
-          codigo,
-        },
+  codigo: string,
+): Promise < number > {
+  const sala =
+    await this.prisma.sala.findUnique({
+      where: {
+        codigo,
+      },
 
-        select: {
-          id: true,
-        },
-      });
+      select: {
+        id: true,
+      },
+    });
 
-    if (!sala) {
-      throw new BadRequestException(
-        'Sala não encontrada.',
-      );
-    }
+  if(!sala) {
+    throw new BadRequestException(
+      'Sala não encontrada.',
+    );
+  }
 
     return sala.id;
-  }
+}
 }
