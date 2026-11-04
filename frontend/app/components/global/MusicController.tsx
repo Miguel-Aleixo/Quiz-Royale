@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import BackgroundMusic from "./BackgroundMusic";
 import PartidaMusic from "./PartidaMusic";
 
 export default function MusicController() {
@@ -13,5 +12,4 @@ export default function MusicController() {
     return <PartidaMusic />;
   }
 
-  return <BackgroundMusic />;
 }
