@@ -215,13 +215,13 @@ export default function PartidaPage() {
   ] = useState(false);
 
   /*
-   * Quando a partida termina, o jogador primeiro escolhe
-   * entre ver o ranking ou sair da partida.
+   * Jogador eliminado fica na tela de eliminado até
+   * clicar em "Ver ranking" (não é redirecionado sozinho).
    */
   const [
-    etapaFinal,
-    setEtapaFinal,
-  ] = useState<"escolha" | "ranking">("escolha");
+    verRankingEliminado,
+    setVerRankingEliminado,
+  ] = useState(false);
 
   const [
     mensagemEliminacao,
@@ -843,22 +843,6 @@ export default function PartidaPage() {
           data.ranking,
         );
 
-        setEtapaFinal(
-          "escolha",
-        );
-
-        setJogadorEliminado(
-          false,
-        );
-
-        setClassificacaoEliminacao(
-          null,
-        );
-
-        setRevisaoEliminacao(
-          null,
-        );
-
         setPartidaFinalizada(
           true,
         );
@@ -1303,65 +1287,154 @@ export default function PartidaPage() {
 
   /*
    * =========================================================
-   * PARTIDA FINALIZADA
+   * BLOCO DE REVISÃO (pergunta + resposta correta)
+   * =========================================================
+   */
+
+  const blocoRevisao = revisaoEliminacao && (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left">
+      <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/35">
+        A pergunta que te eliminou
+      </p>
+
+      <p className="mt-1.5 text-[13px] font-bold leading-snug text-white/90">
+        {revisaoEliminacao.enunciado}
+      </p>
+
+      <div className="mt-2.5 max-h-56 space-y-1.5 overflow-y-auto">
+        {revisaoEliminacao.alternativas.map((alt, index) => {
+          const correta = alt.id === revisaoEliminacao.corretaId;
+          const minha = alt.id === revisaoEliminacao.minhaAlternativaId;
+          const errada = minha && !correta;
+
+          return (
+            <div
+              key={alt.id}
+              className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs ${
+                correta
+                  ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200"
+                  : errada
+                    ? "border-red-400/40 bg-red-500/10 text-red-200"
+                    : "border-white/[0.07] bg-white/[0.02] text-white/50"
+              }`}
+            >
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white/10 text-[10px] font-black">
+                {String.fromCharCode(65 + index)}
+              </span>
+
+              <span className="flex-1 font-semibold leading-snug">{alt.texto}</span>
+
+              {correta && (
+                <span className="flex shrink-0 items-center gap-1 text-[9px] font-black uppercase">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Correta
+                </span>
+              )}
+
+              {errada && (
+                <span className="flex shrink-0 items-center gap-1 text-[9px] font-black uppercase">
+                  <XCircle className="h-3.5 w-3.5" /> Sua resposta
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {revisaoEliminacao.minhaAlternativaId === null && (
+        <p className="mt-2 text-[11px] font-semibold text-red-300/80">
+          Você não respondeu a tempo.
+        </p>
+      )}
+    </div>
+  );
+
+  /*
+   * =========================================================
+   * JOGADOR ELIMINADO (tela única e compacta)
    * =========================================================
    */
 
   if (
-    partidaFinalizada &&
-    etapaFinal === "escolha"
+    jogadorEliminado &&
+    classificacaoEliminacao &&
+    !verRankingEliminado
   ) {
+    const tempoMedio =
+      classificacaoEliminacao.totalRespostas > 0
+        ? classificacaoEliminacao.tempoTotal / classificacaoEliminacao.totalRespostas
+        : 0;
+
     return (
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#090817] px-4 py-6 text-white">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgba(168,85,247,.22),transparent_50%),radial-gradient(ellipse_at_90%_90%,rgba(34,211,238,.08),transparent_35%)]" />
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b0918] px-4 py-6 text-white">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(244,63,94,.16),transparent_50%),radial-gradient(ellipse_at_10%_90%,rgba(168,85,247,.12),transparent_35%)]" />
         <div className="pointer-events-none absolute inset-0 opacity-[0.045] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:22px_22px]" />
 
-        <div className="relative w-full max-w-sm animate-[final-card-in_550ms_cubic-bezier(.16,1,.3,1)_both]">
-          <div className="overflow-hidden rounded-3xl border border-fuchsia-300/20 bg-[#171426]/95 p-6 text-center shadow-2xl shadow-fuchsia-950/30 backdrop-blur-xl">
-            <div className="mx-auto flex h-16 w-16 animate-[final-bounce_2.4s_ease-in-out_infinite] items-center justify-center rounded-2xl border border-yellow-200/30 bg-gradient-to-br from-yellow-300/25 to-orange-500/10 shadow-xl shadow-yellow-500/10">
-              <Trophy className="h-8 w-8 text-yellow-200" />
+        <div className="relative w-full max-w-md animate-[elimination-card-in_500ms_cubic-bezier(.16,1,.3,1)_both]">
+          <div className="overflow-hidden rounded-3xl border border-rose-300/20 bg-[#171326]/95 shadow-2xl shadow-rose-950/30 backdrop-blur-xl">
+            <div className="flex items-center gap-3 border-b border-white/[0.07] bg-gradient-to-r from-rose-500/15 via-fuchsia-500/10 to-transparent px-4 py-3.5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-rose-300/25 bg-rose-400/10 text-2xl">
+                😵
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h1 className="text-base font-black leading-tight">
+                  Você saiu da arena!
+                </h1>
+                <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-white/45">
+                  {mensagemEliminacao}
+                </p>
+              </div>
+
+              <div className="shrink-0 text-right">
+                <p className="text-2xl font-black leading-none tabular-nums">
+                  {classificacaoEliminacao.posicao}
+                  <span className="text-sm text-fuchsia-200">º</span>
+                </p>
+                <p className="mt-0.5 text-[10px] font-semibold text-white/40">
+                  de {classificacaoEliminacao.totalJogadores}
+                </p>
+              </div>
             </div>
 
-            <span className="mt-4 inline-flex rounded-full border border-fuchsia-300/20 bg-fuchsia-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-fuchsia-200">
-              Fim de jogo
-            </span>
+            <div className="space-y-3 p-4">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center justify-between rounded-xl border border-emerald-300/15 bg-emerald-400/[0.06] px-3 py-2">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-emerald-200/60">Acertos</span>
+                  <span className="text-lg font-black tabular-nums text-emerald-200">{classificacaoEliminacao.acertos}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl border border-cyan-300/15 bg-cyan-400/[0.06] px-3 py-2">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-cyan-200/60">Médio</span>
+                  <span className="text-sm font-black tabular-nums text-cyan-200">{formatarTempo(tempoMedio)}</span>
+                </div>
+              </div>
 
-            <h1 className="mt-3 text-2xl font-black tracking-tight">
-              A partida terminou!
-            </h1>
+              {blocoRevisao}
 
-            <p className="mx-auto mt-2 max-w-xs text-sm leading-5 text-white/45">
-              O resultado final já está pronto. O que você quer fazer?
-            </p>
-
-            <div className="mt-6 space-y-2.5">
-              <button
-                onClick={() => setEtapaFinal("ranking")}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-fuchsia-950/30 transition hover:-translate-y-0.5 hover:brightness-110"
-              >
-                <Trophy className="h-4 w-4" />
-                Ver ranking
-              </button>
-
-              <button
-                onClick={() => router.push("/")}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-black text-white/75 transition hover:-translate-y-0.5 hover:border-fuchsia-300/30 hover:bg-fuchsia-400/10 hover:text-white"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Sair da partida
-              </button>
+              {partidaFinalizada ? (
+                <button
+                  onClick={() => setVerRankingEliminado(true)}
+                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-fuchsia-950/30 transition hover:-translate-y-0.5 hover:brightness-110"
+                >
+                  <Trophy className="h-4 w-4" />
+                  Ver ranking
+                </button>
+              ) : (
+                <button
+                  disabled
+                  className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-black text-white/60"
+                >
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Partida em andamento
+                </button>
+              )}
             </div>
           </div>
         </div>
 
         <style jsx global>{`
-          @keyframes final-card-in {
+          @keyframes elimination-card-in {
             from { opacity: 0; transform: translateY(24px) scale(.95); }
             to { opacity: 1; transform: translateY(0) scale(1); }
-          }
-          @keyframes final-bounce {
-            0%, 100% { transform: translateY(0) rotate(-3deg); }
-            50% { transform: translateY(-6px) rotate(3deg); }
           }
           @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
@@ -1373,6 +1446,12 @@ export default function PartidaPage() {
       </main>
     );
   }
+
+  /*
+   * =========================================================
+   * PARTIDA FINALIZADA
+   * =========================================================
+   */
 
   if (
     partidaFinalizada
@@ -1575,162 +1654,6 @@ export default function PartidaPage() {
               animation-duration: .01ms !important;
               animation-iteration-count: 1 !important;
               scroll-behavior: auto !important;
-            }
-          }
-        `}</style>
-      </main>
-    );
-  }
-
-  /*
-   * =========================================================
-   * BLOCO DE REVISÃO (pergunta + resposta correta)
-   * =========================================================
-   */
-
-  const blocoRevisao = revisaoEliminacao && (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left">
-      <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/35">
-        A pergunta que te eliminou
-      </p>
-
-      <p className="mt-1.5 text-[13px] font-bold leading-snug text-white/90">
-        {revisaoEliminacao.enunciado}
-      </p>
-
-      <div className="mt-2.5 max-h-56 space-y-1.5 overflow-y-auto">
-        {revisaoEliminacao.alternativas.map((alt, index) => {
-          const correta = alt.id === revisaoEliminacao.corretaId;
-          const minha = alt.id === revisaoEliminacao.minhaAlternativaId;
-          const errada = minha && !correta;
-
-          return (
-            <div
-              key={alt.id}
-              className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs ${
-                correta
-                  ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200"
-                  : errada
-                    ? "border-red-400/40 bg-red-500/10 text-red-200"
-                    : "border-white/[0.07] bg-white/[0.02] text-white/50"
-              }`}
-            >
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white/10 text-[10px] font-black">
-                {String.fromCharCode(65 + index)}
-              </span>
-
-              <span className="flex-1 font-semibold leading-snug">{alt.texto}</span>
-
-              {correta && (
-                <span className="flex shrink-0 items-center gap-1 text-[9px] font-black uppercase">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Correta
-                </span>
-              )}
-
-              {errada && (
-                <span className="flex shrink-0 items-center gap-1 text-[9px] font-black uppercase">
-                  <XCircle className="h-3.5 w-3.5" /> Sua resposta
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {revisaoEliminacao.minhaAlternativaId === null && (
-        <p className="mt-2 text-[11px] font-semibold text-red-300/80">
-          Você não respondeu a tempo.
-        </p>
-      )}
-    </div>
-  );
-
-  /*
-   * =========================================================
-   * JOGADOR ELIMINADO (tela única e compacta)
-   * =========================================================
-   */
-
-  if (
-    jogadorEliminado &&
-    classificacaoEliminacao
-  ) {
-    const tempoMedio =
-      classificacaoEliminacao.totalRespostas > 0
-        ? classificacaoEliminacao.tempoTotal / classificacaoEliminacao.totalRespostas
-        : 0;
-
-    return (
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b0918] px-4 py-6 text-white">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(244,63,94,.16),transparent_50%),radial-gradient(ellipse_at_10%_90%,rgba(168,85,247,.12),transparent_35%)]" />
-        <div className="pointer-events-none absolute inset-0 opacity-[0.045] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:22px_22px]" />
-
-        <div className="relative w-full max-w-md animate-[elimination-card-in_500ms_cubic-bezier(.16,1,.3,1)_both]">
-          <div className="overflow-hidden rounded-3xl border border-rose-300/20 bg-[#171326]/95 shadow-2xl shadow-rose-950/30 backdrop-blur-xl">
-            <div className="flex items-center gap-3 border-b border-white/[0.07] bg-gradient-to-r from-rose-500/15 via-fuchsia-500/10 to-transparent px-4 py-3.5">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-rose-300/25 bg-rose-400/10 text-2xl">
-                😵
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <h1 className="text-base font-black leading-tight">
-                  Você saiu da arena!
-                </h1>
-                <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-white/45">
-                  {mensagemEliminacao}
-                </p>
-              </div>
-
-              <div className="shrink-0 text-right">
-                <p className="text-2xl font-black leading-none tabular-nums">
-                  {classificacaoEliminacao.posicao}
-                  <span className="text-sm text-fuchsia-200">º</span>
-                </p>
-                <p className="mt-0.5 text-[10px] font-semibold text-white/40">
-                  de {classificacaoEliminacao.totalJogadores}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3 p-4">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center justify-between rounded-xl border border-emerald-300/15 bg-emerald-400/[0.06] px-3 py-2">
-                  <span className="text-[9px] font-black uppercase tracking-wider text-emerald-200/60">Acertos</span>
-                  <span className="text-lg font-black tabular-nums text-emerald-200">{classificacaoEliminacao.acertos}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-xl border border-cyan-300/15 bg-cyan-400/[0.06] px-3 py-2">
-                  <span className="text-[9px] font-black uppercase tracking-wider text-cyan-200/60">Médio</span>
-                  <span className="text-sm font-black tabular-nums text-cyan-200">{formatarTempo(tempoMedio)}</span>
-                </div>
-              </div>
-
-              {blocoRevisao}
-
-              <div className="flex items-center justify-center gap-2 pt-1 text-[10px] font-black uppercase tracking-wider text-fuchsia-200/65">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Aguardando resultado final
-              </div>
-
-              <button
-                onClick={() => router.push("/")}
-                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-4 py-2.5 text-xs font-black text-white/75 transition hover:border-fuchsia-300/30 hover:bg-fuchsia-400/10 hover:text-white"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Sair da partida
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <style jsx global>{`
-          @keyframes elimination-card-in {
-            from { opacity: 0; transform: translateY(24px) scale(.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-          }
-          @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-              animation-duration: .01ms !important;
-              animation-iteration-count: 1 !important;
             }
           }
         `}</style>
