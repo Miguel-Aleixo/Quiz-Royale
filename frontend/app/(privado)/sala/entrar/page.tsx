@@ -19,7 +19,7 @@ import {
   Users,
   WifiOff,
   ShieldCheck,
-  Clock3,
+  UserX,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,7 +55,7 @@ interface Sala {
   jogadores: Jogador[];
 }
 
-interface SalaAtualizada extends Sala { }
+interface SalaAtualizada extends Sala {}
 
 interface ErroSocket {
   mensagem: string;
@@ -64,6 +64,12 @@ interface ErroSocket {
 interface SalaFechada {
   codigo: string;
   mensagem: string;
+}
+
+interface JogadorRemovido {
+  codigo: string;
+  mensagem: string;
+  usuarioId?: number;
 }
 
 interface MensagemChat {
@@ -96,6 +102,9 @@ function SalaEntrarContent() {
   const [textoChat, setTextoChat] = useState("");
   const [cooldown, setCooldown] = useState(0);
 
+  const [removendoJogadorId, setRemovendoJogadorId] =
+    useState<number | null>(null);
+
   const audioContextRef = useRef<AudioContext | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const mensagensRef = useRef<HTMLDivElement | null>(null);
@@ -109,7 +118,9 @@ function SalaEntrarContent() {
       const AudioContextClass = window.AudioContext;
       if (!AudioContextClass) return;
 
-      const context = audioContextRef.current ?? new AudioContextClass();
+      const context =
+        audioContextRef.current ?? new AudioContextClass();
+
       audioContextRef.current = context;
 
       if (context.state === "suspended") void context.resume();
@@ -130,17 +141,25 @@ function SalaEntrarContent() {
 
         oscilador.type = tipo === "erro" ? "sawtooth" : "sine";
         oscilador.frequency.value = frequencia;
+
         ganho.gain.setValueAtTime(0.0001, inicio);
-        ganho.gain.exponentialRampToValueAtTime(0.06, inicio + 0.015);
-        ganho.gain.exponentialRampToValueAtTime(0.0001, inicio + 0.18);
+        ganho.gain.exponentialRampToValueAtTime(
+          0.06,
+          inicio + 0.015
+        );
+        ganho.gain.exponentialRampToValueAtTime(
+          0.0001,
+          inicio + 0.18
+        );
 
         oscilador.connect(ganho);
         ganho.connect(context.destination);
+
         oscilador.start(inicio);
         oscilador.stop(inicio + 0.2);
       });
     } catch {
-      // O áudio é opcional; falhas não devem interromper a sala.
+      // O áudio é opcional.
     }
   }
 
@@ -151,7 +170,9 @@ function SalaEntrarContent() {
     cooldownTimerRef.current = setInterval(() => {
       const restante = Math.max(
         0,
-        Math.ceil((proximoEnvioRef.current - Date.now()) / 500)
+        Math.ceil(
+          (proximoEnvioRef.current - Date.now()) / 500
+        )
       );
 
       setCooldown(restante);
@@ -194,11 +215,14 @@ function SalaEntrarContent() {
         setCarregando(true);
         setErro("");
 
-        const res = await fetch(`${API}/sala/codigo/${codigoParam}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const res = await fetch(
+          `${API}/sala/codigo/${codigoParam}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         const data = await res.json();
 
@@ -213,7 +237,9 @@ function SalaEntrarContent() {
         if (!cancelado) setSala(data);
       } catch (error) {
         const mensagem =
-          error instanceof Error ? error.message : "Erro ao carregar a sala.";
+          error instanceof Error
+            ? error.message
+            : "Erro ao carregar a sala.";
 
         if (!cancelado) {
           setErro(mensagem);
@@ -250,26 +276,47 @@ function SalaEntrarContent() {
 
     socketRef.current = socketInstance;
 
-    socketInstance.on("historico_chat", (mensagens: MensagemChat[]) => {
-      setMensagensChat(Array.isArray(mensagens) ? mensagens.slice(-100) : []);
-    });
+    socketInstance.on(
+      "historico_chat",
+      (mensagens: MensagemChat[]) => {
+        setMensagensChat(
+          Array.isArray(mensagens)
+            ? mensagens.slice(-100)
+            : []
+        );
+      }
+    );
 
-    socketInstance.on("nova_mensagem", (mensagem: MensagemChat) => {
-      setMensagensChat((anteriores) => {
-        if (anteriores.some((item) => item.id === mensagem.id)) {
-          return anteriores;
-        }
+    socketInstance.on(
+      "nova_mensagem",
+      (mensagem: MensagemChat) => {
+        setMensagensChat((anteriores) => {
+          if (
+            anteriores.some(
+              (item) => item.id === mensagem.id
+            )
+          ) {
+            return anteriores;
+          }
 
-        return [...anteriores, mensagem].slice(-100);
-      });
-    });
+          return [...anteriores, mensagem].slice(-100);
+        });
+      }
+    );
 
     socketInstance.on("erro_chat", (data: ErroSocket) => {
-      toast.error(data?.mensagem || "Não foi possível enviar a mensagem.");
+      toast.error(
+        data?.mensagem ||
+          "Não foi possível enviar a mensagem."
+      );
     });
 
     socketInstance.on("connect", () => {
-      console.log("Conectado ao SalaGateway:", socketInstance.id);
+      console.log(
+        "Conectado ao SalaGateway:",
+        socketInstance.id
+      );
+
       setConectado(true);
       tocarSom("conectado");
 
@@ -278,26 +325,56 @@ function SalaEntrarContent() {
       });
     });
 
-    socketInstance.on("sala_atualizada", (data: SalaAtualizada) => {
-      setSala(data);
-    });
+    socketInstance.on(
+      "sala_atualizada",
+      (data: SalaAtualizada) => {
+        setSala(data);
+      }
+    );
 
-    socketInstance.on("sala_fechada", (data: SalaFechada) => {
-      setConectado(false);
+    socketInstance.on(
+      "jogador_removido",
+      (data: JogadorRemovido) => {
+        setConectado(false);
 
-      toast.info(data.mensagem || "O criador saiu. A sala foi fechada.");
+        toast.error(
+          data?.mensagem ||
+            "Você foi removido desta sala."
+        );
 
-      setTimeout(() => router.push("/"), 800);
-    });
+        setTimeout(() => {
+          router.push("/");
+        }, 1200);
+      }
+    );
 
-    socketInstance.on("partida_iniciada", (data: { codigo: string }) => {
-      toast.success("A partida começou!");
-      tocarSom("inicio");
+    socketInstance.on(
+      "sala_fechada",
+      (data: SalaFechada) => {
+        setConectado(false);
 
-      setTimeout(() => {
-        router.push(`/sala/partida?codigo=${data.codigo}`);
-      }, 500);
-    });
+        toast.info(
+          data.mensagem ||
+            "O criador saiu. A sala foi fechada."
+        );
+
+        setTimeout(() => router.push("/"), 800);
+      }
+    );
+
+    socketInstance.on(
+      "partida_iniciada",
+      (data: { codigo: string }) => {
+        toast.success("A partida começou!");
+        tocarSom("inicio");
+
+        setTimeout(() => {
+          router.push(
+            `/sala/partida?codigo=${data.codigo}`
+          );
+        }, 500);
+      }
+    );
 
     socketInstance.on("erro_sala", (data: ErroSocket) => {
       setErro(data.mensagem);
@@ -306,7 +383,11 @@ function SalaEntrarContent() {
     });
 
     socketInstance.on("connect_error", (error) => {
-      console.error("Erro ao conectar Socket.IO:", error.message);
+      console.error(
+        "Erro ao conectar Socket.IO:",
+        error.message
+      );
+
       setConectado(false);
     });
 
@@ -339,7 +420,7 @@ function SalaEntrarContent() {
   }, [mensagensChat]);
 
   /*
-   * ENVIAR MENSAGEM COM INTERVALO MÍNIMO
+   * ENVIAR MENSAGEM
    */
   function enviarMensagemChat(
     event: React.FormEvent<HTMLFormElement>
@@ -352,7 +433,9 @@ function SalaEntrarContent() {
     if (!texto) return;
 
     if (texto.length > LIMITE_CARACTERES) {
-      toast.error(`A mensagem deve ter no máximo ${LIMITE_CARACTERES} caracteres.`);
+      toast.error(
+        `A mensagem deve ter no máximo ${LIMITE_CARACTERES} caracteres.`
+      );
       return;
     }
 
@@ -368,16 +451,28 @@ function SalaEntrarContent() {
 
     const agora = Date.now();
 
-    // A validação por ref evita envios repetidos antes da atualização do estado.
     if (agora < proximoEnvioRef.current) {
-      const restante = Math.ceil((proximoEnvioRef.current - agora) / 1000);
+      const restante = Math.ceil(
+        (proximoEnvioRef.current - agora) / 1000
+      );
+
       setCooldown(restante);
-      toast.warning(`Aguarde ${restante} segundo${restante === 1 ? "" : "s"} para enviar outra mensagem.`);
+
+      toast.warning(
+        `Aguarde ${restante} segundo${
+          restante === 1 ? "" : "s"
+        } para enviar outra mensagem.`
+      );
+
       return;
     }
 
-    proximoEnvioRef.current = agora + INTERVALO_MENSAGENS_MS;
-    setCooldown(Math.ceil(INTERVALO_MENSAGENS_MS / 1000));
+    proximoEnvioRef.current =
+      agora + INTERVALO_MENSAGENS_MS;
+
+    setCooldown(
+      Math.ceil(INTERVALO_MENSAGENS_MS / 1000)
+    );
 
     socketAtual.emit("enviar_mensagem", {
       codigo: sala.codigo,
@@ -395,6 +490,7 @@ function SalaEntrarContent() {
 
     try {
       await navigator.clipboard.writeText(sala.codigo);
+
       setCopiado(true);
       tocarSom("copiado");
       toast.success("Código copiado!");
@@ -429,7 +525,9 @@ function SalaEntrarContent() {
       setErro("");
 
       const res = await fetch(
-        `${API}/sala/sair/${encodeURIComponent(sala.codigo)}`,
+        `${API}/sala/sair/${encodeURIComponent(
+          sala.codigo
+        )}`,
         {
           method: "DELETE",
           headers: {
@@ -443,7 +541,8 @@ function SalaEntrarContent() {
       if (!res.ok) {
         const mensagem = Array.isArray(data?.message)
           ? data.message.join(", ")
-          : data?.message || "Não foi possível sair da sala.";
+          : data?.message ||
+            "Não foi possível sair da sala.";
 
         throw new Error(mensagem);
       }
@@ -453,12 +552,104 @@ function SalaEntrarContent() {
       router.push("/");
     } catch (error) {
       const mensagem =
-        error instanceof Error ? error.message : "Erro ao sair da sala.";
+        error instanceof Error
+          ? error.message
+          : "Erro ao sair da sala.";
 
       setErro(mensagem);
       toast.error(mensagem);
     } finally {
       setSaindo(false);
+    }
+  }
+
+  /*
+   * REMOVER JOGADOR DA SALA
+   */
+  async function removerJogador(jogador: Jogador) {
+    if (!sala || !ehCriador) {
+      toast.error(
+        "Você não tem permissão para remover jogadores."
+      );
+      return;
+    }
+
+    if (
+      Number(jogador.usuarioId) ===
+      Number(sala.criador?.id)
+    ) {
+      toast.error(
+        "Você não pode remover o criador da sala."
+      );
+      return;
+    }
+
+    const confirmar = window.confirm(
+      `Deseja realmente remover ${jogador.usuario.nome} da sala?`
+    );
+
+    if (!confirmar) return;
+
+    const token = Cookies.get("token");
+
+    if (!token || !API) {
+      toast.error(
+        "Não foi possível realizar a operação."
+      );
+      return;
+    }
+
+    try {
+      setRemovendoJogadorId(jogador.usuarioId);
+
+      const res = await fetch(
+        `${API}/sala/${encodeURIComponent(
+          sala.codigo
+        )}/jogador/${jogador.usuarioId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const mensagem = Array.isArray(data?.message)
+          ? data.message.join(", ")
+          : data?.message ||
+            "Não foi possível remover o jogador.";
+
+        throw new Error(mensagem);
+      }
+
+      setSala((anterior) => {
+        if (!anterior) return anterior;
+
+        return {
+          ...anterior,
+          jogadores: anterior.jogadores.filter(
+            (item) =>
+              Number(item.usuarioId) !==
+              Number(jogador.usuarioId)
+          ),
+        };
+      });
+
+      toast.success(
+        `${jogador.usuario.nome} foi removido da sala.`
+      );
+    } catch (error) {
+      const mensagem =
+        error instanceof Error
+          ? error.message
+          : "Erro ao remover jogador.";
+
+      toast.error(mensagem);
+    } finally {
+      setRemovendoJogadorId(null);
     }
   }
 
@@ -484,19 +675,23 @@ function SalaEntrarContent() {
       setIniciando(true);
       setErro("");
 
-      const res = await fetch(`${API}/partida/iniciar/${sala.codigo}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await fetch(
+        `${API}/partida/iniciar/${sala.codigo}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       const data = await res.json();
 
       if (!res.ok) {
         const mensagem = Array.isArray(data?.message)
           ? data.message.join(", ")
-          : data?.message || "Não foi possível iniciar a partida.";
+          : data?.message ||
+            "Não foi possível iniciar a partida.";
 
         throw new Error(mensagem);
       }
@@ -505,7 +700,9 @@ function SalaEntrarContent() {
       toast.success("Partida iniciada!");
     } catch (error) {
       const mensagem =
-        error instanceof Error ? error.message : "Erro ao iniciar partida.";
+        error instanceof Error
+          ? error.message
+          : "Erro ao iniciar partida.";
 
       setErro(mensagem);
       toast.error(mensagem);
@@ -530,8 +727,12 @@ function SalaEntrarContent() {
           </div>
 
           <div className="text-center">
-            <p className="font-bold">Entrando na sala...</p>
-            <p className="mt-1 text-sm text-white/40">Aguarde um momento</p>
+            <p className="font-bold">
+              Entrando na sala...
+            </p>
+            <p className="mt-1 text-sm text-white/40">
+              Aguarde um momento
+            </p>
           </div>
         </div>
       </main>
@@ -551,9 +752,13 @@ function SalaEntrarContent() {
             <WifiOff className="h-8 w-8 text-red-400" />
           </div>
 
-          <h1 className="mt-6 text-xl font-black">Não foi possível entrar</h1>
+          <h1 className="mt-6 text-xl font-black">
+            Não foi possível entrar
+          </h1>
 
-          <p className="mt-3 text-sm leading-6 text-white/45">{erro}</p>
+          <p className="mt-3 text-sm leading-6 text-white/45">
+            {erro}
+          </p>
 
           <button
             type="button"
@@ -570,11 +775,20 @@ function SalaEntrarContent() {
 
   if (!sala) return null;
 
-  const ehCriador = Number(usuario?.sub) === Number(sala.criador?.id);
-  const quantidadeJogadores = sala.jogadores?.length ?? 0;
+  const ehCriador =
+    Number(usuario?.sub) ===
+    Number(sala.criador?.id);
+
+  const quantidadeJogadores =
+    sala.jogadores?.length ?? 0;
+
   const percentualSala =
     sala.maxJogadores > 0
-      ? Math.min((quantidadeJogadores / sala.maxJogadores) * 100, 100)
+      ? Math.min(
+          (quantidadeJogadores / sala.maxJogadores) *
+            100,
+          100
+        )
       : 0;
 
   const podeEnviar =
@@ -612,16 +826,18 @@ function SalaEntrarContent() {
           </div>
 
           <div
-            className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 ${conectado
-              ? "border-emerald-400/15 bg-emerald-500/10 text-emerald-300"
-              : "border-yellow-400/15 bg-yellow-500/10 text-yellow-300"
-              }`}
+            className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 ${
+              conectado
+                ? "border-emerald-400/15 bg-emerald-500/10 text-emerald-300"
+                : "border-yellow-400/15 bg-yellow-500/10 text-yellow-300"
+            }`}
           >
             <span
-              className={`h-2 w-2 rounded-full ${conectado
-                ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.7)]"
-                : "animate-pulse bg-yellow-400"
-                }`}
+              className={`h-2 w-2 rounded-full ${
+                conectado
+                  ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.7)]"
+                  : "animate-pulse bg-yellow-400"
+              }`}
             />
             <span className="hidden text-[11px] font-bold sm:block">
               {conectado ? "Conectado" : "Conectando..."}
@@ -690,7 +906,9 @@ function SalaEntrarContent() {
                   </div>
 
                   <div>
-                    <p className="text-sm font-black">Jogadores</p>
+                    <p className="text-sm font-black">
+                      Jogadores
+                    </p>
                     <p className="mt-0.5 text-[11px] text-white/35">
                       Participantes na sala
                     </p>
@@ -720,8 +938,11 @@ function SalaEntrarContent() {
               </div>
 
               <p className="mt-2 text-right text-[10px] text-white/30">
-                {Math.max(sala.maxJogadores - quantidadeJogadores, 0)} vaga(s)
-                disponível(is)
+                {Math.max(
+                  sala.maxJogadores - quantidadeJogadores,
+                  0
+                )}{" "}
+                vaga(s) disponível(is)
               </p>
             </div>
 
@@ -731,6 +952,7 @@ function SalaEntrarContent() {
                 <h3 className="text-xs font-black uppercase tracking-[0.15em] text-white/50">
                   Participantes
                 </h3>
+
                 <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-2.5 py-1 text-[10px] font-bold text-white/45">
                   {quantidadeJogadores} online na sala
                 </span>
@@ -740,7 +962,12 @@ function SalaEntrarContent() {
                 <div className="grid gap-2 sm:grid-cols-2">
                   {sala.jogadores.map((jogador) => {
                     const ehJogadorCriador =
-                      Number(jogador.usuarioId) === Number(sala.criador?.id);
+                      Number(jogador.usuarioId) ===
+                      Number(sala.criador?.id);
+
+                    const removendo =
+                      removendoJogadorId ===
+                      jogador.usuarioId;
 
                     return (
                       <div
@@ -748,7 +975,9 @@ function SalaEntrarContent() {
                         className="group flex min-w-0 items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3 transition hover:border-fuchsia-400/20 hover:bg-white/[0.045]"
                       >
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500/25 to-violet-500/10 text-sm font-black text-fuchsia-200 ring-1 ring-fuchsia-300/15">
-                          {jogador.usuario.nome.charAt(0).toUpperCase()}
+                          {jogador.usuario.nome
+                            .charAt(0)
+                            .toUpperCase()}
                         </div>
 
                         <div className="min-w-0 flex-1">
@@ -771,6 +1000,27 @@ function SalaEntrarContent() {
                         {ehJogadorCriador && (
                           <ShieldCheck className="h-4 w-4 shrink-0 text-yellow-300/60" />
                         )}
+
+                        {ehCriador && !ehJogadorCriador && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              removerJogador(jogador)
+                            }
+                            disabled={
+                              removendoJogadorId !== null
+                            }
+                            title={`Remover ${jogador.usuario.nome} da sala`}
+                            aria-label={`Remover ${jogador.usuario.nome} da sala`}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-red-400/10 bg-red-500/[0.06] text-red-400/60 transition hover:border-red-400/30 hover:bg-red-500/15 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            {removendo ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <UserX className="h-4 w-4" />
+                            )}
+                          </button>
+                        )}
                       </div>
                     );
                   })}
@@ -780,9 +1030,11 @@ function SalaEntrarContent() {
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04]">
                     <Users className="h-5 w-5 text-white/25" />
                   </div>
+
                   <p className="mt-3 text-sm font-bold text-white/55">
                     Aguardando jogadores
                   </p>
+
                   <p className="mt-1 text-xs text-white/30">
                     Compartilhe o código para reunir sua equipe.
                   </p>
@@ -804,6 +1056,7 @@ function SalaEntrarContent() {
                   <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/35">
                     Status da sala
                   </p>
+
                   <p className="mt-1 text-sm font-black text-emerald-300">
                     Aguardando início
                   </p>
@@ -817,30 +1070,36 @@ function SalaEntrarContent() {
               </p>
             </div>
 
-
             {/* CHAT */}
-            <section className="flex max-h-[270px] min-h-0 flex-col overflow-hidden rounded-2xl border border-fuchsia-400/15 bg-[#10101d]/90 shadow-xl shadow-black/10 backdrop-blur-xl  lg:sticky lg:top-4">
-              {/* CABEÇALHO */}
+            <section className="flex max-h-[270px] min-h-0 flex-col overflow-hidden rounded-2xl border border-fuchsia-400/15 bg-[#10101d]/90 shadow-xl shadow-black/10 backdrop-blur-xl lg:sticky lg:top-4">
               <div className="flex shrink-0 items-center gap-2.5 border-b border-white/[0.07] px-3 py-2.5">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-fuchsia-300/10 bg-fuchsia-500/10">
                   <MessageCircle className="h-4 w-4 text-fuchsia-300" />
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-xs font-black">Chat da sala</h3>
+                  <h3 className="text-xs font-black">
+                    Chat da sala
+                  </h3>
                   <p className="text-[10px] text-white/35">
                     Converse com os participantes
                   </p>
                 </div>
 
                 <span
-                  className={`h-2 w-2 shrink-0 rounded-full ${conectado ? "bg-emerald-400" : "bg-yellow-400"
-                    }`}
-                  title={conectado ? "Conectado" : "Desconectado"}
+                  className={`h-2 w-2 shrink-0 rounded-full ${
+                    conectado
+                      ? "bg-emerald-400"
+                      : "bg-yellow-400"
+                  }`}
+                  title={
+                    conectado
+                      ? "Conectado"
+                      : "Desconectado"
+                  }
                 />
               </div>
 
-              {/* MENSAGENS */}
               <div
                 ref={mensagensRef}
                 aria-live="polite"
@@ -864,29 +1123,38 @@ function SalaEntrarContent() {
                 ) : (
                   mensagensChat.map((mensagem) => {
                     const minhaMensagem =
-                      Number(mensagem.usuarioId) === Number(usuario?.sub);
+                      Number(mensagem.usuarioId) ===
+                      Number(usuario?.sub);
 
                     return (
                       <div
                         key={mensagem.id}
-                        className={`flex min-w-0 flex-col ${minhaMensagem ? "items-end" : "items-start"
-                          }`}
+                        className={`flex min-w-0 flex-col ${
+                          minhaMensagem
+                            ? "items-end"
+                            : "items-start"
+                        }`}
                       >
                         <span className="mb-0.5 max-w-[90%] truncate px-1 text-[9px] font-bold text-white/40">
-                          {minhaMensagem ? "Você" : mensagem.nome}
+                          {minhaMensagem
+                            ? "Você"
+                            : mensagem.nome}
                         </span>
 
                         <div
-                          className={`max-w-[90%] break-words rounded-xl px-2.5 py-2 text-xs leading-4 ${minhaMensagem
+                          className={`max-w-[90%] break-words rounded-xl px-2.5 py-2 text-xs leading-4 ${
+                            minhaMensagem
                               ? "rounded-br-sm bg-gradient-to-br from-fuchsia-600 to-violet-600 text-white"
                               : "rounded-bl-sm border border-white/[0.07] bg-white/[0.045] text-white/85"
-                            }`}
+                          }`}
                         >
                           {mensagem.texto}
                         </div>
 
                         <span className="mt-0.5 px-1 text-[9px] text-white/25">
-                          {new Date(mensagem.criadoEm).toLocaleTimeString("pt-BR", {
+                          {new Date(
+                            mensagem.criadoEm
+                          ).toLocaleTimeString("pt-BR", {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
@@ -897,21 +1165,26 @@ function SalaEntrarContent() {
                 )}
               </div>
 
-              {/* FORMULÁRIO */}
               <form
                 onSubmit={enviarMensagemChat}
                 className="shrink-0 border-t border-white/[0.07] bg-black/10 p-2.5"
               >
                 <div
-                  className={`flex items-center gap-1.5 rounded-xl border bg-black/20 p-1 transition ${cooldown > 0
+                  className={`flex items-center gap-1.5 rounded-xl border bg-black/20 p-1 transition ${
+                    cooldown > 0
                       ? "border-yellow-400/20"
                       : "border-white/10 focus-within:border-fuchsia-400/40"
-                    }`}
+                  }`}
                 >
                   <input
                     value={textoChat}
                     onChange={(event) =>
-                      setTextoChat(event.target.value.slice(0, LIMITE_CARACTERES))
+                      setTextoChat(
+                        event.target.value.slice(
+                          0,
+                          LIMITE_CARACTERES
+                        )
+                      )
                     }
                     maxLength={LIMITE_CARACTERES}
                     placeholder={
@@ -930,7 +1203,11 @@ function SalaEntrarContent() {
                     type="submit"
                     disabled={!podeEnviar}
                     aria-label="Enviar mensagem"
-                    title={cooldown > 0 ? `Aguarde ${cooldown}s` : "Enviar mensagem"}
+                    title={
+                      cooldown > 0
+                        ? `Aguarde ${cooldown}s`
+                        : "Enviar mensagem"
+                    }
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-600 to-violet-600 text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     {cooldown > 0 ? (
@@ -945,25 +1222,26 @@ function SalaEntrarContent() {
 
                 <div className="mt-1.5 flex items-center justify-between gap-2 px-1">
                   <p
-                    className={`text-[9px] ${textoChat.length >= LIMITE_CARACTERES
+                    className={`text-[9px] ${
+                      textoChat.length >= LIMITE_CARACTERES
                         ? "text-yellow-300"
                         : "text-white/30"
-                      }`}
+                    }`}
                   >
                     {textoChat.length}/{LIMITE_CARACTERES}
                   </p>
-
                 </div>
               </form>
             </section>
-
 
             {/* INICIAR PARTIDA */}
             {ehCriador && (
               <button
                 type="button"
                 onClick={iniciarPartida}
-                disabled={iniciando || quantidadeJogadores === 0}
+                disabled={
+                  iniciando || quantidadeJogadores === 0
+                }
                 className="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-fuchsia-600 to-violet-600 px-5 py-4 text-sm font-black shadow-lg shadow-fuchsia-950/25 transition hover:-translate-y-0.5 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
               >
                 {iniciando ? (
@@ -980,8 +1258,6 @@ function SalaEntrarContent() {
               </button>
             )}
 
-           
-
             {/* SAIR */}
             <button
               type="button"
@@ -996,7 +1272,7 @@ function SalaEntrarContent() {
         </div>
 
         {/* RODAPÉ */}
-        <footer className=" border-t border-white/[0.07] py-6">
+        <footer className="border-t border-white/[0.07] py-6">
           <div className="flex flex-col items-center justify-center gap-2 text-center sm:flex-row sm:gap-3">
             <p className="text-[11px] leading-5 text-white/30">
               © {new Date().getFullYear()} QuizRoyale. Todos os direitos reservados.
@@ -1010,7 +1286,10 @@ function SalaEntrarContent() {
         <div
           className="fixed inset-0 z-50 flex animate-[lobby-fade-in_180ms_ease-out] items-center justify-center bg-black/75 px-4 py-6 backdrop-blur-md"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !saindo) {
+            if (
+              event.target === event.currentTarget &&
+              !saindo
+            ) {
               setModalSair(false);
             }
           }}
@@ -1020,7 +1299,9 @@ function SalaEntrarContent() {
             aria-modal="true"
             aria-labelledby="modal-sair-titulo"
             className="w-full max-w-md animate-[lobby-modal-in_260ms_cubic-bezier(.22,1,.36,1)] overflow-hidden rounded-3xl border border-white/10 bg-[#11111f] shadow-2xl shadow-black/50"
-            onMouseDown={(event) => event.stopPropagation()}
+            onMouseDown={(event) =>
+              event.stopPropagation()
+            }
           >
             <div className="border-b border-white/[0.06] px-6 py-5">
               <div className="flex items-center gap-3">
@@ -1029,9 +1310,13 @@ function SalaEntrarContent() {
                 </div>
 
                 <div>
-                  <h2 id="modal-sair-titulo" className="text-base font-black">
+                  <h2
+                    id="modal-sair-titulo"
+                    className="text-base font-black"
+                  >
                     Sair da sala?
                   </h2>
+
                   <p className="mt-1 text-xs text-white/35">
                     Essa ação precisa de confirmação
                   </p>
@@ -1043,14 +1328,19 @@ function SalaEntrarContent() {
               <div className="rounded-2xl border border-red-400/10 bg-red-500/[0.05] p-4">
                 <div className="flex gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/10">
-                    <span className="text-sm font-black text-red-400">!</span>
+                    <span className="text-sm font-black text-red-400">
+                      !
+                    </span>
                   </div>
 
                   <div>
-                    <p className="text-sm font-bold text-red-300">Atenção</p>
+                    <p className="text-sm font-bold text-red-300">
+                      Atenção
+                    </p>
+
                     <p className="mt-1 text-xs leading-5 text-white/50">
-                      Ao sair da sala, ela será fechada para todos os jogadores
-                      que estão aguardando.
+                      Ao sair da sala, ela será fechada para
+                      todos os jogadores que estão aguardando.
                     </p>
                   </div>
                 </div>
@@ -1058,7 +1348,10 @@ function SalaEntrarContent() {
 
               <p className="mt-5 text-sm leading-6 text-white/55">
                 Tem certeza de que deseja sair da sala{" "}
-                <span className="font-bold text-white">{sala.nome}</span>?
+                <span className="font-bold text-white">
+                  {sala.nome}
+                </span>
+                ?
               </p>
             </div>
 
@@ -1126,11 +1419,15 @@ export default function Page() {
       fallback={
         <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#070711] text-white">
           <div className="pointer-events-none absolute -left-40 -top-40 h-96 w-96 rounded-full bg-fuchsia-600/15 blur-3xl" />
+
           <div className="relative flex flex-col items-center gap-5">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10">
               <Loader2 className="h-8 w-8 animate-spin text-fuchsia-300" />
             </div>
-            <p className="text-sm font-bold text-white/50">Carregando sala...</p>
+
+            <p className="text-sm font-bold text-white/50">
+              Carregando sala...
+            </p>
           </div>
         </main>
       }
