@@ -4,15 +4,16 @@ import {
   ArrowDownRight,
   ArrowRight,
   CheckCircle2,
-  Crown,
   Gamepad2,
+  Loader2,
   Mail,
+  Pencil,
   Plus,
   RefreshCw,
   Search,
   Shield,
-  Sparkles,
   Swords,
+  Trash2,
   Trophy,
   Users,
   Zap,
@@ -68,6 +69,7 @@ interface Pergunta {
 type FiltroSalas = "TODAS" | "DISPONIVEIS" | "MINHAS";
 
 const LIMITE_CARACTERES_BUSCA = 40;
+const LIMITE_NOME_SALA = 40;
 const SALAS_POR_PAGINA = 6;
 
 export default function Home() {
@@ -89,6 +91,16 @@ export default function Home() {
   const [loadingPerguntas, setLoadingPerguntas] = useState(false);
 
   const [jogadoresOnline, setJogadoresOnline] = useState(0);
+
+  /* Edição de sala */
+  const [salaEditando, setSalaEditando] = useState<Sala | null>(null);
+  const [editNome, setEditNome] = useState("");
+  const [editMax, setEditMax] = useState("");
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
+
+  /* Exclusão de sala */
+  const [salaExcluindo, setSalaExcluindo] = useState<Sala | null>(null);
+  const [excluindoSala, setExcluindoSala] = useState(false);
 
   const estaLogado = mounted && Boolean(token);
   const emailNaoVerificado =
@@ -432,6 +444,133 @@ export default function Home() {
     }
   }
 
+  /*
+   * =========================================================
+   * EDITAR SALA
+   * =========================================================
+   */
+
+  function abrirEdicao(sala: Sala) {
+    setSalaEditando(sala);
+    setEditNome(sala.nome);
+    setEditMax(String(sala.maxJogadores));
+  }
+
+  function fecharEdicao() {
+    if (salvandoEdicao) return;
+    setSalaEditando(null);
+  }
+
+  async function salvarEdicao() {
+    if (!salaEditando) return;
+
+    const currentToken = Cookies.get("token");
+    if (!currentToken) {
+      router.push("/login");
+      return;
+    }
+
+    const nome = editNome.trim();
+    const maxJogadores = Number(editMax);
+    const jogadoresAtuais = salaEditando._count?.jogadores ?? 0;
+
+    if (!nome) {
+      toast.warning("Digite um nome para a sala.");
+      return;
+    }
+
+    if (!Number.isInteger(maxJogadores) || maxJogadores < 2) {
+      toast.warning("O máximo de jogadores deve ser no mínimo 2.");
+      return;
+    }
+
+    if (maxJogadores < jogadoresAtuais) {
+      toast.warning(
+        `A sala já tem ${jogadoresAtuais} jogador(es). O máximo não pode ser menor que isso.`,
+      );
+      return;
+    }
+
+    try {
+      setSalvandoEdicao(true);
+
+      const res = await fetch(`${API}/sala/${salaEditando.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${currentToken}`,
+        },
+        body: JSON.stringify({ nome, maxJogadores }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(
+          Array.isArray(data.message)
+            ? data.message.join(", ")
+            : data.message || "Não foi possível editar a sala.",
+        );
+      }
+
+      toast.success("Sala atualizada!");
+      setSalaEditando(null);
+      await buscarSalas(currentToken);
+    } catch (error) {
+      console.error("Erro ao editar sala:", error);
+      toast.error(error instanceof Error ? error.message : "Não foi possível editar a sala.");
+    } finally {
+      setSalvandoEdicao(false);
+    }
+  }
+
+  /*
+   * =========================================================
+   * EXCLUIR SALA
+   * =========================================================
+   */
+
+  async function confirmarExclusao() {
+    if (!salaExcluindo) return;
+
+    const currentToken = Cookies.get("token");
+    if (!currentToken) {
+      router.push("/login");
+      return;
+    }
+
+    try {
+      setExcluindoSala(true);
+
+      const res = await fetch(`${API}/sala/${salaExcluindo.id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${currentToken}`,
+        },
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(
+          Array.isArray(data.message)
+            ? data.message.join(", ")
+            : data.message || "Não foi possível excluir a sala.",
+        );
+      }
+
+      toast.success("Sala excluída!");
+      setSalaExcluindo(null);
+      await buscarSalas(currentToken);
+    } catch (error) {
+      console.error("Erro ao excluir sala:", error);
+      toast.error(error instanceof Error ? error.message : "Não foi possível excluir a sala.");
+    } finally {
+      setExcluindoSala(false);
+    }
+  }
+
   const abrirCriacao = () => {
     if (!estaLogado) {
       setLoading(true);
@@ -764,7 +903,6 @@ export default function Home() {
                     const emAndamento = [
                       "ANDAMENTO",
                       "EM_ANDAMENTO",
-                      "EM_ANDAMENTO",
                     ].includes(statusNormalizado);
                     const disponivel = statusNormalizado === "ABERTA";
                     const ocupacao = Math.min(100, Math.round(((sala._count?.jogadores ?? 0) / Math.max(sala.maxJogadores, 1)) * 100));
@@ -818,30 +956,54 @@ export default function Home() {
 
                           <div className="mt-auto pt-4">
                             {minhaSala ? (
-                              encerrada ? (
-                                <button type="button" onClick={() => reabrirSala(sala.id)} disabled={loading} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-violet-200/15 bg-violet-200/[0.09] text-xs font-black text-violet-100 transition hover:bg-violet-200/[0.16] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer">
-                                  <RefreshCw size={14} /> Reabrir batalha
-                                </button>
-                              ) : (
+                              <div className="flex items-center gap-2">
+                                {encerrada ? (
+                                  <button type="button" onClick={() => reabrirSala(sala.id)} disabled={loading} className="flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-violet-200/15 bg-violet-200/[0.09] text-xs font-black text-violet-100 transition hover:bg-violet-200/[0.16] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer">
+                                    <RefreshCw size={14} /> Reabrir batalha
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled={loading}
+                                    onClick={() => {
+                                      if (!estaLogado || emailNaoVerificado) {
+                                        tratarAcesso();
+                                        return;
+                                      }
+                                      if (emAndamento) {
+                                        router.push(`/sala/entrar?codigo=${sala.codigo}`);
+                                        return;
+                                      }
+                                      entrarDiretoNaSala(sala);
+                                    }}
+                                    className="flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-white text-xs font-black text-[#101120] transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                                  >
+                                    {emailNaoVerificado ? <><Mail size={14} /> Verificar e-mail</> : <>{emAndamento ? <Clock3 size={14} /> : <ArrowRight size={14} />}{emAndamento ? "Continuar sala" : "Entrar na partida"}</>}
+                                  </button>
+                                )}
+
                                 <button
                                   type="button"
-                                  disabled={loading}
-                                  onClick={() => {
-                                    if (!estaLogado || emailNaoVerificado) {
-                                      tratarAcesso();
-                                      return;
-                                    }
-                                    if (emAndamento) {
-                                      router.push(`/sala/entrar?codigo=${sala.codigo}`);
-                                      return;
-                                    }
-                                    entrarDiretoNaSala(sala);
-                                  }}
-                                  className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-white text-xs font-black text-[#101120] transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                                  onClick={() => abrirEdicao(sala)}
+                                  disabled={loading || !disponivel}
+                                  title={disponivel ? "Editar sala" : "Só é possível editar salas abertas"}
+                                  aria-label="Editar sala"
+                                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/65 transition hover:border-cyan-200/30 hover:bg-cyan-200/10 hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
                                 >
-                                  {emailNaoVerificado ? <><Mail size={14} /> Verificar e-mail</> : <>{emAndamento ? <Clock3 size={14} /> : <ArrowRight size={14} />}{emAndamento ? "Continuar sala" : "Entrar na partida"}</>}
+                                  <Pencil size={15} />
                                 </button>
-                              )
+
+                                <button
+                                  type="button"
+                                  onClick={() => setSalaExcluindo(sala)}
+                                  disabled={loading || emAndamento}
+                                  title={emAndamento ? "Não é possível excluir uma partida em andamento" : "Excluir sala"}
+                                  aria-label="Excluir sala"
+                                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/65 transition hover:border-red-300/30 hover:bg-red-400/10 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </div>
                             ) : disponivel ? (
                               <button type="button" onClick={() => {
                                 if (!estaLogado || emailNaoVerificado) {
@@ -907,7 +1069,138 @@ export default function Home() {
 
       </section>
 
+      {/* MODAL: EDITAR SALA */}
+      {salaEditando && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+          onClick={fecharEdicao}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Editar sala"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-[#121427] p-6 shadow-2xl shadow-black/40"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-200/15 bg-cyan-200/[0.08] text-cyan-100">
+                  <Pencil size={18} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black">Editar sala</h3>
+                  <p className="text-xs text-white/40">Código {salaEditando.codigo}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={fecharEdicao}
+                aria-label="Fechar"
+                className="text-white/40 transition hover:text-white cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
 
+            <div className="mt-6 space-y-4">
+              <div>
+                <label htmlFor="edit-nome" className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/40">
+                  Nome da sala
+                </label>
+                <input
+                  id="edit-nome"
+                  value={editNome}
+                  onChange={(e) => setEditNome(e.target.value.slice(0, LIMITE_NOME_SALA))}
+                  maxLength={LIMITE_NOME_SALA}
+                  className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-[#090b17]/80 px-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-cyan-200/40 focus:ring-4 focus:ring-cyan-200/[0.06]"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="edit-max" className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/40">
+                  Máximo de jogadores
+                </label>
+                <input
+                  id="edit-max"
+                  type="number"
+                  min={Math.max(2, salaEditando._count?.jogadores ?? 0)}
+                  value={editMax}
+                  onChange={(e) => setEditMax(e.target.value)}
+                  className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-[#090b17]/80 px-4 text-sm text-white outline-none transition focus:border-cyan-200/40 focus:ring-4 focus:ring-cyan-200/[0.06]"
+                />
+                <p className="mt-1.5 text-[11px] text-white/30">
+                  Já há {salaEditando._count?.jogadores ?? 0} jogador(es) na sala.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-2.5">
+              <button
+                type="button"
+                onClick={fecharEdicao}
+                disabled={salvandoEdicao}
+                className="h-11 flex-1 rounded-xl border border-white/10 bg-white/[0.04] text-sm font-bold text-white/70 transition hover:bg-white/[0.08] disabled:opacity-40 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={salvarEdicao}
+                disabled={salvandoEdicao}
+                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-white text-sm font-black text-[#101120] transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+              >
+                {salvandoEdicao ? <Loader2 size={15} className="animate-spin" /> : null}
+                {salvandoEdicao ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EXCLUIR SALA */}
+      {salaExcluindo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+          onClick={() => { if (!excluindoSala) setSalaExcluindo(null); }}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-label="Excluir sala"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm overflow-hidden rounded-3xl border border-red-300/20 bg-[#151225] p-6 text-center shadow-2xl shadow-black/40"
+          >
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-red-300/20 bg-red-400/10 text-red-200">
+              <Trash2 size={24} />
+            </div>
+
+            <h3 className="mt-4 text-lg font-black">Excluir esta sala?</h3>
+            <p className="mt-2 text-sm leading-6 text-white/50">
+              A sala <span className="font-bold text-white/80">{salaExcluindo.nome}</span> ({salaExcluindo.codigo}) será removida e os jogadores perderão o acesso. Essa ação não pode ser desfeita.
+            </p>
+
+            <div className="mt-6 flex gap-2.5">
+              <button
+                type="button"
+                onClick={() => setSalaExcluindo(null)}
+                disabled={excluindoSala}
+                className="h-11 flex-1 rounded-xl border border-white/10 bg-white/[0.04] text-sm font-bold text-white/70 transition hover:bg-white/[0.08] disabled:opacity-40 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarExclusao}
+                disabled={excluindoSala}
+                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-red-500 text-sm font-black text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+              >
+                {excluindoSala ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                {excluindoSala ? "Excluindo..." : "Excluir"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="relative  w-full  px-75">
         <div className="mx-auto flex max-w-7xl border-t border-white/[0.07] flex-col items-center justify-center gap-3 px-4 py-7 text-center sm:px-6 lg:px-8">
