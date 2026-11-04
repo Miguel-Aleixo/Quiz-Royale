@@ -44,7 +44,7 @@ export class SalaGateway {
 
   constructor(
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   // ==========================================
   // AUTENTICAÇÃO
@@ -172,6 +172,8 @@ export class SalaGateway {
   ) {
     try {
       const usuario = await this.verificarUsuario(socket);
+
+      socket.data.usuarioId = usuario.id;
 
       const codigo =
         typeof data?.codigo === 'string'
@@ -336,6 +338,197 @@ export class SalaGateway {
           error instanceof Error
             ? error.message
             : 'Não foi possível enviar a mensagem.',
+      });
+    }
+  }
+
+  // ==========================================
+  // REMOVER JOGADOR DA SALA
+  // ==========================================
+
+  @SubscribeMessage('remover_jogador')
+  async removerJogador(
+    @MessageBody()
+    data: {
+      codigo: string;
+      usuarioId: number;
+    },
+    @ConnectedSocket() socket: Socket,
+  ) {
+    try {
+      const usuario = await this.verificarUsuario(socket);
+
+      const codigo =
+        typeof data?.codigo === 'string'
+          ? data.codigo.trim().toUpperCase()
+          : '';
+
+      const jogadorId = Number(data?.usuarioId);
+
+      if (!codigo) {
+        throw new Error('Código da sala inválido.');
+      }
+
+      if (!Number.isInteger(jogadorId) || jogadorId <= 0) {
+        throw new Error('Jogador inválido.');
+      }
+
+      // Busca a sala e seus participantes.
+      const sala = await this.prisma.sala.findUnique({
+        where: {
+          codigo,
+        },
+        include: {
+          criador: {
+            select: {
+              id: true,
+              nome: true,
+            },
+          },
+          jogadores: {
+            include: {
+              usuario: {
+                select: {
+                  id: true,
+                  nome: true,
+                  pontuacao: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!sala) {
+        throw new Error('Sala não encontrada.');
+      }
+
+      // Somente o criador pode remover participantes.
+      if (Number(sala.criadorId) !== Number(usuario.id)) {
+        throw new Error(
+          'Somente o criador da sala pode remover jogadores.',
+        );
+      }
+
+      // Não permite remover o próprio criador.
+      if (Number(jogadorId) === Number(sala.criadorId)) {
+        throw new Error(
+          'Você não pode remover o criador da sala.',
+        );
+      }
+
+      if (sala.status !== 'ABERTA') {
+        throw new Error(
+          'Não é possível remover jogadores após o início da partida.',
+        );
+      }
+
+      // Verifica se o jogador está na sala.
+      const jogadorExiste = sala.jogadores.some(
+        (jogador) => Number(jogador.usuarioId) === jogadorId,
+      );
+
+      if (!jogadorExiste) {
+        throw new Error(
+          'Esse jogador não está participando da sala.',
+        );
+      }
+
+      // Remove o participante do banco de dados.
+      await this.prisma.sala.update({
+        where: {
+          id: sala.id,
+        },
+        data: {
+          jogadores: {
+            deleteMany: {
+              usuarioId: jogadorId,
+            },
+          },
+        },
+      });
+
+      const nomeJogador = sala.jogadores.find(
+        (jogador) => Number(jogador.usuarioId) === jogadorId,
+      )?.usuario.nome;
+
+      const salaRoom = `sala:${codigo}`;
+
+      // Localiza todos os sockets desse jogador na sala.
+      const socketsDaSala =
+        await this.server.in(salaRoom).fetchSockets();
+
+      const socketsJogador = socketsDaSala.filter(
+        (socketJogador) =>
+          Number(socketJogador.data.usuarioId) === jogadorId,
+      );
+
+      // Avisa o jogador removido e retira seus sockets da sala.
+      for (const socketJogador of socketsJogador) {
+        socketJogador.emit('jogador_removido', {
+          codigo,
+          mensagem: 'O criador removeu você desta sala.',
+        });
+
+        await socketJogador.leave(salaRoom);
+      }
+
+      // Busca a sala atualizada.
+      const salaAtualizada = await this.prisma.sala.findUnique({
+        where: {
+          id: sala.id,
+        },
+        include: {
+          criador: {
+            select: {
+              id: true,
+              nome: true,
+            },
+          },
+          jogadores: {
+            include: {
+              usuario: {
+                select: {
+                  id: true,
+                  nome: true,
+                  pontuacao: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!salaAtualizada) {
+        throw new Error('Não foi possível atualizar a sala.');
+      }
+
+      // Atualiza a lista de participantes para todos os jogadores.
+      this.server.to(salaRoom).emit('sala_atualizada', {
+        id: salaAtualizada.id,
+        nome: salaAtualizada.nome,
+        codigo: salaAtualizada.codigo,
+        status: salaAtualizada.status,
+        maxJogadores: salaAtualizada.maxJogadores,
+        criador: salaAtualizada.criador,
+        jogadores: salaAtualizada.jogadores,
+      });
+
+      console.log(
+        `Jogador ${nomeJogador} (${jogadorId}) removido da sala ${codigo} pelo criador ${usuario.id}.`,
+      );
+
+      // Confirma a operação para quem solicitou.
+      socket.emit('jogador_removido_sucesso', {
+        usuarioId: jogadorId,
+        mensagem: `${nomeJogador} foi removido da sala.`,
+      });
+    } catch (error) {
+      socket.emit('erro_sala', {
+        mensagem:
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível remover o jogador.',
       });
     }
   }
