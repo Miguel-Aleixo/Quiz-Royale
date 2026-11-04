@@ -33,6 +33,7 @@ export class UsuarioService {
     const usuario = await this.prisma.usuario.create({
       data: {
         ...createUsuarioDto,
+        nome: createUsuarioDto.nome.trim().toLowerCase(),
         senha: senhaHash,
         role: 'JOGADOR',
         emailVerificado: false,
@@ -104,6 +105,7 @@ export class UsuarioService {
     return await this.prisma.usuario.create({
       data: {
         ...createUsuarioDto,
+        nome: createUsuarioDto.nome.trim().toLowerCase(),
         senha: senhaHash,
         role: 'ADMIN',
         emailVerificado: true,

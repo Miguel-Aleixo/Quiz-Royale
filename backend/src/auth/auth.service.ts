@@ -16,10 +16,12 @@ export class AuthService {
 
   async login(email: string, senha: string) {
 
-    const usuario = await this.usuarioService.findByEmailOuUsuario(email);
+    const identificador = email.trim().toLowerCase();
+
+    const usuario = await this.usuarioService.findByEmailOuUsuario(identificador);
 
     if (!usuario) {
-      throw new UnauthorizedException('Email ou senha inválidos');
+      throw new UnauthorizedException('Email, usuário ou senha inválidos');
     }
 
     const senhaValida = await bcrypt.compare(
@@ -28,7 +30,7 @@ export class AuthService {
     );
 
     if (!senhaValida) {
-      throw new UnauthorizedException('Email ou senha inválidos');
+      throw new UnauthorizedException('Email, usuário ou senha inválidos');
     }
 
     const payload = {
