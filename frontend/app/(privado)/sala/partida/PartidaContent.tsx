@@ -214,10 +214,14 @@ export default function PartidaPage() {
     setJogadorEliminado,
   ] = useState(false);
 
+  /*
+   * Quando a partida termina, o jogador primeiro escolhe
+   * entre ver o ranking ou sair da partida.
+   */
   const [
-    mostrarFeedbackEliminacao,
-    setMostrarFeedbackEliminacao,
-  ] = useState(false);
+    etapaFinal,
+    setEtapaFinal,
+  ] = useState<"escolha" | "ranking">("escolha");
 
   const [
     mensagemEliminacao,
@@ -801,10 +805,6 @@ export default function PartidaPage() {
             "Você foi eliminado desta partida.",
           );
 
-          setMostrarFeedbackEliminacao(
-            true,
-          );
-
           setAlternativaSelecionada(
             null,
           );
@@ -819,15 +819,6 @@ export default function PartidaPage() {
 
           terminaEmRef.current =
             0;
-
-          window.setTimeout(
-            () => {
-              setMostrarFeedbackEliminacao(
-                false,
-              );
-            },
-            6000,
-          );
         }
       },
     );
@@ -852,8 +843,8 @@ export default function PartidaPage() {
           data.ranking,
         );
 
-        setMostrarFeedbackEliminacao(
-          false,
+        setEtapaFinal(
+          "escolha",
         );
 
         setJogadorEliminado(
@@ -1317,6 +1308,73 @@ export default function PartidaPage() {
    */
 
   if (
+    partidaFinalizada &&
+    etapaFinal === "escolha"
+  ) {
+    return (
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#090817] px-4 py-6 text-white">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgba(168,85,247,.22),transparent_50%),radial-gradient(ellipse_at_90%_90%,rgba(34,211,238,.08),transparent_35%)]" />
+        <div className="pointer-events-none absolute inset-0 opacity-[0.045] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:22px_22px]" />
+
+        <div className="relative w-full max-w-sm animate-[final-card-in_550ms_cubic-bezier(.16,1,.3,1)_both]">
+          <div className="overflow-hidden rounded-3xl border border-fuchsia-300/20 bg-[#171426]/95 p-6 text-center shadow-2xl shadow-fuchsia-950/30 backdrop-blur-xl">
+            <div className="mx-auto flex h-16 w-16 animate-[final-bounce_2.4s_ease-in-out_infinite] items-center justify-center rounded-2xl border border-yellow-200/30 bg-gradient-to-br from-yellow-300/25 to-orange-500/10 shadow-xl shadow-yellow-500/10">
+              <Trophy className="h-8 w-8 text-yellow-200" />
+            </div>
+
+            <span className="mt-4 inline-flex rounded-full border border-fuchsia-300/20 bg-fuchsia-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-fuchsia-200">
+              Fim de jogo
+            </span>
+
+            <h1 className="mt-3 text-2xl font-black tracking-tight">
+              A partida terminou!
+            </h1>
+
+            <p className="mx-auto mt-2 max-w-xs text-sm leading-5 text-white/45">
+              O resultado final já está pronto. O que você quer fazer?
+            </p>
+
+            <div className="mt-6 space-y-2.5">
+              <button
+                onClick={() => setEtapaFinal("ranking")}
+                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-500 px-5 py-3 text-sm font-black text-white shadow-lg shadow-fuchsia-950/30 transition hover:-translate-y-0.5 hover:brightness-110"
+              >
+                <Trophy className="h-4 w-4" />
+                Ver ranking
+              </button>
+
+              <button
+                onClick={() => router.push("/")}
+                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-black text-white/75 transition hover:-translate-y-0.5 hover:border-fuchsia-300/30 hover:bg-fuchsia-400/10 hover:text-white"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Sair da partida
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <style jsx global>{`
+          @keyframes final-card-in {
+            from { opacity: 0; transform: translateY(24px) scale(.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+          }
+          @keyframes final-bounce {
+            0%, 100% { transform: translateY(0) rotate(-3deg); }
+            50% { transform: translateY(-6px) rotate(3deg); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+              animation-duration: .01ms !important;
+              animation-iteration-count: 1 !important;
+            }
+          }
+        `}</style>
+      </main>
+    );
+  }
+
+  if (
     partidaFinalizada
   ) {
     const topTres = ranking.slice(0, 3);
@@ -1531,16 +1589,16 @@ export default function PartidaPage() {
    */
 
   const blocoRevisao = revisaoEliminacao && (
-    <div className="relative mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-left">
-      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left">
+      <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/35">
         A pergunta que te eliminou
       </p>
 
-      <p className="mt-2 text-sm font-bold leading-snug text-white/90">
+      <p className="mt-1.5 text-[13px] font-bold leading-snug text-white/90">
         {revisaoEliminacao.enunciado}
       </p>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-2.5 max-h-56 space-y-1.5 overflow-y-auto">
         {revisaoEliminacao.alternativas.map((alt, index) => {
           const correta = alt.id === revisaoEliminacao.corretaId;
           const minha = alt.id === revisaoEliminacao.minhaAlternativaId;
@@ -1549,7 +1607,7 @@ export default function PartidaPage() {
           return (
             <div
               key={alt.id}
-              className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm ${
+              className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs ${
                 correta
                   ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200"
                   : errada
@@ -1557,21 +1615,21 @@ export default function PartidaPage() {
                     : "border-white/[0.07] bg-white/[0.02] text-white/50"
               }`}
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/10 text-xs font-black">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white/10 text-[10px] font-black">
                 {String.fromCharCode(65 + index)}
               </span>
 
-              <span className="flex-1 font-semibold">{alt.texto}</span>
+              <span className="flex-1 font-semibold leading-snug">{alt.texto}</span>
 
               {correta && (
-                <span className="flex items-center gap-1 text-[10px] font-black uppercase">
-                  <CheckCircle2 className="h-4 w-4" /> Correta
+                <span className="flex shrink-0 items-center gap-1 text-[9px] font-black uppercase">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Correta
                 </span>
               )}
 
               {errada && (
-                <span className="flex items-center gap-1 text-[10px] font-black uppercase">
-                  <XCircle className="h-4 w-4" /> Sua resposta
+                <span className="flex shrink-0 items-center gap-1 text-[9px] font-black uppercase">
+                  <XCircle className="h-3.5 w-3.5" /> Sua resposta
                 </span>
               )}
             </div>
@@ -1580,7 +1638,7 @@ export default function PartidaPage() {
       </div>
 
       {revisaoEliminacao.minhaAlternativaId === null && (
-        <p className="mt-3 text-xs font-semibold text-red-300/80">
+        <p className="mt-2 text-[11px] font-semibold text-red-300/80">
           Você não respondeu a tempo.
         </p>
       )}
@@ -1589,111 +1647,7 @@ export default function PartidaPage() {
 
   /*
    * =========================================================
-   * JOGADOR ELIMINADO
-   * =========================================================
-   */
-
-  if (
-    jogadorEliminado &&
-    mostrarFeedbackEliminacao
-  ) {
-    return (
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b0918] px-4 py-10 text-white">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgba(244,63,94,.18),transparent_48%),radial-gradient(ellipse_at_10%_90%,rgba(168,85,247,.13),transparent_35%)]" />
-        <div className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:20px_20px]" />
-
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          {Array.from({ length: 22 }, (_, i) => (
-            <span
-              key={i}
-              className="absolute h-3 w-3 animate-[elimination-confetti_1.8s_ease-in_forwards] rounded-[3px]"
-              style={{
-                left: `${(i * 41) % 100}%`,
-                top: `${-10 - (i % 5) * 8}%`,
-                backgroundColor: ["#fb7185", "#c084fc", "#67e8f9", "#facc15", "#f9a8d4"][i % 5],
-                animationDelay: `${(i % 8) * 90}ms`,
-              }}
-            />
-          ))}
-        </div>
-
-        <div className="relative w-full max-w-lg animate-[elimination-card-in_650ms_cubic-bezier(.16,1,.3,1)_both]">
-          <div className="absolute -inset-1 rounded-[2.2rem] bg-gradient-to-r from-rose-500/30 via-fuchsia-500/20 to-orange-400/30 opacity-70 blur-xl" />
-          <div className="relative overflow-hidden rounded-[2rem] border border-rose-300/20 bg-[#171326]/95 p-7 text-center shadow-2xl shadow-rose-950/30 backdrop-blur-xl sm:p-10">
-            <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-rose-500/10 blur-3xl" />
-            <div className="absolute -bottom-12 -left-10 h-40 w-40 rounded-full bg-fuchsia-500/10 blur-3xl" />
-
-            <div className="relative mx-auto flex h-28 w-28 animate-[bean-fall_900ms_cubic-bezier(.2,.8,.2,1)_both] items-center justify-center rounded-[2rem] border border-rose-300/25 bg-gradient-to-br from-rose-400/20 to-fuchsia-500/10 shadow-xl shadow-rose-950/30">
-              <div className="absolute inset-2 animate-[bean-wobble_1.8s_ease-in-out_infinite] rounded-[1.5rem] border border-white/10" />
-              <div className="relative text-6xl drop-shadow-lg">😵</div>
-              <span className="absolute -right-3 -top-3 flex h-9 w-9 animate-[trophy-bounce_1.5s_ease-in-out_infinite] items-center justify-center rounded-xl border border-yellow-200/20 bg-yellow-300 text-lg shadow-lg">✦</span>
-            </div>
-
-            <span className="mt-7 inline-flex items-center gap-2 rounded-full border border-rose-300/20 bg-rose-400/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-rose-200">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-rose-300" />
-              Fim da sua corrida
-            </span>
-
-            <h1 className="relative mt-4 text-3xl font-black tracking-tight sm:text-4xl">
-              <span className="bg-gradient-to-r from-rose-200 via-white to-fuchsia-200 bg-clip-text text-transparent">Você saiu da arena!</span>
-            </h1>
-            <p className="relative mx-auto mt-3 max-w-sm text-sm leading-6 text-white/50">{mensagemEliminacao}</p>
-
-            {blocoRevisao}
-
-            <div className="relative mt-7 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-rose-300/50 to-transparent" />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35">Sua jornada ainda conta</p>
-              <p className="mt-2 text-sm font-bold text-white/80">Aguarde os outros jogadores terminarem!</p>
-              <div className="mt-4 flex items-center justify-center gap-2">
-                <span className="h-2 w-2 animate-bounce rounded-full bg-fuchsia-300 [animation-delay:-.3s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-cyan-300 [animation-delay:-.15s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-yellow-300" />
-              </div>
-            </div>
-            <p className="relative mt-5 text-[10px] font-semibold text-white/25">O resultado final será exibido assim que a partida acabar.</p>
-          </div>
-        </div>
-
-        <style jsx global>{`
-          @keyframes elimination-card-in {
-            from { opacity: 0; transform: translateY(28px) scale(.94); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-          }
-          @keyframes bean-fall {
-            0% { opacity: 0; transform: translateY(-100px) rotate(-25deg) scale(.55); }
-            65% { opacity: 1; transform: translateY(10px) rotate(8deg) scale(1.08); }
-            82% { transform: translateY(-5px) rotate(-5deg) scale(.98); }
-            100% { transform: translateY(0) rotate(0) scale(1); }
-          }
-          @keyframes bean-wobble {
-            0%, 100% { transform: rotate(-5deg) scale(1); }
-            50% { transform: rotate(5deg) scale(1.04); }
-          }
-          @keyframes trophy-bounce {
-            0%, 100% { transform: translateY(0) rotate(-3deg); }
-            50% { transform: translateY(-8px) rotate(3deg); }
-          }
-          @keyframes elimination-confetti {
-            0% { opacity: 0; transform: translateY(-20px) rotate(0deg); }
-            15% { opacity: 1; }
-            100% { opacity: 0; transform: translateY(115vh) rotate(620deg); }
-          }
-          @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-              animation-duration: .01ms !important;
-              animation-iteration-count: 1 !important;
-              scroll-behavior: auto !important;
-            }
-          }
-        `}</style>
-      </main>
-    );
-  }
-
-  /*
-   * =========================================================
-   * AGUARDANDO APÓS ELIMINAÇÃO
+   * JOGADOR ELIMINADO (tela única e compacta)
    * =========================================================
    */
 
@@ -1707,55 +1661,62 @@ export default function PartidaPage() {
         : 0;
 
     return (
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#090817] px-4 py-10 text-white">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(168,85,247,.19),transparent_48%),radial-gradient(ellipse_at_90%_90%,rgba(34,211,238,.08),transparent_35%)]" />
-        <div className="pointer-events-none absolute inset-0 opacity-[0.04] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:22px_22px]" />
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0b0918] px-4 py-6 text-white">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,rgba(244,63,94,.16),transparent_50%),radial-gradient(ellipse_at_10%_90%,rgba(168,85,247,.12),transparent_35%)]" />
+        <div className="pointer-events-none absolute inset-0 opacity-[0.045] [background-image:radial-gradient(#fff_1px,transparent_1px)] [background-size:22px_22px]" />
 
-        <div className="relative w-full max-w-lg animate-[elimination-card-in_600ms_cubic-bezier(.16,1,.3,1)_both]">
-          <div className="overflow-hidden rounded-[2rem] border border-fuchsia-300/20 bg-[#171426]/95 shadow-2xl shadow-fuchsia-950/30 backdrop-blur-xl">
-            <div className="relative overflow-hidden border-b border-white/[0.07] bg-gradient-to-r from-fuchsia-500/15 via-violet-500/10 to-cyan-400/10 px-6 pb-7 pt-8 text-center">
-              <div className="absolute -left-10 -top-12 h-36 w-36 rounded-full bg-fuchsia-400/15 blur-3xl" />
-              <div className="relative mx-auto flex h-20 w-20 animate-[trophy-bounce_2.5s_ease-in-out_infinite] items-center justify-center rounded-[1.6rem] border border-yellow-200/20 bg-gradient-to-br from-yellow-300/20 to-orange-400/10 text-4xl shadow-xl shadow-yellow-950/20">
-                🏁
+        <div className="relative w-full max-w-md animate-[elimination-card-in_500ms_cubic-bezier(.16,1,.3,1)_both]">
+          <div className="overflow-hidden rounded-3xl border border-rose-300/20 bg-[#171326]/95 shadow-2xl shadow-rose-950/30 backdrop-blur-xl">
+            <div className="flex items-center gap-3 border-b border-white/[0.07] bg-gradient-to-r from-rose-500/15 via-fuchsia-500/10 to-transparent px-4 py-3.5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-rose-300/25 bg-rose-400/10 text-2xl">
+                😵
               </div>
-              <p className="mt-5 text-[10px] font-black uppercase tracking-[0.24em] text-fuchsia-200/70">Sua colocação na arena</p>
-              <h1 className="mt-1 text-6xl font-black tracking-tighter text-white sm:text-7xl">{classificacaoEliminacao.posicao}<span className="text-3xl text-fuchsia-200">º</span></h1>
-              <p className="mt-1 text-xs font-semibold text-white/40">de {classificacaoEliminacao.totalJogadores} jogadores</p>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3 p-5 sm:p-6">
-              <div className="rounded-2xl border border-emerald-300/15 bg-emerald-400/[0.06] p-4">
-                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-200/55">Acertos</p>
-                <p className="mt-2 text-3xl font-black tabular-nums text-emerald-200">{classificacaoEliminacao.acertos}</p>
-                <p className="mt-1 text-[10px] text-white/30">respostas corretas</p>
-              </div>
-              <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.06] p-4">
-                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-cyan-200/55">Tempo médio</p>
-                <p className="mt-2 text-2xl font-black tabular-nums text-cyan-200">{formatarTempo(tempoMedio)}</p>
-                <p className="mt-1 text-[10px] text-white/30">por resposta</p>
-              </div>
-            </div>
-
-            <div className="-mt-3 px-5 sm:px-6">{blocoRevisao}</div>
-
-            <div className="px-5 pb-6 pt-5 sm:px-6">
-              <div className="rounded-2xl border border-white/[0.07] bg-white/[0.035] p-4 text-center">
-                <p className="text-sm font-black text-white/85">Sua partida continua na torcida!</p>
-                <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-white/40">
-                  Sua posição está registrada. Enquanto os outros competem, aguarde o encerramento para conferir o ranking completo.
+              <div className="min-w-0 flex-1">
+                <h1 className="text-base font-black leading-tight">
+                  Você saiu da arena!
+                </h1>
+                <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-white/45">
+                  {mensagemEliminacao}
                 </p>
-                <div className="mt-4 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-wider text-fuchsia-200/65">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Aguardando resultado final
+              </div>
+
+              <div className="shrink-0 text-right">
+                <p className="text-2xl font-black leading-none tabular-nums">
+                  {classificacaoEliminacao.posicao}
+                  <span className="text-sm text-fuchsia-200">º</span>
+                </p>
+                <p className="mt-0.5 text-[10px] font-semibold text-white/40">
+                  de {classificacaoEliminacao.totalJogadores}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 p-4">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center justify-between rounded-xl border border-emerald-300/15 bg-emerald-400/[0.06] px-3 py-2">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-emerald-200/60">Acertos</span>
+                  <span className="text-lg font-black tabular-nums text-emerald-200">{classificacaoEliminacao.acertos}</span>
                 </div>
+                <div className="flex items-center justify-between rounded-xl border border-cyan-300/15 bg-cyan-400/[0.06] px-3 py-2">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-cyan-200/60">Médio</span>
+                  <span className="text-sm font-black tabular-nums text-cyan-200">{formatarTempo(tempoMedio)}</span>
+                </div>
+              </div>
+
+              {blocoRevisao}
+
+              <div className="flex items-center justify-center gap-2 pt-1 text-[10px] font-black uppercase tracking-wider text-fuchsia-200/65">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Aguardando resultado final
               </div>
 
               <button
                 onClick={() => router.push("/")}
-                className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-black text-white/75 transition hover:-translate-y-0.5 hover:border-fuchsia-300/30 hover:bg-fuchsia-400/10 hover:text-white"
+                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-4 py-2.5 text-xs font-black text-white/75 transition hover:border-fuchsia-300/30 hover:bg-fuchsia-400/10 hover:text-white"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Voltar para o início
+                Sair da partida
               </button>
             </div>
           </div>
@@ -1763,18 +1724,13 @@ export default function PartidaPage() {
 
         <style jsx global>{`
           @keyframes elimination-card-in {
-            from { opacity: 0; transform: translateY(28px) scale(.94); }
+            from { opacity: 0; transform: translateY(24px) scale(.95); }
             to { opacity: 1; transform: translateY(0) scale(1); }
-          }
-          @keyframes trophy-bounce {
-            0%, 100% { transform: translateY(0) rotate(-3deg); }
-            50% { transform: translateY(-8px) rotate(3deg); }
           }
           @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
               animation-duration: .01ms !important;
               animation-iteration-count: 1 !important;
-              scroll-behavior: auto !important;
             }
           }
         `}</style>
