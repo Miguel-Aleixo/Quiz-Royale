@@ -72,6 +72,11 @@ interface JogadorRemovido {
   usuarioId?: number;
 }
 
+interface JogadorRemovidoSucesso {
+  usuarioId: number;
+  mensagem: string;
+}
+
 interface MensagemChat {
   id: string;
   usuarioId: number;
@@ -105,11 +110,17 @@ function SalaEntrarContent() {
   const [removendoJogadorId, setRemovendoJogadorId] =
     useState<number | null>(null);
 
+  const [jogadorParaRemover, setJogadorParaRemover] =
+    useState<Jogador | null>(null);
+
   const audioContextRef = useRef<AudioContext | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const mensagensRef = useRef<HTMLDivElement | null>(null);
   const proximoEnvioRef = useRef(0);
   const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const ehCriador =
+    Number(usuario?.sub) === Number(sala?.criador?.id);
 
   function tocarSom(tipo: "conectado" | "copiado" | "inicio" | "erro") {
     if (typeof window === "undefined") return;
@@ -143,14 +154,8 @@ function SalaEntrarContent() {
         oscilador.frequency.value = frequencia;
 
         ganho.gain.setValueAtTime(0.0001, inicio);
-        ganho.gain.exponentialRampToValueAtTime(
-          0.06,
-          inicio + 0.015
-        );
-        ganho.gain.exponentialRampToValueAtTime(
-          0.0001,
-          inicio + 0.18
-        );
+        ganho.gain.exponentialRampToValueAtTime(0.06, inicio + 0.015);
+        ganho.gain.exponentialRampToValueAtTime(0.0001, inicio + 0.18);
 
         oscilador.connect(ganho);
         ganho.connect(context.destination);
@@ -170,9 +175,7 @@ function SalaEntrarContent() {
     cooldownTimerRef.current = setInterval(() => {
       const restante = Math.max(
         0,
-        Math.ceil(
-          (proximoEnvioRef.current - Date.now()) / 500
-        )
+        Math.ceil((proximoEnvioRef.current - Date.now()) / 500)
       );
 
       setCooldown(restante);
@@ -291,11 +294,7 @@ function SalaEntrarContent() {
       "nova_mensagem",
       (mensagem: MensagemChat) => {
         setMensagensChat((anteriores) => {
-          if (
-            anteriores.some(
-              (item) => item.id === mensagem.id
-            )
-          ) {
+          if (anteriores.some((item) => item.id === mensagem.id)) {
             return anteriores;
           }
 
@@ -306,16 +305,12 @@ function SalaEntrarContent() {
 
     socketInstance.on("erro_chat", (data: ErroSocket) => {
       toast.error(
-        data?.mensagem ||
-          "Não foi possível enviar a mensagem."
+        data?.mensagem || "Não foi possível enviar a mensagem."
       );
     });
 
     socketInstance.on("connect", () => {
-      console.log(
-        "Conectado ao SalaGateway:",
-        socketInstance.id
-      );
+      console.log("Conectado ao SalaGateway:", socketInstance.id);
 
       setConectado(true);
       tocarSom("conectado");
@@ -332,19 +327,36 @@ function SalaEntrarContent() {
       }
     );
 
+    /*
+     * JOGADOR REMOVIDO DA SALA
+     */
     socketInstance.on(
       "jogador_removido",
       (data: JogadorRemovido) => {
         setConectado(false);
 
         toast.error(
-          data?.mensagem ||
-            "Você foi removido desta sala."
+          data?.mensagem || "Você foi removido desta sala."
         );
 
         setTimeout(() => {
           router.push("/");
         }, 1200);
+      }
+    );
+
+    /*
+     * CONFIRMAÇÃO DA REMOÇÃO PARA O CRIADOR
+     */
+    socketInstance.on(
+      "jogador_removido_sucesso",
+      (data: JogadorRemovidoSucesso) => {
+        setRemovendoJogadorId(null);
+        setJogadorParaRemover(null);
+
+        toast.success(
+          data?.mensagem || "Jogador removido da sala."
+        );
       }
     );
 
@@ -354,8 +366,7 @@ function SalaEntrarContent() {
         setConectado(false);
 
         toast.info(
-          data.mensagem ||
-            "O criador saiu. A sala foi fechada."
+          data.mensagem || "O criador saiu. A sala foi fechada."
         );
 
         setTimeout(() => router.push("/"), 800);
@@ -369,25 +380,21 @@ function SalaEntrarContent() {
         tocarSom("inicio");
 
         setTimeout(() => {
-          router.push(
-            `/sala/partida?codigo=${data.codigo}`
-          );
+          router.push(`/sala/partida?codigo=${data.codigo}`);
         }, 500);
       }
     );
 
     socketInstance.on("erro_sala", (data: ErroSocket) => {
+      setRemovendoJogadorId(null);
+
       setErro(data.mensagem);
       toast.error(data.mensagem);
       tocarSom("erro");
     });
 
     socketInstance.on("connect_error", (error) => {
-      console.error(
-        "Erro ao conectar Socket.IO:",
-        error.message
-      );
-
+      console.error("Erro ao conectar Socket.IO:", error.message);
       setConectado(false);
     });
 
@@ -525,9 +532,7 @@ function SalaEntrarContent() {
       setErro("");
 
       const res = await fetch(
-        `${API}/sala/sair/${encodeURIComponent(
-          sala.codigo
-        )}`,
+        `${API}/sala/sair/${encodeURIComponent(sala.codigo)}`,
         {
           method: "DELETE",
           headers: {
@@ -541,8 +546,7 @@ function SalaEntrarContent() {
       if (!res.ok) {
         const mensagem = Array.isArray(data?.message)
           ? data.message.join(", ")
-          : data?.message ||
-            "Não foi possível sair da sala.";
+          : data?.message || "Não foi possível sair da sala.";
 
         throw new Error(mensagem);
       }
@@ -564,9 +568,9 @@ function SalaEntrarContent() {
   }
 
   /*
-   * REMOVER JOGADOR DA SALA
+   * ABRIR MODAL DE REMOÇÃO
    */
-  async function removerJogador(jogador: Jogador) {
+  function abrirModalRemover(jogador: Jogador) {
     if (!sala || !ehCriador) {
       toast.error(
         "Você não tem permissão para remover jogadores."
@@ -575,82 +579,49 @@ function SalaEntrarContent() {
     }
 
     if (
-      Number(jogador.usuarioId) ===
-      Number(sala.criador?.id)
+      Number(jogador.usuarioId) === Number(sala.criador?.id)
     ) {
-      toast.error(
-        "Você não pode remover o criador da sala."
-      );
+      toast.error("Você não pode remover o criador da sala.");
       return;
     }
 
-    const confirmar = window.confirm(
-      `Deseja realmente remover ${jogador.usuario.nome} da sala?`
+    setJogadorParaRemover(jogador);
+  }
+
+  /*
+   * REMOVER JOGADOR DA SALA PELO SOCKET.IO
+   */
+  function removerJogador() {
+    if (!sala || !ehCriador || !jogadorParaRemover) {
+      return;
+    }
+
+    const jogadorId = Number(
+      jogadorParaRemover.usuarioId
     );
 
-    if (!confirmar) return;
-
-    const token = Cookies.get("token");
-
-    if (!token || !API) {
-      toast.error(
-        "Não foi possível realizar a operação."
-      );
+    if (
+      jogadorId === Number(sala.criador?.id)
+    ) {
+      toast.error("Você não pode remover o criador da sala.");
       return;
     }
 
-    try {
-      setRemovendoJogadorId(jogador.usuarioId);
+    const socketAtual = socketRef.current;
 
-      const res = await fetch(
-        `${API}/sala/${encodeURIComponent(
-          sala.codigo
-        )}/jogador/${jogador.usuarioId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        const mensagem = Array.isArray(data?.message)
-          ? data.message.join(", ")
-          : data?.message ||
-            "Não foi possível remover o jogador.";
-
-        throw new Error(mensagem);
-      }
-
-      setSala((anterior) => {
-        if (!anterior) return anterior;
-
-        return {
-          ...anterior,
-          jogadores: anterior.jogadores.filter(
-            (item) =>
-              Number(item.usuarioId) !==
-              Number(jogador.usuarioId)
-          ),
-        };
-      });
-
-      toast.success(
-        `${jogador.usuario.nome} foi removido da sala.`
-      );
-    } catch (error) {
-      const mensagem =
-        error instanceof Error
-          ? error.message
-          : "Erro ao remover jogador.";
-
-      toast.error(mensagem);
-    } finally {
-      setRemovendoJogadorId(null);
+    if (!socketAtual?.connected || !conectado) {
+      toast.error("Você está desconectado da sala.");
+      return;
     }
+
+    if (removendoJogadorId !== null) return;
+
+    setRemovendoJogadorId(jogadorId);
+
+    socketAtual.emit("remover_jogador", {
+      codigo: sala.codigo,
+      usuarioId: jogadorId,
+    });
   }
 
   /*
@@ -690,8 +661,7 @@ function SalaEntrarContent() {
       if (!res.ok) {
         const mensagem = Array.isArray(data?.message)
           ? data.message.join(", ")
-          : data?.message ||
-            "Não foi possível iniciar a partida.";
+          : data?.message || "Não foi possível iniciar a partida.";
 
         throw new Error(mensagem);
       }
@@ -727,9 +697,7 @@ function SalaEntrarContent() {
           </div>
 
           <div className="text-center">
-            <p className="font-bold">
-              Entrando na sala...
-            </p>
+            <p className="font-bold">Entrando na sala...</p>
             <p className="mt-1 text-sm text-white/40">
               Aguarde um momento
             </p>
@@ -775,18 +743,13 @@ function SalaEntrarContent() {
 
   if (!sala) return null;
 
-  const ehCriador =
-    Number(usuario?.sub) ===
-    Number(sala.criador?.id);
-
   const quantidadeJogadores =
     sala.jogadores?.length ?? 0;
 
   const percentualSala =
     sala.maxJogadores > 0
       ? Math.min(
-          (quantidadeJogadores / sala.maxJogadores) *
-            100,
+          (quantidadeJogadores / sala.maxJogadores) * 100,
           100
         )
       : 0;
@@ -906,9 +869,7 @@ function SalaEntrarContent() {
                   </div>
 
                   <div>
-                    <p className="text-sm font-black">
-                      Jogadores
-                    </p>
+                    <p className="text-sm font-black">Jogadores</p>
                     <p className="mt-0.5 text-[11px] text-white/35">
                       Participantes na sala
                     </p>
@@ -966,8 +927,7 @@ function SalaEntrarContent() {
                       Number(sala.criador?.id);
 
                     const removendo =
-                      removendoJogadorId ===
-                      jogador.usuarioId;
+                      removendoJogadorId === jogador.usuarioId;
 
                     return (
                       <div
@@ -975,9 +935,7 @@ function SalaEntrarContent() {
                         className="group flex min-w-0 items-center gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3 transition hover:border-fuchsia-400/20 hover:bg-white/[0.045]"
                       >
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500/25 to-violet-500/10 text-sm font-black text-fuchsia-200 ring-1 ring-fuchsia-300/15">
-                          {jogador.usuario.nome
-                            .charAt(0)
-                            .toUpperCase()}
+                          {jogador.usuario.nome.charAt(0).toUpperCase()}
                         </div>
 
                         <div className="min-w-0 flex-1">
@@ -1004,12 +962,8 @@ function SalaEntrarContent() {
                         {ehCriador && !ehJogadorCriador && (
                           <button
                             type="button"
-                            onClick={() =>
-                              removerJogador(jogador)
-                            }
-                            disabled={
-                              removendoJogadorId !== null
-                            }
+                            onClick={() => abrirModalRemover(jogador)}
+                            disabled={removendoJogadorId !== null}
                             title={`Remover ${jogador.usuario.nome} da sala`}
                             aria-label={`Remover ${jogador.usuario.nome} da sala`}
                             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-red-400/10 bg-red-500/[0.06] text-red-400/60 transition hover:border-red-400/30 hover:bg-red-500/15 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-40"
@@ -1078,9 +1032,7 @@ function SalaEntrarContent() {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-xs font-black">
-                    Chat da sala
-                  </h3>
+                  <h3 className="text-xs font-black">Chat da sala</h3>
                   <p className="text-[10px] text-white/35">
                     Converse com os participantes
                   </p>
@@ -1088,15 +1040,9 @@ function SalaEntrarContent() {
 
                 <span
                   className={`h-2 w-2 shrink-0 rounded-full ${
-                    conectado
-                      ? "bg-emerald-400"
-                      : "bg-yellow-400"
+                    conectado ? "bg-emerald-400" : "bg-yellow-400"
                   }`}
-                  title={
-                    conectado
-                      ? "Conectado"
-                      : "Desconectado"
-                  }
+                  title={conectado ? "Conectado" : "Desconectado"}
                 />
               </div>
 
@@ -1123,22 +1069,17 @@ function SalaEntrarContent() {
                 ) : (
                   mensagensChat.map((mensagem) => {
                     const minhaMensagem =
-                      Number(mensagem.usuarioId) ===
-                      Number(usuario?.sub);
+                      Number(mensagem.usuarioId) === Number(usuario?.sub);
 
                     return (
                       <div
                         key={mensagem.id}
                         className={`flex min-w-0 flex-col ${
-                          minhaMensagem
-                            ? "items-end"
-                            : "items-start"
+                          minhaMensagem ? "items-end" : "items-start"
                         }`}
                       >
                         <span className="mb-0.5 max-w-[90%] truncate px-1 text-[9px] font-bold text-white/40">
-                          {minhaMensagem
-                            ? "Você"
-                            : mensagem.nome}
+                          {minhaMensagem ? "Você" : mensagem.nome}
                         </span>
 
                         <div
@@ -1152,12 +1093,13 @@ function SalaEntrarContent() {
                         </div>
 
                         <span className="mt-0.5 px-1 text-[9px] text-white/25">
-                          {new Date(
-                            mensagem.criadoEm
-                          ).toLocaleTimeString("pt-BR", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {new Date(mensagem.criadoEm).toLocaleTimeString(
+                            "pt-BR",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
                         </span>
                       </div>
                     );
@@ -1180,10 +1122,7 @@ function SalaEntrarContent() {
                     value={textoChat}
                     onChange={(event) =>
                       setTextoChat(
-                        event.target.value.slice(
-                          0,
-                          LIMITE_CARACTERES
-                        )
+                        event.target.value.slice(0, LIMITE_CARACTERES)
                       )
                     }
                     maxLength={LIMITE_CARACTERES}
@@ -1239,9 +1178,7 @@ function SalaEntrarContent() {
               <button
                 type="button"
                 onClick={iniciarPartida}
-                disabled={
-                  iniciando || quantidadeJogadores === 0
-                }
+                disabled={iniciando || quantidadeJogadores === 0}
                 className="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-fuchsia-600 to-violet-600 px-5 py-4 text-sm font-black shadow-lg shadow-fuchsia-950/25 transition hover:-translate-y-0.5 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
               >
                 {iniciando ? (
@@ -1299,9 +1236,7 @@ function SalaEntrarContent() {
             aria-modal="true"
             aria-labelledby="modal-sair-titulo"
             className="w-full max-w-md animate-[lobby-modal-in_260ms_cubic-bezier(.22,1,.36,1)] overflow-hidden rounded-3xl border border-white/10 bg-[#11111f] shadow-2xl shadow-black/50"
-            onMouseDown={(event) =>
-              event.stopPropagation()
-            }
+            onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="border-b border-white/[0.06] px-6 py-5">
               <div className="flex items-center gap-3">
@@ -1380,6 +1315,128 @@ function SalaEntrarContent() {
                   <>
                     <LogOut className="h-4 w-4" />
                     Sair da sala
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL REMOVER JOGADOR */}
+      {jogadorParaRemover && (
+        <div
+          className="fixed inset-0 z-[60] flex animate-[lobby-fade-in_180ms_ease-out] items-center justify-center bg-black/75 px-4 py-6 backdrop-blur-md"
+          onMouseDown={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              removendoJogadorId === null
+            ) {
+              setJogadorParaRemover(null);
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-remover-titulo"
+            className="w-full max-w-md animate-[lobby-modal-in_260ms_cubic-bezier(.22,1,.36,1)] overflow-hidden rounded-3xl border border-white/10 bg-[#11111f] shadow-2xl shadow-black/50"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            {/* CABEÇALHO */}
+            <div className="border-b border-white/[0.06] px-6 py-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-red-400/15 bg-red-500/10">
+                  <UserX className="h-5 w-5 text-red-400" />
+                </div>
+
+                <div>
+                  <h2
+                    id="modal-remover-titulo"
+                    className="text-base font-black"
+                  >
+                    Remover jogador?
+                  </h2>
+
+                  <p className="mt-1 text-xs text-white/35">
+                    Gerenciamento de participantes
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* CONTEÚDO */}
+            <div className="px-6 py-6">
+              <div className="rounded-2xl border border-red-400/10 bg-red-500/[0.05] p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-500/25 to-violet-500/10 text-base font-black text-fuchsia-200 ring-1 ring-fuchsia-300/15">
+                    {jogadorParaRemover.usuario.nome
+                      .charAt(0)
+                      .toUpperCase()}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-white/35">
+                      Jogador selecionado
+                    </p>
+
+                    <p className="mt-1 truncate text-sm font-black text-white">
+                      {jogadorParaRemover.usuario.nome}
+                    </p>
+
+                    <p className="mt-0.5 text-[10px] text-white/35">
+                      Participante da sala
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 flex gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-yellow-500/10">
+                  <ShieldCheck className="h-4 w-4 text-yellow-400" />
+                </div>
+
+                <p className="text-xs leading-5 text-white/50">
+                  Esse jogador será retirado da sala e não
+                  poderá continuar participando desta partida.
+                </p>
+              </div>
+
+              <p className="mt-5 text-sm leading-6 text-white/55">
+                Tem certeza de que deseja remover{" "}
+                <span className="font-bold text-white">
+                  {jogadorParaRemover.usuario.nome}
+                </span>
+                ?
+              </p>
+            </div>
+
+            {/* BOTÕES */}
+            <div className="flex gap-3 border-t border-white/[0.06] px-6 py-5">
+              <button
+                type="button"
+                onClick={() => setJogadorParaRemover(null)}
+                disabled={removendoJogadorId !== null}
+                className="flex-1 cursor-pointer rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-bold text-white/60 transition hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={removerJogador}
+                disabled={removendoJogadorId !== null}
+                className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-red-950/20 transition hover:-translate-y-0.5 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+              >
+                {removendoJogadorId !== null ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Removendo...
+                  </>
+                ) : (
+                  <>
+                    <UserX className="h-4 w-4" />
+                    Remover jogador
                   </>
                 )}
               </button>
