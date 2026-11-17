@@ -33,7 +33,7 @@ interface AuthenticatedRequest extends Request {
 @Controller('sala')
 @UseGuards(JwtAuthGuard, RolesGuard, EmailVerificadoGuard)
 export class SalaController {
-  constructor(private readonly salaService: SalaService) {}
+  constructor(private readonly salaService: SalaService) { }
 
   private gerarCodigo(): string {
     const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -95,6 +95,35 @@ export class SalaController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.salaService.reabrir(id, req.user.id);
+  }
+
+  @Get('arquivadas')
+  findArquivadas() {
+    return this.salaService.findArquivadas();
+  }
+
+  @Patch(':id/arquivar')
+  arquivar(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.salaService.arquivar(
+      id,
+      req.user.id,
+      req.user.role,
+    );
+  }
+
+  @Patch(':id/desarquivar')
+  desarquivar(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.salaService.desarquivar(
+      id,
+      req.user.id,
+      req.user.role,
+    );
   }
 
   @Patch(':id')

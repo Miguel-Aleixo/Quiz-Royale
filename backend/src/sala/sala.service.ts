@@ -85,6 +85,9 @@ export class SalaService {
 
   async findAll() {
     return await this.prisma.sala.findMany({
+      where: {
+        arquivada: false,
+      },
       include: {
         _count: {
           select: {
@@ -190,6 +193,98 @@ export class SalaService {
     }
 
     return sala;
+  }
+
+  async findArquivadas() {
+    return this.prisma.sala.findMany({
+      where: {
+        arquivada: true,
+      },
+      include: {
+        _count: {
+          select: {
+            jogadores: true,
+            rodadas: true,
+          },
+        },
+      },
+      orderBy: {
+        arquivadaEm: 'desc',
+      },
+    });
+  }
+
+  async arquivar(
+    id: number,
+    usuarioId: number,
+    role: 'ADMIN' | 'JOGADOR',
+  ) {
+    const sala = await this.prisma.sala.findUnique({
+      where: { id },
+    });
+
+    if (!sala) {
+      throw new NotFoundException('Sala não encontrada.');
+    }
+
+    if (role !== 'ADMIN' && sala.criadorId !== usuarioId) {
+      throw new ForbiddenException(
+        'Somente o criador da sala ou um administrador pode arquivá-la.',
+      );
+    }
+
+    if (sala.arquivada) {
+      throw new ConflictException('Essa sala já está arquivada.');
+    }
+
+    if (
+      sala.status === 'ABERTA' ||
+      sala.status === 'EM_ANDAMENTO'
+    ) {
+      throw new ConflictException(
+        'Feche ou finalize a sala antes de arquivá-la.',
+      );
+    }
+
+    return this.prisma.sala.update({
+      where: { id },
+      data: {
+        arquivada: true,
+        arquivadaEm: new Date(),
+      },
+    });
+  }
+
+  async desarquivar(
+    id: number,
+    usuarioId: number,
+    role: 'ADMIN' | 'JOGADOR',
+  ) {
+    const sala = await this.prisma.sala.findUnique({
+      where: { id },
+    });
+
+    if (!sala) {
+      throw new NotFoundException('Sala não encontrada.');
+    }
+
+    if (role !== 'ADMIN' && sala.criadorId !== usuarioId) {
+      throw new ForbiddenException(
+        'Somente o criador da sala ou um administrador pode desarquivá-la.',
+      );
+    }
+
+    if (!sala.arquivada) {
+      throw new ConflictException('Essa sala não está arquivada.');
+    }
+
+    return this.prisma.sala.update({
+      where: { id },
+      data: {
+        arquivada: false,
+        arquivadaEm: null,
+      },
+    });
   }
 
   async sairDaSala(codigo: string, usuarioId: number) {
@@ -599,4 +694,5 @@ export class SalaService {
     return this.prisma.sala.delete({
       where: { id },
     });
-  }}
+  }
+}

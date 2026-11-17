@@ -80,6 +80,8 @@ model Sala {
   maxJogadores Int
   criadaEm     DateTime  @default(now())
   finalizadaEm DateTime?
+  arquivada   Boolean   @default(false)
+  arquivadaEm DateTime?
 
   criadorId Int?
   criador   Usuario? @relation(fields: [criadorId], references: [id])
