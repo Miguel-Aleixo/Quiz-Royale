@@ -203,6 +203,7 @@ export default function LoginPage() {
                       name="identificador"
                       type="text"
                       autoComplete="username"
+                      maxLength={70}
                       placeholder="Digite seu e-mail ou usuário"
                       value={form.identificador}
                       onChange={(e) =>
@@ -242,6 +243,7 @@ export default function LoginPage() {
                     <input
                       name="password"
                       type={showPassword ? "text" : "password"}
+                      maxLength={20}
                       autoComplete="current-password"
                       placeholder="Sua senha"
                       value={form.senha}

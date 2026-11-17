@@ -143,6 +143,7 @@ export default function EsqueciSenhaPage() {
                                                 type="email"
                                                 autoComplete="email"
                                                 placeholder="seu@email.com"
+                                                maxLength={70}
                                                 value={email}
                                                 onChange={(e) =>
                                                     setEmail(e.target.value)

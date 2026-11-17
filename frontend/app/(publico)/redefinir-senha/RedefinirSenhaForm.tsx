@@ -225,6 +225,7 @@ export default function RedefinirSenhaForm() {
                         }
                         autoComplete="new-password"
                         placeholder="Nova senha"
+                        maxLength={20}
                         value={senha}
                         onChange={(e) =>
                           setSenha(e.target.value)
@@ -274,6 +275,7 @@ export default function RedefinirSenhaForm() {
                             : "password"
                         }
                         autoComplete="new-password"
+                        maxLength={20}
                         placeholder="Digite novamente"
                         value={confirmarSenha}
                         onChange={(e) =>

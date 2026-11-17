@@ -434,6 +434,7 @@ export default function CadastroPage() {
                           type="text"
                           autoComplete="name"
                           value={form.nome}
+                          maxLength={30}
                           onChange={(e) =>
                             setForm({
                               ...form,
@@ -464,6 +465,7 @@ export default function CadastroPage() {
                           type="email"
                           autoComplete="email"
                           value={form.email}
+                          maxLength={70}
                           onChange={(e) =>
                             setForm({
                               ...form,
@@ -496,6 +498,7 @@ export default function CadastroPage() {
                           }
                           autoComplete="new-password"
                           value={form.senha}
+                          maxLength={20}
                           onChange={(e) =>
                             setForm({
                               ...form,
@@ -551,6 +554,7 @@ export default function CadastroPage() {
                           }
                           autoComplete="new-password"
                           value={confirmarSenha}
+                          maxLength={20}
                           onChange={(e) =>
                             setConfirmarSenha(e.target.value)
                           }
