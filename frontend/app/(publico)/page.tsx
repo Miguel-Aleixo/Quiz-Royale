@@ -542,7 +542,7 @@ export default function Home() {
     try {
       setExcluindoSala(true);
 
-      const res = await fetch(`${API}/sala/${salaExcluindo.id}`, {
+      const res = await fetch(`${API}/sala/${salaExcluindo.id}/arquivar`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
