@@ -982,27 +982,31 @@ export default function Home() {
                                   </button>
                                 )}
 
-                                <button
-                                  type="button"
-                                  onClick={() => router.push(`/sala/criar?editar=${sala.id}`)}
-                                  disabled={loading}
-                                  title={"Editar sala"}
-                                  aria-label="Editar sala"
-                                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/65 transition hover:border-cyan-200/30 hover:bg-cyan-200/10 hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
-                                >
-                                  <Pencil size={15} />
-                                </button>
+                                {encerrada && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => router.push(`/sala/criar?editar=${sala.id}`)}
+                                      disabled={loading}
+                                      title="Editar sala"
+                                      aria-label="Editar sala"
+                                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/65 transition hover:border-cyan-200/30 hover:bg-cyan-200/10 hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+                                    >
+                                      <Pencil size={15} />
+                                    </button>
 
-                                <button
-                                  type="button"
-                                  onClick={() => setSalaExcluindo(sala)}
-                                  disabled={loading || emAndamento}
-                                  title={emAndamento ? "Não é possível excluir uma partida em andamento" : "Excluir sala"}
-                                  aria-label="Excluir sala"
-                                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/65 transition hover:border-red-300/30 hover:bg-red-400/10 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setSalaExcluindo(sala)}
+                                      disabled={loading}
+                                      title="Excluir sala"
+                                      aria-label="Excluir sala"
+                                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/65 transition hover:border-red-300/30 hover:bg-red-400/10 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
+                                    >
+                                      <Trash2 size={15} />
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             ) : disponivel ? (
                               <button type="button" onClick={() => {
