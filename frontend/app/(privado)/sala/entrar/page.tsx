@@ -1255,24 +1255,24 @@ function SalaEntrarContent() {
               <div className="rounded-2xl border border-red-400/10 bg-red-500/[0.05] p-4">
                 <div className="flex gap-3">
                   {ehCriador && (
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/10">
-                    <span className="text-sm font-black text-red-400">
-                      !
-                    </span>
-                  </div>
+                    <>
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/10">
+                        <span className="text-sm font-black text-red-400">
+                          !
+                        </span>
+                      </div>
 
-                    <div>
-                      <p className="text-sm font-bold text-red-300">
-                        Atenção
-                      </p>
+                      <div>
+                        <p className="text-sm font-bold text-red-300">
+                          Atenção
+                        </p>
 
-
-                      <p className="mt-1 text-xs leading-5 text-white/50">
-                        Ao sair da sala, ela será fechada para
-                        todos os jogadores que estão aguardando.
-                      </p>
-
-                    </div>
+                        <p className="mt-1 text-xs leading-5 text-white/50">
+                          Ao sair da sala, ela será fechada para
+                          todos os jogadores que estão aguardando.
+                        </p>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
