@@ -1252,9 +1252,9 @@ function SalaEntrarContent() {
             </div>
 
             <div className="px-6 py-6">
-              <div className="rounded-2xl border border-red-400/10 bg-red-500/[0.05] p-4">
-                <div className="flex gap-3">
-                  {ehCriador && (
+              {ehCriador && (
+                <div className="rounded-2xl border border-red-400/10 bg-red-500/[0.05] p-4">
+                  <div className="flex gap-3">
                     <>
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/10">
                         <span className="text-sm font-black text-red-400">
@@ -1273,9 +1273,9 @@ function SalaEntrarContent() {
                         </p>
                       </div>
                     </>
-                  )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <p className="mt-5 text-sm leading-6 text-white/55">
                 Tem certeza de que deseja sair da sala{" "}
