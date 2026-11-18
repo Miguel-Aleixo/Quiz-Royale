@@ -543,7 +543,7 @@ export default function Home() {
       setExcluindoSala(true);
 
       const res = await fetch(`${API}/sala/${salaExcluindo.id}/arquivar`, {
-        method: "DELETE",
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${currentToken}`,
