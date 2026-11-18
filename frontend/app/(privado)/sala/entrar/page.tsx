@@ -55,7 +55,7 @@ interface Sala {
   jogadores: Jogador[];
 }
 
-interface SalaAtualizada extends Sala {}
+interface SalaAtualizada extends Sala { }
 
 interface ErroSocket {
   mensagem: string;
@@ -466,8 +466,7 @@ function SalaEntrarContent() {
       setCooldown(restante);
 
       toast.warning(
-        `Aguarde ${restante} segundo${
-          restante === 1 ? "" : "s"
+        `Aguarde ${restante} segundo${restante === 1 ? "" : "s"
         } para enviar outra mensagem.`
       );
 
@@ -749,9 +748,9 @@ function SalaEntrarContent() {
   const percentualSala =
     sala.maxJogadores > 0
       ? Math.min(
-          (quantidadeJogadores / sala.maxJogadores) * 100,
-          100
-        )
+        (quantidadeJogadores / sala.maxJogadores) * 100,
+        100
+      )
       : 0;
 
   const podeEnviar =
@@ -789,18 +788,16 @@ function SalaEntrarContent() {
           </div>
 
           <div
-            className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 ${
-              conectado
+            className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 ${conectado
                 ? "border-emerald-400/15 bg-emerald-500/10 text-emerald-300"
                 : "border-yellow-400/15 bg-yellow-500/10 text-yellow-300"
-            }`}
+              }`}
           >
             <span
-              className={`h-2 w-2 rounded-full ${
-                conectado
+              className={`h-2 w-2 rounded-full ${conectado
                   ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.7)]"
                   : "animate-pulse bg-yellow-400"
-              }`}
+                }`}
             />
             <span className="hidden text-[11px] font-bold sm:block">
               {conectado ? "Conectado" : "Conectando..."}
@@ -1039,9 +1036,8 @@ function SalaEntrarContent() {
                 </div>
 
                 <span
-                  className={`h-2 w-2 shrink-0 rounded-full ${
-                    conectado ? "bg-emerald-400" : "bg-yellow-400"
-                  }`}
+                  className={`h-2 w-2 shrink-0 rounded-full ${conectado ? "bg-emerald-400" : "bg-yellow-400"
+                    }`}
                   title={conectado ? "Conectado" : "Desconectado"}
                 />
               </div>
@@ -1074,20 +1070,18 @@ function SalaEntrarContent() {
                     return (
                       <div
                         key={mensagem.id}
-                        className={`flex min-w-0 flex-col ${
-                          minhaMensagem ? "items-end" : "items-start"
-                        }`}
+                        className={`flex min-w-0 flex-col ${minhaMensagem ? "items-end" : "items-start"
+                          }`}
                       >
                         <span className="mb-0.5 max-w-[90%] truncate px-1 text-[9px] font-bold text-white/40">
                           {minhaMensagem ? "Você" : mensagem.nome}
                         </span>
 
                         <div
-                          className={`max-w-[90%] break-words rounded-xl px-2.5 py-2 text-xs leading-4 ${
-                            minhaMensagem
+                          className={`max-w-[90%] break-words rounded-xl px-2.5 py-2 text-xs leading-4 ${minhaMensagem
                               ? "rounded-br-sm bg-gradient-to-br from-fuchsia-600 to-violet-600 text-white"
                               : "rounded-bl-sm border border-white/[0.07] bg-white/[0.045] text-white/85"
-                          }`}
+                            }`}
                         >
                           {mensagem.texto}
                         </div>
@@ -1112,11 +1106,10 @@ function SalaEntrarContent() {
                 className="shrink-0 border-t border-white/[0.07] bg-black/10 p-2.5"
               >
                 <div
-                  className={`flex items-center gap-1.5 rounded-xl border bg-black/20 p-1 transition ${
-                    cooldown > 0
+                  className={`flex items-center gap-1.5 rounded-xl border bg-black/20 p-1 transition ${cooldown > 0
                       ? "border-yellow-400/20"
                       : "border-white/10 focus-within:border-fuchsia-400/40"
-                  }`}
+                    }`}
                 >
                   <input
                     value={textoChat}
@@ -1161,11 +1154,10 @@ function SalaEntrarContent() {
 
                 <div className="mt-1.5 flex items-center justify-between gap-2 px-1">
                   <p
-                    className={`text-[9px] ${
-                      textoChat.length >= LIMITE_CARACTERES
+                    className={`text-[9px] ${textoChat.length >= LIMITE_CARACTERES
                         ? "text-yellow-300"
                         : "text-white/30"
-                    }`}
+                      }`}
                   >
                     {textoChat.length}/{LIMITE_CARACTERES}
                   </p>
@@ -1268,16 +1260,21 @@ function SalaEntrarContent() {
                     </span>
                   </div>
 
-                  <div>
-                    <p className="text-sm font-bold text-red-300">
-                      Atenção
-                    </p>
+                  {ehCriador && (
+                    <div>
+                      <p className="text-sm font-bold text-red-300">
+                        Atenção
+                      </p>
 
-                    <p className="mt-1 text-xs leading-5 text-white/50">
-                      Ao sair da sala, ela será fechada para
-                      todos os jogadores que estão aguardando.
-                    </p>
-                  </div>
+
+                      <p className="mt-1 text-xs leading-5 text-white/50">
+                        Ao sair da sala, ela será fechada para
+                        todos os jogadores que estão aguardando.
+                      </p>
+
+                    </div>
+                  )}
+
                 </div>
               </div>
 
