@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateSalaDto } from './dto/create-sala.dto';
 import { UpdateSalaDto } from './dto/update-sala.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { UpdateSalaEdicaoDto } from './dto/update-sala-edicao.dto';
 import {
   BadRequestException,
   NotFoundException,
@@ -255,13 +256,47 @@ export class SalaService {
     });
   }
 
-  async desarquivar(
+
+  async buscarParaEdicao(
     id: number,
     usuarioId: number,
     role: 'ADMIN' | 'JOGADOR',
   ) {
     const sala = await this.prisma.sala.findUnique({
       where: { id },
+      include: {
+        rodadas: {
+          orderBy: {
+            ordem: 'asc',
+          },
+          include: {
+            pergunta: {
+              include: {
+                tema: true,
+                criador: {
+                  select: {
+                    id: true,
+                    nome: true,
+                    role: true,
+                  },
+                },
+                alternativas: {
+                  select: {
+                    id: true,
+                    texto: true,
+                    correta: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            jogadores: true,
+          },
+        },
+      },
     });
 
     if (!sala) {
@@ -270,19 +305,326 @@ export class SalaService {
 
     if (role !== 'ADMIN' && sala.criadorId !== usuarioId) {
       throw new ForbiddenException(
-        'Somente o criador da sala ou um administrador pode desarquivá-la.',
+        'Somente o criador da sala ou um administrador pode editá-la.',
       );
     }
 
-    if (!sala.arquivada) {
-      throw new ConflictException('Essa sala não está arquivada.');
+    if (sala.status !== 'ABERTA' || sala.arquivada) {
+      throw new ConflictException(
+        'Somente salas abertas e não arquivadas podem ser editadas.',
+      );
     }
 
-    return this.prisma.sala.update({
+    const respostas = await this.prisma.resposta.count({
+      where: {
+        jogador: {
+          salaId: id,
+        },
+      },
+    });
+
+    if (respostas > 0) {
+      throw new ConflictException(
+        'Não é possível editar uma sala que já possui respostas registradas.',
+      );
+    }
+
+    return sala;
+  }
+
+  async atualizarEdicao(
+    id: number,
+    dto: UpdateSalaEdicaoDto,
+    usuarioId: number,
+    role: 'ADMIN' | 'JOGADOR',
+  ) {
+    const sala = await this.prisma.sala.findUnique({
       where: { id },
-      data: {
-        arquivada: false,
-        arquivadaEm: null,
+      include: {
+        _count: {
+          select: {
+            jogadores: true,
+          },
+        },
+      },
+    });
+
+    if (!sala) {
+      throw new NotFoundException('Sala não encontrada.');
+    }
+
+    if (role !== 'ADMIN' && sala.criadorId !== usuarioId) {
+      throw new ForbiddenException(
+        'Somente o criador da sala ou um administrador pode editá-la.',
+      );
+    }
+
+    if (sala.status !== 'ABERTA' || sala.arquivada) {
+      throw new ConflictException(
+        'Somente salas abertas e não arquivadas podem ser editadas.',
+      );
+    }
+
+    if (
+      !dto.nome?.trim() ||
+      dto.maxJogadores < 2 ||
+      dto.maxJogadores > 50
+    ) {
+      throw new BadRequestException(
+        'Informe um nome válido e uma capacidade entre 2 e 50 jogadores.',
+      );
+    }
+
+    if (dto.maxJogadores < sala._count.jogadores) {
+      throw new ConflictException(
+        'O limite não pode ser menor que a quantidade atual de jogadores.',
+      );
+    }
+
+    if (
+      !Array.isArray(dto.perguntasBanco) ||
+      !Array.isArray(dto.perguntasProprias)
+    ) {
+      throw new BadRequestException(
+        'A configuração das perguntas está inválida.',
+      );
+    }
+
+    if (
+      dto.perguntasBanco.length + dto.perguntasProprias.length === 0
+    ) {
+      throw new BadRequestException(
+        'Adicione pelo menos uma pergunta à sala.',
+      );
+    }
+
+    // Verifica se já existem respostas antes de modificar as rodadas.
+    const respostas = await this.prisma.resposta.count({
+      where: {
+        jogador: {
+          salaId: id,
+        },
+      },
+    });
+
+    if (respostas > 0) {
+      throw new ConflictException(
+        'Não é possível editar uma sala que já possui respostas registradas.',
+      );
+    }
+
+    // Valida as perguntas do banco.
+    const idsBanco = dto.perguntasBanco.map(
+      (item) => item.perguntaId,
+    );
+
+    if (new Set(idsBanco).size !== idsBanco.length) {
+      throw new BadRequestException(
+        'Existem perguntas repetidas na seleção.',
+      );
+    }
+
+    for (const item of dto.perguntasBanco) {
+      if (
+        !Number.isInteger(item.tempoLimite) ||
+        item.tempoLimite < 10 ||
+        item.tempoLimite > 120
+      ) {
+        throw new BadRequestException(
+          'O tempo das perguntas deve estar entre 10 e 120 segundos.',
+        );
+      }
+    }
+
+    if (idsBanco.length > 0) {
+      const perguntasOficiais = await this.prisma.pergunta.findMany({
+        where: {
+          id: { in: idsBanco },
+          criador: {
+            role: 'ADMIN',
+          },
+        },
+        select: {
+          id: true,
+          alternativas: {
+            select: {
+              texto: true,
+              correta: true,
+            },
+          },
+        },
+      });
+
+      if (perguntasOficiais.length !== idsBanco.length) {
+        throw new BadRequestException(
+          'Uma ou mais perguntas selecionadas não pertencem ao banco oficial.',
+        );
+      }
+
+      for (const pergunta of perguntasOficiais) {
+        if (
+          pergunta.alternativas.length < 2 ||
+          !pergunta.alternativas.some((a) => a.correta) ||
+          pergunta.alternativas.some((a) => !a.texto.trim())
+        ) {
+          throw new BadRequestException(
+            `A pergunta ${pergunta.id} possui alternativas inválidas.`,
+          );
+        }
+      }
+    }
+
+    // Valida as perguntas próprias antes de iniciar a transação.
+    for (let i = 0; i < dto.perguntasProprias.length; i++) {
+      const pergunta = dto.perguntasProprias[i];
+
+      if (
+        !pergunta.enunciado?.trim() ||
+        !Number.isInteger(pergunta.temaId) ||
+        !Number.isInteger(pergunta.tempoLimite) ||
+        pergunta.tempoLimite < 10 ||
+        pergunta.tempoLimite > 120
+      ) {
+        throw new BadRequestException(
+          `A pergunta própria ${i + 1} possui dados inválidos.`,
+        );
+      }
+
+      if (
+        !Array.isArray(pergunta.alternativas) ||
+        pergunta.alternativas.length < 2
+      ) {
+        throw new BadRequestException(
+          `A pergunta própria ${i + 1} precisa ter pelo menos duas alternativas.`,
+        );
+      }
+
+      const alternativasCorretas = pergunta.alternativas.filter(
+        (a) => a.correta === true,
+      ).length;
+
+      if (alternativasCorretas !== 1) {
+        throw new BadRequestException(
+          `A pergunta própria ${i + 1} precisa ter exatamente uma alternativa correta.`,
+        );
+      }
+
+      if (
+        pergunta.alternativas.some(
+          (a) => !a.texto?.trim() || typeof a.correta !== 'boolean',
+        )
+      ) {
+        throw new BadRequestException(
+          `A pergunta própria ${i + 1} possui alternativas inválidas.`,
+        );
+      }
+    }
+
+    // Confere se todos os temas existem.
+    const temasIds = [
+      ...new Set(dto.perguntasProprias.map((p) => p.temaId)),
+    ];
+
+    if (temasIds.length > 0) {
+      const temas = await this.prisma.tema.count({
+        where: {
+          id: { in: temasIds },
+        },
+      });
+
+      if (temas !== temasIds.length) {
+        throw new BadRequestException(
+          'Um ou mais temas selecionados não existem.',
+        );
+      }
+    }
+
+    // Atualiza tudo em uma única transação.
+    await this.prisma.$transaction(async (tx) => {
+      // Remove somente as rodadas antigas.
+      // As perguntas e alternativas antigas permanecem preservadas.
+      await tx.rodada.deleteMany({
+        where: {
+          salaId: id,
+        },
+      });
+
+      // Atualiza os dados principais da sala.
+      await tx.sala.update({
+        where: { id },
+        data: {
+          nome: dto.nome.trim(),
+          maxJogadores: dto.maxJogadores,
+        },
+      });
+
+      let ordem = 1;
+
+      // Primeiro entram as perguntas oficiais.
+      for (const item of dto.perguntasBanco) {
+        await tx.rodada.create({
+          data: {
+            salaId: id,
+            perguntaId: item.perguntaId,
+            ordem,
+            tempoLimite: item.tempoLimite,
+          },
+        });
+
+        ordem++;
+      }
+
+      // Depois são criadas as perguntas próprias.
+      for (const pergunta of dto.perguntasProprias) {
+        const perguntaCriada = await tx.pergunta.create({
+          data: {
+            enunciado: pergunta.enunciado.trim(),
+            temaId: pergunta.temaId,
+            criadorId: usuarioId,
+            alternativas: {
+              create: pergunta.alternativas.map((alternativa) => ({
+                texto: alternativa.texto.trim(),
+                correta: alternativa.correta,
+              })),
+            },
+          },
+        });
+
+        await tx.rodada.create({
+          data: {
+            salaId: id,
+            perguntaId: perguntaCriada.id,
+            ordem,
+            tempoLimite: pergunta.tempoLimite,
+          },
+        });
+
+        ordem++;
+      }
+    });
+
+    return this.prisma.sala.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: {
+            jogadores: true,
+            rodadas: true,
+          },
+        },
+        rodadas: {
+          orderBy: {
+            ordem: 'asc',
+          },
+          include: {
+            pergunta: {
+              select: {
+                id: true,
+                enunciado: true,
+              },
+            },
+          },
+        },
       },
     });
   }

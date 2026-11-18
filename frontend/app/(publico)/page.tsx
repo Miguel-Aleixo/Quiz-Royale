@@ -984,7 +984,7 @@ export default function Home() {
 
                                 <button
                                   type="button"
-                                  onClick={() => abrirEdicao(sala)}
+                                  onClick={() => router.push(`/sala/criar?editar=${sala.id}`)}
                                   disabled={loading || !disponivel}
                                   title={disponivel ? "Editar sala" : "Só é possível editar salas abertas"}
                                   aria-label="Editar sala"
@@ -1069,94 +1069,6 @@ export default function Home() {
 
       </section>
 
-      {/* MODAL: EDITAR SALA */}
-      {salaEditando && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
-          onClick={fecharEdicao}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Editar sala"
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-[#121427] p-6 shadow-2xl shadow-black/40"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-200/15 bg-cyan-200/[0.08] text-cyan-100">
-                  <Pencil size={18} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-black">Editar sala</h3>
-                  <p className="text-xs text-white/40">Código {salaEditando.codigo}</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={fecharEdicao}
-                aria-label="Fechar"
-                className="text-white/40 transition hover:text-white cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <div>
-                <label htmlFor="edit-nome" className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/40">
-                  Nome da sala
-                </label>
-                <input
-                  id="edit-nome"
-                  value={editNome}
-                  onChange={(e) => setEditNome(e.target.value.slice(0, LIMITE_NOME_SALA))}
-                  maxLength={LIMITE_NOME_SALA}
-                  className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-[#090b17]/80 px-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-cyan-200/40 focus:ring-4 focus:ring-cyan-200/[0.06]"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="edit-max" className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/40">
-                  Máximo de jogadores
-                </label>
-                <input
-                  id="edit-max"
-                  type="number"
-                  min={Math.max(2, salaEditando._count?.jogadores ?? 0)}
-                  value={editMax}
-                  onChange={(e) => setEditMax(e.target.value)}
-                  className="mt-2 h-11 w-full rounded-xl border border-white/10 bg-[#090b17]/80 px-4 text-sm text-white outline-none transition focus:border-cyan-200/40 focus:ring-4 focus:ring-cyan-200/[0.06]"
-                />
-                <p className="mt-1.5 text-[11px] text-white/30">
-                  Já há {salaEditando._count?.jogadores ?? 0} jogador(es) na sala.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex gap-2.5">
-              <button
-                type="button"
-                onClick={fecharEdicao}
-                disabled={salvandoEdicao}
-                className="h-11 flex-1 rounded-xl border border-white/10 bg-white/[0.04] text-sm font-bold text-white/70 transition hover:bg-white/[0.08] disabled:opacity-40 cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={salvarEdicao}
-                disabled={salvandoEdicao}
-                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-white text-sm font-black text-[#101120] transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
-              >
-                {salvandoEdicao ? <Loader2 size={15} className="animate-spin" /> : null}
-                {salvandoEdicao ? "Salvando..." : "Salvar"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* MODAL: EXCLUIR SALA */}
       {salaExcluindo && (
         <div
@@ -1204,7 +1116,7 @@ export default function Home() {
 
       <footer className="relative  w-full  px-75">
         <div className="mx-auto flex max-w-7xl border-t border-white/[0.07] flex-col items-center justify-center gap-3 px-4 py-7 text-center sm:px-6 lg:px-8">
-         
+
 
           <p className="text-[11px] leading-5 text-white/30">
             © {new Date().getFullYear()} QuizRoyale. Todos os direitos reservados.

@@ -75,6 +75,20 @@ export default function CriarSalaPage() {
   const [codigo, setCodigo] = useState("");
   const [maxJogadores, setMaxJogadores] = useState(10);
 
+  const [salaEditarId, setSalaEditarId] = useState<number | null>(null);
+  const [carregandoEdicao, setCarregandoEdicao] = useState(false);
+
+  const modoEdicao = salaEditarId !== null;
+
+  useEffect(() => {
+    const parametros = new URLSearchParams(window.location.search);
+    const id = Number(parametros.get("editar"));
+
+    if (Number.isInteger(id) && id > 0) {
+      setSalaEditarId(id);
+    }
+  }, []);
+
   const [temas, setTemas] = useState<Tema[]>([]);
   const [perguntas, setPerguntas] = useState<PerguntaForm[]>([]);
   const [perguntasBanco, setPerguntasBanco] = useState<PerguntaBanco[]>([]);
@@ -143,6 +157,96 @@ export default function CriarSalaPage() {
       return texto;
     }
   };
+
+  useEffect(() => {
+    if (!salaEditarId || !API) return;
+
+    const carregarEdicao = async () => {
+      const token = Cookies.get("token");
+
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      try {
+        setCarregandoEdicao(true);
+
+        const res = await fetch(
+          `${API}/sala/${salaEditarId}/edicao`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            cache: "no-store",
+          }
+        );
+
+        const data = await lerResposta(res);
+
+        if (!res.ok) {
+          throw new Error(
+            mensagemErro(data, "Não foi possível carregar a sala.")
+          );
+        }
+
+        setNomeSala(data.nome);
+        setCodigo(data.codigo);
+        setMaxJogadores(data.maxJogadores);
+
+        const banco: PerguntaSelecionada[] = [];
+        const proprias: PerguntaForm[] = [];
+
+        for (const rodada of data.rodadas ?? []) {
+          const pergunta = rodada.pergunta;
+
+          if (pergunta.criador?.role === "ADMIN") {
+            banco.push({
+              perguntaId: pergunta.id,
+              tempoLimite: rodada.tempoLimite,
+            });
+          } else {
+            proprias.push({
+              enunciado: pergunta.enunciado,
+              temaId: pergunta.temaId,
+              tempoLimite: rodada.tempoLimite,
+              alternativas: pergunta.alternativas.map(
+                (alternativa: AlternativaBanco) => ({
+                  texto: alternativa.texto,
+                  correta: alternativa.correta,
+                })
+              ),
+            });
+          }
+        }
+
+        setSelecionadasBanco(banco);
+        setPerguntas(proprias);
+
+        setModoPerguntas(
+          banco.length > 0 ? "banco" : "proprias"
+        );
+
+        setPerguntaExpandida(proprias.length > 0 ? 0 : null);
+
+        toast.success("Dados da sala carregados!");
+      } catch (error) {
+        console.error("Erro ao carregar sala:", error);
+
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar a edição."
+        );
+
+        router.push("/");
+      } finally {
+        setCarregandoEdicao(false);
+      }
+    };
+
+    carregarEdicao();
+  }, [salaEditarId, API, router, headers]);
 
   // =========================================================
   // BUSCAR TEMAS
@@ -545,6 +649,39 @@ export default function CriarSalaPage() {
     try {
       setCriandoSala(true);
 
+      // MODO DE EDIÇÃO
+      if (salaEditarId) {
+        const res = await fetch(
+          `${API}/sala/${salaEditarId}/edicao`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              nome: nomeSala.trim(),
+              maxJogadores,
+              perguntasBanco: selecionadasBanco,
+              perguntasProprias: perguntas,
+            }),
+          }
+        );
+
+        const data = await lerResposta(res);
+
+        if (!res.ok) {
+          throw new Error(
+            mensagemErro(data, "Erro ao atualizar a sala.")
+          );
+        }
+
+        toast.success("Sala atualizada com sucesso!");
+
+        router.push("/");
+        return;
+      }
+
       // 1. Criar sala.
       const salaRes = await fetch(`${API}/sala`, {
         method: "POST",
@@ -743,8 +880,9 @@ export default function CriarSalaPage() {
             </Link>
 
             <div>
-              <p className="text-sm font-black tracking-tight">Criar sala</p>
-
+              <p className="text-sm font-black tracking-tight">
+                {modoEdicao ? "Editar sala" : "Criar sala"}
+              </p>
             </div>
           </div>
 
@@ -1905,7 +2043,7 @@ export default function CriarSalaPage() {
             <button
               type="button"
               onClick={criarSala}
-              disabled={criandoSala || loadingTemas}
+              disabled={criandoSala || loadingTemas || carregandoEdicao}
               className="group relative flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-fuchsia-500 via-violet-500 to-indigo-600 px-5 py-4 text-sm font-black shadow-xl shadow-fuchsia-950/30 transition-all duration-300 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-2xl hover:shadow-fuchsia-900/25 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <span className="pointer-events-none absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-white/[0.12] to-transparent transition-transform duration-700 group-hover:translate-x-[100%]" />
@@ -1914,12 +2052,12 @@ export default function CriarSalaPage() {
                 {criandoSala ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Criando sua sala...
+                    {modoEdicao ? "Editando sua sala..." : "Criando sua sala..."}
                   </>
                 ) : (
                   <>
                     <Gamepad2 size={18} />
-                    Criar minha sala
+                    {modoEdicao ? "Salvar alterações" : "Criar minha sala"}
                     <ArrowLeft
                       size={16}
                       className="rotate-180 transition-transform duration-300 group-hover:translate-x-1"

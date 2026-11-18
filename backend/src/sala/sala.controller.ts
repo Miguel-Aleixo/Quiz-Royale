@@ -17,6 +17,7 @@ import { SalaService } from './sala.service';
 import { CreateSalaDto } from './dto/create-sala.dto';
 import { UpdateSalaDto } from './dto/update-sala.dto';
 import { EntrarSalaDto } from './dto/entrar-sala.dto';
+import { UpdateSalaEdicaoDto } from './dto/update-sala-edicao.dto';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -84,6 +85,37 @@ export class SalaController {
     return this.salaService.findAll();
   }
 
+  @Get('arquivadas')
+  findArquivadas() {
+    return this.salaService.findArquivadas();
+  }
+
+  @Get(':id/edicao')
+  buscarParaEdicao(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.salaService.buscarParaEdicao(
+      id,
+      req.user.id,
+      req.user.role,
+    );
+  }
+
+  @Patch(':id/edicao')
+  atualizarEdicao(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateSalaEdicaoDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.salaService.atualizarEdicao(
+      id,
+      dto,
+      req.user.id,
+      req.user.role,
+    );
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.salaService.findOne(id);
@@ -97,29 +129,12 @@ export class SalaController {
     return this.salaService.reabrir(id, req.user.id);
   }
 
-  @Get('arquivadas')
-  findArquivadas() {
-    return this.salaService.findArquivadas();
-  }
-
   @Patch(':id/arquivar')
   arquivar(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: AuthenticatedRequest,
   ) {
     return this.salaService.arquivar(
-      id,
-      req.user.id,
-      req.user.role,
-    );
-  }
-
-  @Patch(':id/desarquivar')
-  desarquivar(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    return this.salaService.desarquivar(
       id,
       req.user.id,
       req.user.role,
