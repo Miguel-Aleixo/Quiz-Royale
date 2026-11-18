@@ -86,7 +86,7 @@ interface MensagemChat {
 }
 
 const LIMITE_CARACTERES = 300;
-const INTERVALO_MENSAGENS_MS = 2000;
+const INTERVALO_MENSAGENS_MS = 1000;
 
 function SalaEntrarContent() {
   const router = useRouter();
