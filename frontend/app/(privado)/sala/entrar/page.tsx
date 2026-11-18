@@ -1144,7 +1144,7 @@ function SalaEntrarContent() {
                   >
                     {cooldown > 0 ? (
                       <span className="text-[10px] font-black tabular-nums">
-                        {cooldown}
+                        <Send className="h-3.5 w-3.5" />
                       </span>
                     ) : (
                       <Send className="h-3.5 w-3.5" />
