@@ -256,7 +256,6 @@ export class SalaService {
     });
   }
 
-
   async buscarParaEdicao(
     id: number,
     usuarioId: number,
@@ -309,9 +308,9 @@ export class SalaService {
       );
     }
 
-    if (sala.status !== 'ABERTA' || sala.arquivada) {
+    if (sala.status === 'ABERTA' || sala.arquivada) {
       throw new ConflictException(
-        'Somente salas abertas e não arquivadas podem ser editadas.',
+        'Somente salas fechadas e não arquivadas podem ser editadas.',
       );
     }
 
@@ -359,9 +358,9 @@ export class SalaService {
       );
     }
 
-    if (sala.status !== 'ABERTA' || sala.arquivada) {
+    if (sala.status === 'ABERTA' || sala.arquivada) {
       throw new ConflictException(
-        'Somente salas abertas e não arquivadas podem ser editadas.',
+        'Somente salas fechadas e não arquivadas podem ser editadas.',
       );
     }
 
