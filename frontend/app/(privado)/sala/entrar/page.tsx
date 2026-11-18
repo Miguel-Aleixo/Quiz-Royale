@@ -789,14 +789,14 @@ function SalaEntrarContent() {
 
           <div
             className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 ${conectado
-                ? "border-emerald-400/15 bg-emerald-500/10 text-emerald-300"
-                : "border-yellow-400/15 bg-yellow-500/10 text-yellow-300"
+              ? "border-emerald-400/15 bg-emerald-500/10 text-emerald-300"
+              : "border-yellow-400/15 bg-yellow-500/10 text-yellow-300"
               }`}
           >
             <span
               className={`h-2 w-2 rounded-full ${conectado
-                  ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.7)]"
-                  : "animate-pulse bg-yellow-400"
+                ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,.7)]"
+                : "animate-pulse bg-yellow-400"
                 }`}
             />
             <span className="hidden text-[11px] font-bold sm:block">
@@ -1079,8 +1079,8 @@ function SalaEntrarContent() {
 
                         <div
                           className={`max-w-[90%] break-words rounded-xl px-2.5 py-2 text-xs leading-4 ${minhaMensagem
-                              ? "rounded-br-sm bg-gradient-to-br from-fuchsia-600 to-violet-600 text-white"
-                              : "rounded-bl-sm border border-white/[0.07] bg-white/[0.045] text-white/85"
+                            ? "rounded-br-sm bg-gradient-to-br from-fuchsia-600 to-violet-600 text-white"
+                            : "rounded-bl-sm border border-white/[0.07] bg-white/[0.045] text-white/85"
                             }`}
                         >
                           {mensagem.texto}
@@ -1107,8 +1107,8 @@ function SalaEntrarContent() {
               >
                 <div
                   className={`flex items-center gap-1.5 rounded-xl border bg-black/20 p-1 transition ${cooldown > 0
-                      ? "border-yellow-400/20"
-                      : "border-white/10 focus-within:border-fuchsia-400/40"
+                    ? "border-yellow-400/20"
+                    : "border-white/10 focus-within:border-fuchsia-400/40"
                     }`}
                 >
                   <input
@@ -1155,8 +1155,8 @@ function SalaEntrarContent() {
                 <div className="mt-1.5 flex items-center justify-between gap-2 px-1">
                   <p
                     className={`text-[9px] ${textoChat.length >= LIMITE_CARACTERES
-                        ? "text-yellow-300"
-                        : "text-white/30"
+                      ? "text-yellow-300"
+                      : "text-white/30"
                       }`}
                   >
                     {textoChat.length}/{LIMITE_CARACTERES}
@@ -1201,7 +1201,7 @@ function SalaEntrarContent() {
         </div>
 
         {/* RODAPÉ */}
-        <footer className="border-t border-white/[0.07] py-6">
+        <footer className="border-t border-white/[0.07] py-6 mt-20">
           <div className="flex flex-col items-center justify-center gap-2 text-center sm:flex-row sm:gap-3">
             <p className="text-[11px] leading-5 text-white/30">
               © {new Date().getFullYear()} QuizRoyale. Todos os direitos reservados.
@@ -1254,13 +1254,13 @@ function SalaEntrarContent() {
             <div className="px-6 py-6">
               <div className="rounded-2xl border border-red-400/10 bg-red-500/[0.05] p-4">
                 <div className="flex gap-3">
+                  {ehCriador && (
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500/10">
                     <span className="text-sm font-black text-red-400">
                       !
                     </span>
                   </div>
 
-                  {ehCriador && (
                     <div>
                       <p className="text-sm font-bold text-red-300">
                         Atenção
@@ -1274,7 +1274,6 @@ function SalaEntrarContent() {
 
                     </div>
                   )}
-
                 </div>
               </div>
 
