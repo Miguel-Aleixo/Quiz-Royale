@@ -985,8 +985,8 @@ export default function Home() {
                                 <button
                                   type="button"
                                   onClick={() => router.push(`/sala/criar?editar=${sala.id}`)}
-                                  disabled={loading || !disponivel}
-                                  title={disponivel ? "Editar sala" : "Só é possível editar salas abertas"}
+                                  disabled={loading}
+                                  title={"Editar sala"}
                                   aria-label="Editar sala"
                                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/65 transition hover:border-cyan-200/30 hover:bg-cyan-200/10 hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer"
                                 >
