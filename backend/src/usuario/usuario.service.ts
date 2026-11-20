@@ -1,5 +1,3 @@
-import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
 import {
   Injectable,
   NotFoundException,
@@ -8,13 +6,20 @@ import {
   BadRequestException,
   ForbiddenException
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+
+// SEGURANÇA
+import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto'; 
 import { Role } from '@prisma/client';
 
-import { CreateUsuarioDto } from './dto/create-usuario.dto';
-import { UpdateUsuarioDto } from './dto/update-usuario.dto';
+// SERVICE 
+import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+
+// DTO
+import { CreateUsuarioDto } from './dto/create-usuario.dto';
+import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 
 @Injectable()
 export class UsuarioService {
@@ -24,6 +29,7 @@ export class UsuarioService {
     private readonly jwtService: JwtService,
   ) { }
 
+  // CRIAR USUÁRIO
   async create(createUsuarioDto: CreateUsuarioDto) {
     const senhaHash = await bcrypt.hash(
       createUsuarioDto.senha,
@@ -96,6 +102,7 @@ export class UsuarioService {
     };
   }
 
+  // CRIAR ADMIN
   async createAdmin(createUsuarioDto: CreateUsuarioDto) {
     const senhaHash = await bcrypt.hash(
       createUsuarioDto.senha,
@@ -113,6 +120,7 @@ export class UsuarioService {
     });
   }
 
+  // BUSCAR USUÁRIOS
   async findAll() {
     return await this.prisma.usuario.findMany({
       include: {
@@ -121,6 +129,7 @@ export class UsuarioService {
     });
   }
 
+  // BUSCAR USUÁRIO POR EMAILL
   async findByEmail(email: string) {
     return await this.prisma.usuario.findFirst({
       where: {
@@ -129,6 +138,7 @@ export class UsuarioService {
     });
   }
 
+  // BUSCAR USUÁRIO POR EMAIL OU NOME DE USUÁRIO
   async findByEmailOuUsuario(identificador: string) {
     return this.prisma.usuario.findFirst({
       where: {
@@ -144,6 +154,7 @@ export class UsuarioService {
     });
   }
 
+  // BUSCAR USUÁRIO
   async findOne(id: number) {
     const usuario = await this.prisma.usuario.findUnique({
       where: {
@@ -203,7 +214,7 @@ export class UsuarioService {
     };
   }
 
-
+  // MUDAR PERMISSÕES
   async atualizarPatente(usuarioId: number) {
     const usuario =
       await this.prisma.usuario.findUnique({
@@ -263,6 +274,8 @@ export class UsuarioService {
     });
   }
 
+
+  // VERIFICAÇÃO DE EMAIL
   async verificarEmail(token: string) {
     const verificacao =
       await this.prisma.verificacaoEmail.findUnique({
@@ -309,6 +322,7 @@ export class UsuarioService {
     };
   }
 
+  // VERIFICAÇÃO DE SESSÃO
   async verificarSessaoEmail(
     sessaoToken: string,
   ) {
@@ -340,20 +354,12 @@ export class UsuarioService {
       );
     }
 
-    /*
-     * O celular ainda não confirmou o e-mail.
-     */
     if (!verificacao.usuario.emailVerificado) {
       return {
         emailVerificado: false,
       };
     }
 
-    /*
-     * O e-mail foi confirmado.
-     *
-     * Agora o PC recebe seu próprio JWT.
-     */
     const usuario = verificacao.usuario;
 
     const payload = {
@@ -366,9 +372,6 @@ export class UsuarioService {
     const accessToken =
       await this.jwtService.signAsync(payload);
 
-    /*
-     * A sessão temporária é de uso único.
-     */
     await this.prisma.verificacaoEmail.delete({
       where: {
         id: verificacao.id,
@@ -388,6 +391,7 @@ export class UsuarioService {
     };
   }
 
+  // REENVIAR VERIFICAÇÃO DE EMAIL
   async reenviarVerificacaoPorId(usuarioId: number) {
     const usuario =
       await this.prisma.usuario.findUnique({
@@ -455,10 +459,6 @@ export class UsuarioService {
         },
       });
 
-    /*
-     * Não informamos se o e-mail existe.
-     * Isso evita descoberta de contas cadastradas.
-     */
     if (!usuario) {
       return {
         mensagem:
@@ -466,9 +466,6 @@ export class UsuarioService {
       };
     }
 
-    /*
-     * Remove solicitações anteriores.
-     */
     await this.prisma.recuperacaoSenha.deleteMany({
       where: {
         usuarioId: usuario.id,
@@ -518,6 +515,7 @@ export class UsuarioService {
     };
   }
 
+  // RECUPERAR SENHA
   async redefinirSenha(
     token: string,
     novaSenha: string,
@@ -564,9 +562,6 @@ export class UsuarioService {
       },
     });
 
-    /*
-     * Token de recuperação é de uso único.
-     */
     await this.prisma.recuperacaoSenha.delete({
       where: {
         id: recuperacao.id,
@@ -579,6 +574,7 @@ export class UsuarioService {
     };
   }
 
+  // BUSCAR PARTIDAS JOGADAS RECENTEMENTE
   async obterPartidasRecentes(
     usuarioId: number,
     limite = 5,
@@ -676,6 +672,7 @@ export class UsuarioService {
     });
   }
 
+  // BUSCAR ESTATISTICAS
   async obterEstatisticas(usuarioId: number) {
     const jogadores = await this.prisma.jogador.findMany({
       where: {
@@ -766,6 +763,7 @@ export class UsuarioService {
     };
   }
 
+  // ALTERAR PERMISSÕES
   async alterarRole(
     id: number,
     novaRole: Role,
@@ -827,6 +825,7 @@ export class UsuarioService {
     });
   }
 
+  // EDITAR USUÁRIO
   async update(
     id: number,
     updateUsuarioDto: UpdateUsuarioDto,
@@ -847,19 +846,11 @@ export class UsuarioService {
       confirmarSenha,
     } = updateUsuarioDto;
 
-    // =========================================================
-    // NORMALIZAÇÃO DOS DADOS
-    // =========================================================
-
     const emailNormalizado = email?.trim().toLowerCase();
 
     const nomeNormalizado = nome
       ?.trim()
       .toLowerCase();
-
-    // =========================================================
-    // VERIFICAR ALTERAÇÕES
-    // =========================================================
 
     const emailMudou =
       emailNormalizado !== undefined &&
@@ -871,10 +862,6 @@ export class UsuarioService {
 
     const senhaMudou =
       senha !== undefined && senha.length > 0;
-
-    // =========================================================
-    // VALIDAÇÃO DA SENHA
-    // =========================================================
 
     if (confirmarSenha !== undefined && !senhaMudou) {
       throw new BadRequestException(
@@ -902,10 +889,6 @@ export class UsuarioService {
       }
     }
 
-    // =========================================================
-    // CONFIRMAR SENHA ATUAL
-    // =========================================================
-
     if (emailMudou || nomeMudou || senhaMudou) {
       if (!senhaAtual) {
         throw new BadRequestException(
@@ -925,10 +908,6 @@ export class UsuarioService {
       }
     }
 
-    // =========================================================
-    // VALIDAR NOME
-    // =========================================================
-
     if (nome !== undefined) {
       const nomeNormalizado = nome.trim();
 
@@ -944,10 +923,6 @@ export class UsuarioService {
         );
       }
     }
-
-    // =========================================================
-    // VALIDAR NOME DE USUÁRIO
-    // =========================================================
 
     if (nomeNormalizado !== undefined) {
       if (
@@ -977,10 +952,6 @@ export class UsuarioService {
       }
     }
 
-    // =========================================================
-    // VALIDAR E-MAIL
-    // =========================================================
-
     if (emailMudou && emailNormalizado) {
       const emailExistente =
         await this.prisma.usuario.findFirst({
@@ -997,10 +968,6 @@ export class UsuarioService {
         );
       }
     }
-
-    // =========================================================
-    // PREPARAR ATUALIZAÇÃO
-    // =========================================================
 
     const data: {
       nome?: string;
@@ -1025,24 +992,14 @@ export class UsuarioService {
       data.senha = await bcrypt.hash(senha, 10);
     }
 
-    // Alterar o e-mail exige uma nova verificação.
     if (emailMudou) {
       data.emailVerificado = false;
     }
-
-    // =========================================================
-    // ATUALIZAR USUÁRIO
-    // =========================================================
-
     const usuarioAtualizado = await this.prisma.usuario.update({
       where: { id },
       data,
       include: { patente: true },
     });
-
-    // =========================================================
-    // RETORNO
-    // =========================================================
 
     return {
       id: usuarioAtualizado.id,
@@ -1060,6 +1017,7 @@ export class UsuarioService {
     };
   }
 
+  // DELETAR USUÁRIO
   async remove(id: number) {
     return await this.prisma.usuario.delete({
       where: { id },

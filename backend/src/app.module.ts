@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+// MODULOS
 import { AuthModule } from './auth/auth.module';
-
 import { UsuarioModule } from './usuario/usuario.module';
 import { PatenteModule } from './patente/patente.module';
 import { TemaModule } from './tema/tema.module';
@@ -14,6 +14,7 @@ import { AlternativaModule } from './alternativa/alternativa.module';
 import { RespostaModule } from './resposta/resposta.module';
 import { PartidaModule } from './partida/partida.module';
 
+// SERVICE
 import { PrismaService } from './prisma/prisma.service';
 
 @Module({
@@ -21,9 +22,7 @@ import { PrismaService } from './prisma/prisma.service';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-
     AuthModule,
-
     UsuarioModule,
     PatenteModule,
     TemaModule,
@@ -34,7 +33,6 @@ import { PrismaService } from './prisma/prisma.service';
     AlternativaModule,
     RespostaModule,
     PartidaModule,
-    
   ],
 
   providers: [

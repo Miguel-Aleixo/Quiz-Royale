@@ -2,12 +2,17 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 
-import { UsuarioService } from './usuario.service';
+// MODULO
 import { UsuarioController } from './usuario.controller';
-import { UsuarioGateway } from './usuario.gateway';
-
 import { PrismaModule } from '../prisma/prisma.module';
 import { EmailModule } from '../email/email.module';
+
+// SERVICE
+import { UsuarioService } from './usuario.service';
+
+// GATEWAY
+import { UsuarioGateway } from './usuario.gateway';
+
 
 @Module({
   imports: [
